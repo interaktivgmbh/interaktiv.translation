@@ -1,0 +1,37 @@
+<configure
+        xmlns="http://namespaces.zope.org/zope"
+        xmlns:genericsetup="http://namespaces.zope.org/genericsetup"
+        xmlns:i18n="http://namespaces.zope.org/i18n"
+        i18n_domain="interaktiv.translation">
+
+    <i18n:registerTranslations directory="locales"/>
+
+    <include package="Products.CMFCore" file="permissions.zcml"/>
+
+    <include package=".controlpanels"/>
+    <include package=".helpers"/>
+    <include package=".services"/>
+    <include package=".subscribers"/>
+    <include package=".views"/>
+    <include package=".vocabularies"/>
+
+    <include package=".providers"/>
+
+    <genericsetup:registerProfile
+            name="default"
+            title="Interaktiv Translation"
+            description="Installs the interaktiv.translation add-on."
+            provides="Products.GenericSetup.interfaces.EXTENSION"
+            directory="profiles/default"
+            post_handler=".setuphandlers.post_install"
+    />
+
+    <genericsetup:registerProfile
+            name="uninstall"
+            title="Interaktiv Translation (uninstall)"
+            description="Uninstalls the interaktiv.translation add-on."
+            provides="Products.GenericSetup.interfaces.EXTENSION"
+            directory="profiles/uninstall"
+            post_handler=".setuphandlers.uninstall"
+    />
+</configure>

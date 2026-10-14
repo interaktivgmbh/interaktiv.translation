@@ -1,0 +1,24 @@
+<configure
+        xmlns="http://namespaces.zope.org/zope"
+        xmlns:browser="http://namespaces.zope.org/browser"
+        i18n_domain="interaktiv.translation">
+
+    <include package="plone.app.multilingual" file="permissions.zcml"/>
+
+    <browser:page
+            name="translation-available"
+            for="*"
+            class=".translate.TranslationAvailableView"
+            permission="plone.app.multilingual.ManageTranslations"
+            layer="interaktiv.translation.interfaces.IInteraktivTranslationBrowserLayer"
+    />
+
+    <browser:page
+            name="translate-content"
+            for="plone.dexterity.interfaces.IDexterityContent"
+            class=".translate.TranslateContentView"
+            permission="plone.app.multilingual.ManageTranslations"
+            layer="interaktiv.translation.interfaces.IInteraktivTranslationBrowserLayer"
+    />
+
+</configure>

@@ -1,0 +1,64 @@
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:tal="http://xml.zope.org/namespaces/tal"
+      xmlns:metal="http://xml.zope.org/namespaces/metal"
+      xmlns:i18n="http://xml.zope.org/namespaces/i18n"
+      metal:use-macro="context/main_template/macros/master"
+      i18n:domain="interaktiv.translation">
+<body>
+<metal:content-core fill-slot="content-core">
+
+    <h1 class="documentFirstHeading" i18n:translate="">Translate</h1>
+
+    <p tal:condition="not: view/configured" class="portalMessage warning">
+        <strong i18n:translate="">Not configured</strong>
+        <span i18n:translate="">
+            This site has no translation service configured. Set one up in the
+            translation control panel.
+        </span>
+    </p>
+
+    <form method="post" tal:condition="view/configured"
+          tal:attributes="action string:${context/absolute_url}/@@translate-content">
+
+        <p i18n:translate="">
+            These fields are translated:
+            <span i18n:name="fields" tal:content="python: ', '.join(view.fields())"/>
+        </p>
+
+        <div class="field">
+            <label for="target_language" i18n:translate="">Translate into</label>
+            <select name="target_language" id="target_language">
+                <option tal:repeat="language view/target_languages"
+                        tal:attributes="value language/code"
+                        tal:content="language/title"/>
+            </select>
+        </div>
+
+        <tal:existing tal:define="existing view/existing_translations"
+                      tal:condition="existing">
+            <p class="portalMessage warning">
+                <span i18n:translate="">
+                    A translation already exists for:
+                    <span i18n:name="languages"
+                          tal:content="python: ', '.join(existing)"/>
+                </span>
+            </p>
+            <div class="field">
+                <input type="checkbox" name="overwrite" id="overwrite" value="1"/>
+                <label for="overwrite" i18n:translate="">
+                    Overwrite the existing translation
+                </label>
+            </div>
+        </tal:existing>
+
+        <div class="formControls">
+            <input type="hidden" name="form.submitted" value="1"/>
+            <input class="context btn btn-primary" type="submit"
+                   name="form.button.Translate"
+                   value="Translate" i18n:attributes="value"/>
+        </div>
+    </form>
+
+</metal:content-core>
+</body>
+</html>

@@ -1,0 +1,20 @@
+<configure
+        xmlns="http://namespaces.zope.org/zope"
+        xmlns:plone="http://namespaces.plone.org/plone">
+
+    <include package="plone.rest" file="meta.zcml"/>
+
+    <include package="plone.app.multilingual" file="permissions.zcml"/>
+
+    <adapter factory=".get.MachineTranslationInfo" name="machine_translation"/>
+
+    <plone:service
+            method="GET"
+            factory=".get.MachineTranslationInfoGet"
+            for="plone.dexterity.interfaces.IDexterityContent"
+            permission="cmf.ModifyPortalContent"
+            name="@machine-translation"
+            layer="interaktiv.translation.interfaces.IInteraktivTranslationBrowserLayer"
+    />
+
+</configure>

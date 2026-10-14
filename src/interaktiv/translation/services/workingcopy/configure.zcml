@@ -1,0 +1,19 @@
+<configure
+        xmlns="http://namespaces.zope.org/zope"
+        xmlns:plone="http://namespaces.plone.org/plone">
+
+    <include package="plone.rest" file="meta.zcml"/>
+
+    <include package="plone.app.iterate"/>
+
+    <!-- Override plone.restapi's PATCH @workingcopy -->
+    <plone:service
+            method="PATCH"
+            factory=".update.UpdateWorkingCopy"
+            for="Products.CMFCore.interfaces.IContentish"
+            permission="plone.app.iterate.CheckInContent"
+            name="@workingcopy"
+            layer="interaktiv.translation.interfaces.IInteraktivTranslationBrowserLayer"
+    />
+
+</configure>

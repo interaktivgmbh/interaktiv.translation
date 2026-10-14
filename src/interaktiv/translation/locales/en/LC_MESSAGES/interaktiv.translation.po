@@ -1,0 +1,196 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: interaktiv.translation\n"
+"POT-Creation-Date: 2026-01-01 00:00+0000\n"
+"PO-Revision-Date: 2026-01-01 00:00+0000\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Language-Code: en\n"
+"Language-Name: English\n"
+"Preferred-Encodings: utf-8 latin1\n"
+"Domain: interaktiv.translation\n"
+"Language: en\n"
+
+#: ../profiles/default/actions.xml
+msgid "Translate"
+msgstr ""
+
+#: ../profiles/default/controlpanel.xml
+msgid "Translation"
+msgstr ""
+
+#: ../controlpanels/classic.py
+msgid "The service that translates content, and what it may translate."
+msgstr ""
+
+#: ../registry/translation.py
+msgid "Translation service"
+msgstr ""
+
+#: ../registry/translation.py
+msgid "Which service translates. Only DeepL ships with this add-on."
+msgstr ""
+
+#: ../registry/translation.py
+msgid "DeepL API key"
+msgstr ""
+
+#: ../registry/translation.py
+msgid "The key from your DeepL account. A free key ends in ':fx' and is sent to the free endpoint; anything else goes to the pro one."
+msgstr ""
+
+#: ../registry/translation.py
+msgid "DeepL API URL"
+msgstr ""
+
+#: ../registry/translation.py
+msgid "Only for a proxy or a self-hosted endpoint. Empty means the host that matches the key."
+msgstr ""
+
+#: ../registry/translation.py
+msgid "Source language"
+msgstr ""
+
+#: ../registry/translation.py
+msgid "Fallback for content that names no language of its own: a translation takes the source language from the content first. Empty lets DeepL detect the language per text; the metadata mapping then keeps values unchanged."
+msgstr ""
+
+#: ../registry/translation.py
+msgid "Offered target languages"
+msgstr ""
+
+#: ../registry/translation.py
+msgid "The languages an editor may translate into, as language codes. Empty offers the site's own languages."
+msgstr ""
+
+#: ../registry/translation.py
+msgid "Translated fields"
+msgstr ""
+
+#: ../registry/translation.py
+msgid "The content fields the action translates, in this order."
+msgstr ""
+
+#: ../views/translate.py
+msgid "Choose a language to translate into."
+msgstr ""
+
+#: ../views/translate.py
+msgid "The translation is ready."
+msgstr ""
+
+#: ../views/templates/translate.pt
+msgid "Not configured"
+msgstr ""
+
+#: ../views/templates/translate.pt
+msgid "This site has no translation service configured. Set one up in the translation control panel."
+msgstr ""
+
+#: ../views/templates/translate.pt
+msgid "Translate into"
+msgstr ""
+
+#: ../views/translate.py
+msgid "There is already a translation into this language. Tick 'Overwrite' to replace it."
+msgstr "There is already a translation into this language. Tick 'Overwrite' to replace it."
+
+#: ../views/templates/translate.pt
+msgid "A translation already exists for: ${languages}"
+msgstr "A translation already exists for: ${languages}"
+
+#: ../views/templates/translate.pt
+msgid "Overwrite the existing translation"
+msgstr "Overwrite the existing translation"
+
+#: ../helpers/metadata.py
+msgid "line ${number}: belongs to no [field] section"
+msgstr ""
+
+#: ../helpers/metadata.py
+msgid "line ${number}: a mapping needs at least two languages"
+msgstr ""
+
+#: ../helpers/metadata.py
+msgid "line ${number}: '${cell}' is no language code"
+msgstr ""
+
+#: ../helpers/metadata.py
+msgid "line ${number}: a language appears twice"
+msgstr ""
+
+#: ../helpers/metadata.py
+msgid "line ${number}: ${cells} cells, but the header names ${languages} languages"
+msgstr ""
+
+#: ../helpers/metadata.py
+msgid "The mapping table has problems: "
+msgstr ""
+
+#: ../registry/translation.py
+msgid "Translation Service"
+msgstr ""
+
+#: ../registry/translation.py
+msgid "Translation Options"
+msgstr ""
+
+#: ../registry/translation.py
+msgid "Link fields of the content type"
+msgstr ""
+
+#: ../registry/translation.py
+msgid "Fields of your content types that hold a link, one per line — a project link, a partner link. Links inside blocks are found on their own; these are the ones that sit on the object itself."
+msgstr ""
+
+#: ../registry/translation.py
+msgid "Link keys inside blocks"
+msgstr ""
+
+#: ../registry/translation.py
+msgid "Which keys of a block hold a link to other content. The default is what Plone itself watches for link integrity, plus the key an object browser writes. A block type of your own may need its own keys named here."
+msgstr ""
+
+#: ../registry/translation.py
+msgid "Prose keys inside blocks"
+msgstr ""
+
+#: ../registry/translation.py
+msgid "Which keys of a block hold text to translate. Only the key tells a sentence apart from a token the front end reads, so a block type of your own needs its own keys named here, or its text stays in the source language."
+msgstr ""
+
+#: ../registry/translation.py
+msgid "Metadata Mapping"
+msgstr ""
+
+#: ../registry/translation.py
+msgid "Metadata mapping"
+msgstr ""
+
+#: ../registry/translation.py
+msgid "CSV format where [field_id] starts a new metadata field mapping:\n[subject]\nde, en, fr\nForschung, Research, Recherche"
+msgstr ""
+
+#: ../views/templates/translate.pt
+msgid "These fields are translated: ${fields}"
+msgstr ""
+
+#: ../registry/translation.py
+msgid "Content types not translated by machine"
+msgstr ""
+
+#: ../registry/translation.py
+msgid "Content of these types is never offered for machine translation."
+msgstr ""
+
+#: ../registry/translation.py
+msgid "Fields carried over unchanged"
+msgstr ""
+
+#: ../registry/translation.py
+msgid "Fields of the content whose values the translation takes over as they are, neither translated nor mapped — keywords that are codes, a project number. Named as the object stores them, one per line (e.g. subject, rights, image). Only text, numbers, dates, lists of them, and files and images, which the translation gets a copy of; editors may change the values afterwards."
+msgstr ""

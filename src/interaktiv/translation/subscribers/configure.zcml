@@ -1,0 +1,36 @@
+<configure xmlns="http://namespaces.zope.org/zope">
+
+    <subscriber
+        for="plone.app.iterate.interfaces.ICheckoutEvent"
+        handler=".events.restrict_translations_on_checkout"
+        />
+
+    <subscriber
+        for="plone.app.iterate.interfaces.ICheckinEvent"
+        handler=".events.restore_translations_on_checkin"
+        />
+
+    <subscriber
+        for="plone.app.iterate.interfaces.ICheckinEvent"
+        handler=".events.note_machine_translation_checkin"
+        />
+
+    <subscriber
+        for="plone.dexterity.interfaces.IDexterityContent
+             zope.lifecycleevent.interfaces.IObjectModifiedEvent"
+        handler=".events.note_machine_translation_edit"
+        />
+
+    <subscriber
+        for="plone.dexterity.interfaces.IDexterityContent
+             Products.DCWorkflow.interfaces.IBeforeTransitionEvent"
+        handler=".events.note_machine_translation_before_publication"
+        />
+
+    <subscriber
+        for="plone.dexterity.interfaces.IDexterityContent
+             Products.CMFCore.interfaces.IActionSucceededEvent"
+        handler=".events.note_machine_translation_publication"
+        />
+
+</configure>

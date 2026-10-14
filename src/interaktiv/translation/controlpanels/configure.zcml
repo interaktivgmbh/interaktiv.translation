@@ -1,0 +1,21 @@
+<configure
+        xmlns="http://namespaces.zope.org/zope"
+        xmlns:browser="http://namespaces.zope.org/browser"
+        i18n_domain="interaktiv.translation">
+
+    <!-- Controlpanel Volto Frontend -->
+    <adapter
+            factory=".translation.TranslationControlpanel"
+            name="translation"
+    />
+
+    <!-- Controlpanel Backend -->
+    <browser:page
+            name="translation-controlpanel"
+            for="Products.CMFPlone.interfaces.IPloneSiteRoot"
+            class=".classic.TranslationSettingsControlPanel"
+            permission="cmf.ManagePortal"
+            layer="interaktiv.translation.interfaces.IInteraktivTranslationBrowserLayer"
+    />
+
+</configure>

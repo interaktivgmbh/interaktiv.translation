@@ -1,0 +1,15 @@
+<configure xmlns="http://namespaces.zope.org/zope">
+
+    <utility
+            factory=".translation.ProvidersVocabularyFactory"
+            provides="zope.schema.interfaces.IVocabularyFactory"
+            name="interaktiv.translation.Providers"
+    />
+
+    <utility
+            factory=".translation.TargetLanguagesVocabularyFactory"
+            provides="zope.schema.interfaces.IVocabularyFactory"
+            name="interaktiv.translation.TargetLanguages"
+    />
+
+</configure>
