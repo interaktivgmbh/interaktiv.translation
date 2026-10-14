@@ -1,0 +1,11 @@
+*.egg-info
+*.mo
+*.egg
+*.pyc
+
+.idea
+__pycache__/
+.ruff_cache/
+.venv/
+build/
+dist/
