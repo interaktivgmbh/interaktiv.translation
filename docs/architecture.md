@@ -293,8 +293,13 @@ workflow none; the status itself does not depend on versioning.
   writing services.
 * **`GET @translate`** needs *Modify portal content*. It reports whether the
   site is configured, whether this content may be translated by machine
-  (`translatable`), the offered target languages (without the content's own)
-  and, per language, the translation, its status and an open working copy.
+  (`translatable`), the languages it can be translated into (`languages`,
+  without the content's own) and, per language, the translation, its status
+  and an open working copy. On a multilingual site `languages` holds every
+  language of the site, `machine` telling which of them are offered for
+  machine translation; the others can be translated by hand only. Without
+  multilingual it holds the offered target languages, all by machine.
+  Target languages the multilingual site does not have are dropped.
 * **The `machine_translation` expander** (`@machine-translation`) adds the
   marker and the status to a content response for editors. Volto's banner
   reads it.

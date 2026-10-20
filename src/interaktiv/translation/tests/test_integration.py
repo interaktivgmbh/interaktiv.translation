@@ -12,6 +12,7 @@ from plone.registry.interfaces import IRegistry
 from zope.annotation.interfaces import IAnnotations
 from plone.namedfile.file import NamedBlobFile, NamedBlobImage
 from zope.component import getUtility
+from zope.schema.interfaces import IVocabularyFactory
 
 from interaktiv.translation.registry.translation import ITranslationSettings
 from interaktiv.translation.storage import MACHINE_TRANSLATION_KEY, TranslationStorage
@@ -147,6 +148,20 @@ class TestTranslateService(TestCase):
         body = response.json()
         self.assertTrue(body["configured"])
         self.assertEqual(body["provider"], "deepl")
+        self.assertEqual(body["languages"], [{"code": "en", "title": "en", "machine": True}])
+
+    def test_get__offers_the_configured_target_languages_without_multilingual(self):
+        # setup
+        _records().target_languages = ["fr", "it"]
+        transaction.commit()
+
+        # do it
+        response = self.api_session.get("/page/@translate")
+
+        # postcondition — no language root folders, so nothing to check them against
+        languages = response.json()["languages"]
+        self.assertEqual([entry["code"] for entry in languages], ["fr", "it"])
+        self.assertTrue(all(entry["machine"] for entry in languages))
 
     def test_post__answers_the_translation_without_writing_it(self):
         # do it
@@ -461,9 +476,47 @@ class TestTranslateServiceOnAMultilingualSite(TestCase):
         response = self.api_session.get("/de/page/@translate")
 
         # postcondition — "de" is what the page already is
-        codes = [entry["code"] for entry in response.json()["target_languages"]]
+        codes = [entry["code"] for entry in response.json()["languages"]]
         self.assertIn("en", codes)
         self.assertNotIn("de", codes)
+
+    def test_get__offers_every_site_language_and_marks_the_machine_ones(self):
+        # setup — French is a site language, but not offered for machine translation
+        api.portal.get_tool("portal_languages").addSupportedLanguage("fr")
+        _records().target_languages = ["en"]
+        transaction.commit()
+
+        # do it
+        response = self.api_session.get("/de/page/@translate")
+
+        # postcondition
+        body = response.json()
+        machine = {entry["code"]: entry["machine"] for entry in body["languages"]}
+        self.assertEqual(machine, {"en": True, "fr": False})
+        self.assertEqual(body["translations"]["fr"], {"url": None, "status": None, "working_copy": None})
+
+    def test_get__drops_target_languages_the_site_does_not_have(self):
+        # setup — Italian has no language root folder to translate into
+        _records().target_languages = ["en", "it"]
+        transaction.commit()
+
+        # do it
+        response = self.api_session.get("/de/page/@translate")
+
+        # postcondition
+        codes = [entry["code"] for entry in response.json()["languages"]]
+        self.assertEqual(codes, ["en"])
+
+    def test_vocabulary__drops_target_languages_the_site_does_not_have(self):
+        # setup — the vocabulary feeds the Classic form and the machine flags
+        _records().target_languages = ["en", "it"]
+        factory = getUtility(IVocabularyFactory, name="interaktiv.translation.TargetLanguages")
+
+        # do it
+        codes = [term.value for term in factory(self.page)]
+
+        # postcondition
+        self.assertEqual(codes, ["en"])
 
     def test_classic_view__shows_the_refusal_it_was_given(self):
         # setup — an English translation already exists

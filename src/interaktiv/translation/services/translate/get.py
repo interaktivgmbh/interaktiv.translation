@@ -5,6 +5,7 @@ from interaktiv.translation.providers.base import TranslationError
 from interaktiv.translation.storage import TranslationStorage
 from interaktiv.translation.storage import translation_status
 from interaktiv.translation.translator import provider
+from interaktiv.translation.vocabularies.translation import site_languages
 from plone.restapi.services import Service
 from zope.component import getUtility
 from zope.schema.interfaces import IVocabularyFactory
@@ -18,19 +19,24 @@ class TranslateGet(Service):
             current = None
 
         factory = getUtility(IVocabularyFactory, name="interaktiv.translation.TargetLanguages")
-        terms = list(factory(self.context))
+        machine_languages = [term.value for term in factory(self.context)]
 
         storage = TranslationStorage(self.context, self.request)
-        translations: Dict[str, Dict[str, Any]] = {}
-
-        for term in terms:
-            sibling = storage.existing_translation(term.value)
-            if sibling is not None and aq_base(sibling) is not aq_base(self.context):
-                translations[term.value] = self._language_entry(sibling, storage)
-            else:
-                translations[term.value] = {"url": None, "status": None, "working_copy": None}
-
         own_language = getattr(aq_base(self.context), "language", None)
+        if storage.multilingual:
+            # every language of the site can be translated into, by hand at least
+            codes = [code for code in site_languages() if code != own_language]
+        else:
+            codes = machine_languages
+
+        translations: Dict[str, Dict[str, Any]] = {}
+        for code in codes:
+            sibling = storage.existing_translation(code)
+            if sibling is not None and aq_base(sibling) is not aq_base(self.context):
+                translations[code] = self._language_entry(sibling, storage)
+            else:
+                translations[code] = {"url": None, "status": None, "working_copy": None}
+
         if own_language:
             translations[own_language] = self._language_entry(self.context, storage)
 
@@ -39,7 +45,7 @@ class TranslateGet(Service):
         return {
             "configured": bool(current and current.configured()),
             "provider": current.name if current else None,
-            "target_languages": [{"code": term.value, "title": term.title} for term in terms],
+            "languages": [{"code": code, "title": code, "machine": code in machine_languages} for code in codes],
             "working_copies_enabled": storage.uses_working_copies(self.context),
             "translations": translations,
             "is_working_copy": baseline is not None,

@@ -19,10 +19,23 @@ class ProvidersVocabularyFactory:
         )
 
 
+def site_languages() -> List[str]:
+    try:
+        tool = api.portal.get_tool("portal_languages")
+    except Exception:  # noqa: BLE001
+        return []
+
+    return list(tool.getSupportedLanguages() or [])
+
+
 @implementer(IVocabularyFactory)
 class TargetLanguagesVocabularyFactory:
     def __call__(self, context: Optional[object] = None) -> SimpleVocabulary:
-        codes = settings().target_languages or self._site_languages()
+        site = site_languages()
+        codes = settings().target_languages or site
+        if TranslationStorage(context).multilingual:
+            # a translation needs a language root folder of its language
+            codes = [code for code in codes if code in site]
         context_language = self._context_language(context)
 
         return SimpleVocabulary(
@@ -35,12 +48,3 @@ class TargetLanguagesVocabularyFactory:
             return None
 
         return getattr(aq_base(context), "language", None)
-
-    @staticmethod
-    def _site_languages() -> List[str]:
-        try:
-            tool = api.portal.get_tool("portal_languages")
-        except Exception:  # noqa: BLE001
-            return []
-
-        return list(tool.getSupportedLanguages() or [])
