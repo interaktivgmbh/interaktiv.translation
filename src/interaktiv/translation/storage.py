@@ -32,6 +32,7 @@ STATUS_MANUAL = "manual"
 STATUS_MACHINE_UNREVIEWED = "machine_unreviewed"
 STATUS_MACHINE_EDITED = "machine_edited"
 STATUS_MACHINE_REVIEWED = "machine_reviewed"
+STATUS_MACHINE_WITHOUT_REVIEW = "machine_without_review"
 
 
 def review_note(marker: Dict[str, Any], reviewer: str) -> str:
@@ -54,6 +55,10 @@ def get_current_user_id() -> str:
     return api.user.get_current().getId()
 
 
+def has_workflow(content: Any) -> bool:
+    return bool(api.portal.get_tool("portal_workflow").getChainFor(content))
+
+
 def translation_status(content: Any) -> str:
     annotations = IAnnotations(content, None)
     marker = annotations.get(MACHINE_TRANSLATION_KEY) if annotations is not None else None
@@ -61,6 +66,8 @@ def translation_status(content: Any) -> str:
         return STATUS_MANUAL
     if marker.get("reviewed_by"):
         return STATUS_MACHINE_REVIEWED
+    if not has_workflow(content):
+        return STATUS_MACHINE_WITHOUT_REVIEW
     if marker.get("edited_by"):
         return STATUS_MACHINE_EDITED
 

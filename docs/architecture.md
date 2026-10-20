@@ -258,6 +258,11 @@ asks this function:
 | `machine_unreviewed` | machine translated, not looked at yet |
 | `machine_edited` | an editor has changed it since |
 | `machine_reviewed` | reviewed: checked in or published |
+| `machine_without_review` | machine translated, content without a workflow: nothing to publish, so no review is due |
+
+Whether content has a workflow is asked when the status is read, not stored:
+a type that gets a workflow later asks for review again. A checkin still
+records a review on content without a workflow.
 
 The subscribers in `subscribers/events.py` move it along:
 
@@ -273,7 +278,7 @@ The subscribers in `subscribers/events.py` move it along:
 
 The notes live in versions and workflow comments. A content type without
 versioning shows only the publishing note in its history, one without a
-workflow none; the status itself does not depend on either.
+workflow none; the status itself does not depend on versioning.
 
 ## `views/` and `services/` — the front doors
 

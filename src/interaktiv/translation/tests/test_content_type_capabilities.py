@@ -13,6 +13,7 @@ from interaktiv.translation.storage import (
     STATUS_MACHINE_EDITED,
     STATUS_MACHINE_REVIEWED,
     STATUS_MACHINE_UNREVIEWED,
+    STATUS_MACHINE_WITHOUT_REVIEW,
     translation_status,
 )
 from interaktiv.translation.testing import (
@@ -168,7 +169,7 @@ class TestWithoutVersioningWithoutWorkingCopies(CapabilitiesTestCase):
 
 class TestWithoutWorkflowWithWorkingCopies(CapabilitiesTestCase):
     """A versioned page type bound to no workflow, on a site with working
-    copies: review happens by checking in."""
+    copies: no review is needed, but a checkin still counts as one."""
 
     layer = INTERAKTIV_TRANSLATION_WORKING_COPY_FUNCTIONAL_TESTING
     portal_type = "Document"
@@ -199,7 +200,7 @@ class TestWithoutWorkflowWithWorkingCopies(CapabilitiesTestCase):
 
 class TestWithoutWorkflowWithoutWorkingCopies(CapabilitiesTestCase):
     """A page type bound to no workflow on a site without working copies:
-    nothing can mark it reviewed, but nothing fails either."""
+    there is nothing to review it by, so its translation needs no review."""
 
     layer = INTERAKTIV_TRANSLATION_MULTILINGUAL_FUNCTIONAL_TESTING
     portal_type = "Document"
@@ -214,11 +215,33 @@ class TestWithoutWorkflowWithoutWorkingCopies(CapabilitiesTestCase):
         self.assertEqual(first.status_code, 200)
         self.assertEqual(second.status_code, 200)
 
-    def test_status__stays_unreviewed_and_is_reported(self):
+    def test_status__is_without_review_and_is_reported(self):
         # setup
         self._translate()
 
-        # do it / postcondition — known gap: without workflow and working
-        # copies there is no review step
-        self.assertEqual(self._status_over_rest("/en/item"), STATUS_MACHINE_UNREVIEWED)
+        # do it / postcondition
+        self.assertEqual(self._status_over_rest("/en/item"), STATUS_MACHINE_WITHOUT_REVIEW)
         self.assertEqual(self.api_session.get("/en/item").status_code, 200)
+
+    def test_status__stays_without_review_after_an_edit(self):
+        # setup
+        self._translate()
+
+        # do it
+        response = self.api_session.patch("/en/item", json={"title": "Edited"})
+        transaction.begin()
+
+        # postcondition
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(translation_status(self._translation()), STATUS_MACHINE_WITHOUT_REVIEW)
+
+    def test_status__needs_review_again_once_the_type_gets_a_workflow(self):
+        # setup
+        self._translate()
+
+        # do it
+        workflow_tool = api.portal.get_tool("portal_workflow")
+        workflow_tool.setChainForPortalTypes([self.portal_type], ("simple_publication_workflow",))
+
+        # postcondition
+        self.assertEqual(translation_status(self._translation()), STATUS_MACHINE_UNREVIEWED)

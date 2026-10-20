@@ -284,6 +284,7 @@ class TestTranslateServiceOnAMultilingualSite(TestCase):
 
     def setUp(self) -> None:
         super().setUp()
+        self.portal.portal_workflow.setDefaultChain("simple_publication_workflow")
         # Inside the German language root folder: a page outside one belongs
         # to no language, and there is no sibling to make for it.
         self.page = api.content.create(
@@ -561,6 +562,7 @@ class TestWorkingCopyStorage(TestCase):
 
     def setUp(self) -> None:
         super().setUp()
+        self.portal.portal_workflow.setDefaultChain("simple_publication_workflow")
         self.page = api.content.create(
             container=self.portal["de"],
             type="Document",

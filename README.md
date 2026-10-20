@@ -21,6 +21,8 @@ The Volto user interface comes with the frontend add-on
 - Marks machine translations and tracks their review (unreviewed, edited,
   reviewed). A banner and the Manage Translations view show the state;
   checking in or publishing counts as review and is noted in the history.
+  Content without a workflow, such as files and images in a default Plone,
+  cannot be published and needs no review.
 - Points internal links at the translated target pages where they exist.
 - Carries metadata such as keywords over without translating them,
   optionally through a mapping table.
