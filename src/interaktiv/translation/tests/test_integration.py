@@ -832,34 +832,34 @@ class TestWorkingCopyStorage(TestCase):
         self._translate()
         self._translate()
 
-        # do it — a working copy already stands, so this needs leave to replace it
+        # do it
         response = self._translate()
 
         # postcondition
         self.assertEqual(response.status_code, 409)
         self.assertIn("working copy", response.json()["message"])
 
-    def test_overwrite__updates_the_standing_working_copy(self):
+    def test_overwrite__leaves_the_standing_working_copy_alone(self):
         # setup
         self._translate()
         self._translate()
         transaction.begin()
-        translation = self.portal["en"]["page"]
-        working_copy_id = self._working_copy_of(translation).getId()
+        working_copy = self._working_copy_of(self.portal["en"]["page"])
+        title = working_copy.title
 
         # do it
-        with mock.patch("requests.post", return_value=_deepl("Hello again", "A page")):
+        with mock.patch("requests.post", return_value=_deepl("Hello again", "A page")) as deepl:
             response = self.api_session.post(
                 "/de/page/@translate",
                 json={"target_language": "en", "save": True, "overwrite": True},
             )
 
-        # postcondition — the same working copy, its content replaced, not a second one
-        self.assertEqual(response.status_code, 200)
+        # postcondition — refused before DeepL is asked, the working copy unchanged
+        self.assertEqual(response.status_code, 409)
+        self.assertIn("working copy", response.json()["message"])
+        deepl.assert_not_called()
         transaction.begin()
-        working_copy = self._working_copy_of(self.portal["en"]["page"])
-        self.assertEqual(working_copy.getId(), working_copy_id)
-        self.assertEqual(working_copy.title, "Hello again")
+        self.assertEqual(self._working_copy_of(self.portal["en"]["page"]).title, title)
 
     def test_post__reports_that_it_used_a_working_copy(self):
         # setup — a translation exists, so the next run goes to a working copy

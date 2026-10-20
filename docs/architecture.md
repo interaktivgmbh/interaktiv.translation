@@ -216,7 +216,8 @@ go.
 `refusal()` is the one place that decides whether a save is refused: for a
 content type excluded in the control panel (none by default), on a
 working copy, into the content's own language, over an existing translation
-or working copy without `overwrite`, or when a fresh checkout is not allowed.
+without `overwrite`, over an existing working copy (always: it holds somebody's
+work), or when a fresh checkout is not allowed.
 The last case names its reason — someone else's lock or a missing checkout
 permission — so the editor knows what to do. The service calls it before the provider;
 `store()` calls it again, so the Classic form and any other caller get the

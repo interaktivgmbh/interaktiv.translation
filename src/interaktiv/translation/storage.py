@@ -200,15 +200,13 @@ class TranslationStorage:
 
         if self.uses_working_copies(existing):
             # A translation exists but iterate is on: a working copy is made
-            # instead of overwriting it. Only a working copy that is already
-            # there needs the editor's leave to be replaced.
+            # instead of overwriting it. A working copy that is already there
+            # holds somebody's work and is never replaced, not even on request.
             if self.working_copy_of(existing) is not None:
-                if not overwrite:
-                    return (
-                        f"There is already a working copy of the {target_language} translation. "
-                        "Ask for overwrite to update it."
-                    )
-                return None
+                return (
+                    f"There is already a working copy of the {target_language} translation. "
+                    "Check it in or discard it first."
+                )
 
             # A fresh checkout would be made: iterate's own rules first, or
             # somebody editing the translation right now would lose their lock
@@ -291,16 +289,11 @@ class TranslationStorage:
             if refusal is not None:
                 raise TranslationError(refusal, status=409)
             if self.uses_working_copies(existing):
-                # Don't touch the live translation: translate into a working
-                # copy the editor reviews and checks in. Replacing a standing
-                # one needed `overwrite`, which `refusal` asked for.
-                working_copy = self.working_copy_of(existing)
+                # Don't touch the live translation: translate into a fresh
+                # working copy the editor reviews and checks in.
+                working_copy = self._checkout(existing, target_language)
                 self.stored_as = "working_copy"
-                if working_copy is None:
-                    working_copy = self._checkout(existing, target_language)
-                    self.created = True
-                else:
-                    self.created = False
+                self.created = True
 
                 return self._apply(working_copy, fields, target_language)
 

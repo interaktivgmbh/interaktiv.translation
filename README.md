@@ -17,7 +17,7 @@ The Volto user interface comes with the frontend add-on
   (`plone.app.multilingual`) or, on a single-language site, in the page itself.
 - Never overwrites a live translation unasked: with `plone.app.iterate` the
   result goes into a working copy for review, otherwise overwriting has to be
-  requested explicitly.
+  requested explicitly. An existing working copy is never overwritten.
 - Marks machine translations and tracks their review (unreviewed, edited,
   reviewed). A banner and the Manage Translations view show the state;
   checking in or publishing counts as review and is noted in the history.
@@ -109,8 +109,9 @@ POST /++api++/a-page/@translate
 `POST` needs the permission *Manage Translations*, `GET` needs *Modify portal
 content*. Refusals come before DeepL is called: `400` on a working copy,
 `409` for an excluded content type, for a save into the page's own language, over an existing translation
-or working copy without `overwrite`, or when the translation cannot be checked
-out (someone else is editing it, or the checkout permission is missing).
+without `overwrite`, over an existing working copy (even with `overwrite`), or
+when the translation cannot be checked out (someone else is editing it, or the
+checkout permission is missing).
 
 ## Documentation
 
