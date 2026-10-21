@@ -242,7 +242,7 @@ installed profile versions, not from a setting — a setting that disagrees
 with the site is a way to lose content.
 
 Every write sets the machine translation marker (an annotation with provider,
-target language and time), puts a change note on the request and ends in
+source and target language and time), puts a change note on the request and ends in
 `notify(ObjectModifiedEvent(...))`. The event cuts a version, so the way back
 is the version history; link integrity and cache purging hang off it too. A
 request flag (`STORING_KEY`) tells the edit subscriber that this write is the

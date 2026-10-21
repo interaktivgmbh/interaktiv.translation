@@ -86,6 +86,7 @@ class TranslationStorage:
         # where the translation went and whether that object is new.
         self.stored_as: Optional[str] = None
         self.created: bool = False
+        self.source_language: Optional[str] = None
 
     @property
     def multilingual(self) -> bool:
@@ -218,7 +219,17 @@ class TranslationStorage:
 
         return None
 
-    def store(self, fields: Dict[str, Any], target_language: str, overwrite: bool = False) -> Any:
+    def store(
+        self,
+        fields: Dict[str, Any],
+        target_language: str,
+        overwrite: bool = False,
+        source_language: Optional[str] = None,
+    ) -> Any:
+        # the same fallback as the translator's
+        self.source_language = (
+            source_language or getattr(aq_base(self.content), "language", None) or settings().default_source_language
+        )
         # mark request annotations for machine created content
         request = getRequest()
         annotations = IAnnotations(request) if request is not None else None
@@ -253,6 +264,7 @@ class TranslationStorage:
     def _mark_machine_translated(self, content: Any, target_language: str) -> None:
         IAnnotations(content)[MACHINE_TRANSLATION_KEY] = {
             "provider": self.provider_title(),
+            "source_language": self.source_language,
             "target_language": target_language,
             "translated": datetime.now(timezone.utc).isoformat(),
         }

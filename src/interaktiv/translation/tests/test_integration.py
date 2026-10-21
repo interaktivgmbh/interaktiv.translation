@@ -347,8 +347,22 @@ class TestTranslateServiceOnAMultilingualSite(TestCase):
         transaction.begin()
         marker = IAnnotations(self.portal["en"]["page"]).get(MACHINE_TRANSLATION_KEY)
         self.assertEqual(marker["provider"], "DeepL")
+        self.assertEqual(marker["source_language"], "de")
         self.assertEqual(marker["target_language"], "en")
         self.assertIsNone(IAnnotations(self.page).get(MACHINE_TRANSLATION_KEY))
+
+    def test_post__marks_the_source_language_it_was_given(self):
+        # do it
+        with mock.patch("requests.post", return_value=_deepl("Good day", "A page")):
+            self.api_session.post(
+                "/de/page/@translate",
+                json={"target_language": "en", "source_language": "fr", "save": True},
+            )
+
+        # postcondition
+        transaction.begin()
+        marker = IAnnotations(self.portal["en"]["page"]).get(MACHINE_TRANSLATION_KEY)
+        self.assertEqual(marker["source_language"], "fr")
 
     def test_post__writes_into_the_language_sibling_instead_of_over_the_page(self):
         # do it

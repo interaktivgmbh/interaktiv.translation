@@ -13,6 +13,8 @@
   offered for machine translation, and the translation status for each of
   them. Target languages the multilingual site does not have are no longer
   offered.
+- The machine translation marker records the source language, and the
+  `machine_translation` expander answers it as `source_language`.
 
 ## 1.0.0a1 (2026-10-14)
 

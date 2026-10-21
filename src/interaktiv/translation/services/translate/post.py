@@ -72,7 +72,7 @@ class TranslatePost(Service):
             # a form token, and a REST client has none: without this the store
             # below runs, answers `saved`, and is then rolled back unwritten.
             alsoProvides(self.request, IDisableCSRFProtection)
-            stored = storage.store(fields, target, overwrite=overwrite)
+            stored = storage.store(fields, target, overwrite=overwrite, source_language=source)
             result["saved"] = True
             result["@id"] = stored.absolute_url()
             result["report"] = {
