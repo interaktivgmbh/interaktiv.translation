@@ -107,27 +107,19 @@ msgid "Overwrite the existing translation"
 msgstr ""
 
 #: ../helpers/metadata.py
-msgid "line ${number}: belongs to no [field] section"
+msgid "a mapped field needs an id"
 msgstr ""
 
 #: ../helpers/metadata.py
-msgid "line ${number}: a mapping needs at least two languages"
+msgid "${field}, row ${number}: '${language}' is no language code"
 msgstr ""
 
 #: ../helpers/metadata.py
-msgid "line ${number}: '${cell}' is no language code"
+msgid "${field}, row ${number}: a language appears twice"
 msgstr ""
 
 #: ../helpers/metadata.py
-msgid "line ${number}: a language appears twice"
-msgstr ""
-
-#: ../helpers/metadata.py
-msgid "line ${number}: ${cells} cells, but the header names ${languages} languages"
-msgstr ""
-
-#: ../helpers/metadata.py
-msgid "The mapping table has problems: "
+msgid "The metadata mapping has problems: "
 msgstr ""
 
 #: ../registry/translation.py
@@ -163,6 +155,10 @@ msgid "Which keys of a block hold text to translate. Only the key tells a senten
 msgstr ""
 
 #: ../registry/translation.py
+msgid "Metadata Field Selection"
+msgstr ""
+
+#: ../registry/translation.py
 msgid "Metadata Mapping"
 msgstr ""
 
@@ -171,7 +167,7 @@ msgid "Metadata mapping"
 msgstr ""
 
 #: ../registry/translation.py
-msgid "CSV format where [field_id] starts a new metadata field mapping:\n[subject]\nde, en, fr\nForschung, Research, Recherche"
+msgid "Fixed translations for the values of metadata fields, per field one row per value with one entry per language. An empty or missing language keeps the value of the source language."
 msgstr ""
 
 #: ../views/templates/translate.pt

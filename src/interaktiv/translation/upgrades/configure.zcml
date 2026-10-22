@@ -1,0 +1,15 @@
+<configure
+    xmlns="http://namespaces.zope.org/zope"
+    xmlns:genericsetup="http://namespaces.zope.org/genericsetup"
+    >
+
+  <genericsetup:upgradeStep
+      title="Metadata mapping as JSON"
+      description="Turns the CSV text of the metadata mapping into the JSON field and keeps its values."
+      profile="interaktiv.translation:default"
+      source="1000"
+      destination="1001"
+      handler="interaktiv.translation.upgrades.v1000_to_v1001.upgrade"
+      />
+
+</configure>

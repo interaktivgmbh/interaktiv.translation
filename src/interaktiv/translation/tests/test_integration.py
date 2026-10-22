@@ -564,7 +564,7 @@ class TestTranslateServiceOnAMultilingualSite(TestCase):
 
     def test_post__maps_metadata_and_reports_it(self):
         # setup — a mapping table for the subject field, keywords on the page
-        _records().metadata_mapping_table = "[subject]\nde, en\nWert A, value a"
+        _records().metadata_mapping_table = {"subject": [{"de": "Wert A", "en": "value a"}]}
         self.page.setSubject(("Wert A", "Wert X"))
         transaction.commit()
 
@@ -604,7 +604,7 @@ class TestTranslateServiceOnAMultilingualSite(TestCase):
     def test_post__does_not_take_metadata_over_from_the_folder(self):
         # setup — the fields sit on the language folder, not on the page
         _records().copy_fields = ["field_a"]
-        _records().metadata_mapping_table = "[field_b]\nde, en\nWert B, value b"
+        _records().metadata_mapping_table = {"field_b": [{"de": "Wert B", "en": "value b"}]}
         self.portal["de"].field_a = "Wert A"
         self.portal["de"].field_b = "Wert B"
         transaction.commit()
@@ -972,11 +972,11 @@ class TestControlPanels(TestCase):
         self.api_session.close()
         super().tearDown()
 
-    def test_patch__refuses_a_broken_mapping_table(self):
+    def test_patch__refuses_a_mapping_with_a_wrong_language(self):
         # do it
         response = self.api_session.patch(
             "/@controlpanels/translation",
-            json={"metadata_mapping_table": "[field_a]\nde, Deutsch\nWert A, Wert B"},
+            json={"metadata_mapping_table": {"field_a": [{"de": "Wert A", "Deutsch": "Wert B"}]}},
         )
 
         # postcondition — the editor reads what is wrong, nothing is stored
@@ -985,17 +985,31 @@ class TestControlPanels(TestCase):
         transaction.begin()
         self.assertFalse(_records().metadata_mapping_table)
 
-    def test_patch__accepts_a_well_formed_mapping_table(self):
-        # do it
+    def test_patch__refuses_a_mapping_of_the_wrong_shape(self):
+        # do it — a field holds a list of rows, not a single row
         response = self.api_session.patch(
             "/@controlpanels/translation",
-            json={"metadata_mapping_table": "[field_a]\nde, en\nWert A, value a"},
+            json={"metadata_mapping_table": {"field_a": {"de": "Wert A", "en": "value a"}}},
         )
 
         # postcondition
+        self.assertEqual(response.status_code, 400)
+        transaction.begin()
+        self.assertFalse(_records().metadata_mapping_table)
+
+    def test_patch__accepts_a_well_formed_mapping(self):
+        # setup
+        mapping = {"field_a": [{"de": "Wert A", "en": "value a"}, {"de": "Wert B"}]}
+
+        # do it
+        response = self.api_session.patch("/@controlpanels/translation", json={"metadata_mapping_table": mapping})
+
+        # postcondition — stored as it came, read back the same way
         self.assertEqual(response.status_code, 204)
         transaction.begin()
-        self.assertEqual(_records().metadata_mapping_table, "[field_a]\nde, en\nWert A, value a")
+        self.assertEqual(_records().metadata_mapping_table, mapping)
+        response = self.api_session.get("/@controlpanels/translation")
+        self.assertEqual(response.json()["data"]["metadata_mapping_table"], mapping)
 
     def test_configlet__is_installed_for_classic(self):
         action_ids = [action.getId() for action in api.portal.get_tool("portal_controlpanel").listActions()]

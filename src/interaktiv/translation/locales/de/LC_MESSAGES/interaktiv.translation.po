@@ -108,28 +108,20 @@ msgid "Overwrite the existing translation"
 msgstr "Bestehende Übersetzung überschreiben"
 
 #: ../helpers/metadata.py
-msgid "line ${number}: belongs to no [field] section"
-msgstr "Zeile ${number}: gehört zu keinem [feld]-Abschnitt"
+msgid "a mapped field needs an id"
+msgstr "ein gemapptes Feld braucht eine ID"
 
 #: ../helpers/metadata.py
-msgid "line ${number}: a mapping needs at least two languages"
-msgstr "Zeile ${number}: ein Mapping braucht mindestens zwei Sprachen"
+msgid "${field}, row ${number}: '${language}' is no language code"
+msgstr "${field}, Zeile ${number}: '${language}' ist kein Sprachcode"
 
 #: ../helpers/metadata.py
-msgid "line ${number}: '${cell}' is no language code"
-msgstr "Zeile ${number}: '${cell}' ist kein Sprachcode"
+msgid "${field}, row ${number}: a language appears twice"
+msgstr "${field}, Zeile ${number}: eine Sprache kommt doppelt vor"
 
 #: ../helpers/metadata.py
-msgid "line ${number}: a language appears twice"
-msgstr "Zeile ${number}: eine Sprache kommt doppelt vor"
-
-#: ../helpers/metadata.py
-msgid "line ${number}: ${cells} cells, but the header names ${languages} languages"
-msgstr "Zeile ${number}: ${cells} Zellen, aber die Kopfzeile nennt ${languages} Sprachen"
-
-#: ../helpers/metadata.py
-msgid "The mapping table has problems: "
-msgstr "Die Mapping-Tabelle hat Probleme: "
+msgid "The metadata mapping has problems: "
+msgstr "Das Metadaten-Mapping hat Probleme: "
 
 #: ../registry/translation.py
 msgid "Translation Service"
@@ -164,6 +156,10 @@ msgid "Which keys of a block hold text to translate. Only the key tells a senten
 msgstr "Welche Schlüssel eines Blocks zu übersetzenden Text enthalten. Nur am Schlüssel lässt sich ein Satz von einem Wert unterscheiden, den das Frontend auswertet. Ein eigener Blocktyp braucht hier daher seine eigenen Schlüssel, sonst bleibt sein Text in der Ausgangssprache."
 
 #: ../registry/translation.py
+msgid "Metadata Field Selection"
+msgstr "Auswahl der Metadatenfelder"
+
+#: ../registry/translation.py
 msgid "Metadata Mapping"
 msgstr "Metadaten-Mapping"
 
@@ -172,8 +168,8 @@ msgid "Metadata mapping"
 msgstr "Metadaten-Mapping"
 
 #: ../registry/translation.py
-msgid "CSV format where [field_id] starts a new metadata field mapping:\n[subject]\nde, en, fr\nForschung, Research, Recherche"
-msgstr "CSV-Format, in dem [feld_id] das Mapping für ein Metadatenfeld beginnt:\n[subject]\nde, en, fr\nForschung, Research, Recherche"
+msgid "Fixed translations for the values of metadata fields, per field one row per value with one entry per language. An empty or missing language keeps the value of the source language."
+msgstr "Feste Übersetzungen für die Werte von Metadatenfeldern, je Feld eine Zeile pro Wert mit einem Eintrag je Sprache. Fehlt eine Sprache oder ist sie leer, bleibt der Wert der Ausgangssprache."
 
 #: ../views/templates/translate.pt
 msgid "These fields are translated: ${fields}"

@@ -1,9 +1,10 @@
+from plone.schema import JSONField
+from plone.supermodel import model
 from zope import schema
 from zope.interface import Interface
-from plone.supermodel import model
 
 from interaktiv.translation import _
-from interaktiv.translation.helpers.metadata import validate_metadata_mapping_table
+from interaktiv.translation.helpers.metadata import METADATA_MAPPING_SCHEMA, validate_metadata_mapping
 
 DEFAULT_BLOCK_TEXT_KEYS = [
     "title",
@@ -155,11 +156,10 @@ class ITranslationSettings(Interface):
     )
 
     model.fieldset(
-        'translation_metadata_mapping',
-        label=_("Metadata Mapping"),
+        'translation_metadata_field_selection',
+        label=_("Metadata Field Selection"),
         fields=[
             'copy_fields',
-            'metadata_mapping_table',
         ]
     )
 
@@ -178,15 +178,24 @@ class ITranslationSettings(Interface):
         required=False,
     )
 
-    metadata_mapping_table = schema.Text(
+    model.fieldset(
+        'translation_metadata_mapping',
+        label=_("Metadata Mapping"),
+        fields=[
+            'metadata_mapping_table',
+        ]
+    )
+
+    metadata_mapping_table = JSONField(
         title=_("Metadata mapping"),
         description=_(
-            "CSV format where [field_id] starts a new metadata field mapping:\n"
-            "[subject]\n"
-            "de, en, fr\n"
-            "Forschung, Research, Recherche"
+            "Fixed translations for the values of metadata fields, per field one row per "
+            "value with one entry per language. An empty or missing language keeps the "
+            "value of the source language."
         ),
-        default="",
-        constraint=validate_metadata_mapping_table,
+        schema=METADATA_MAPPING_SCHEMA,
+        default={},
+        missing_value={},
+        constraint=validate_metadata_mapping,
         required=False,
     )
