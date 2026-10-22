@@ -65,7 +65,6 @@ class ITranslationSettings(Interface):
         'translation_options',
         label=_("Translation Options"),
         fields=[
-            'default_source_language',
             'target_languages',
             'translate_fields',
             'link_fields',
@@ -75,22 +74,13 @@ class ITranslationSettings(Interface):
         ]
     )
 
-    default_source_language = schema.TextLine(
-        title=_("Source language"),
-        description=_(
-            "Fallback for content that names no language of its own: a translation takes the "
-            "source language from the content first. Empty lets DeepL detect the language per "
-            "text; the metadata mapping then keeps values unchanged."
-        ),
-        required=False,
-    )
-
     target_languages = schema.List(
         title=_("Offered target languages"),
         description=_(
-            "The languages an editor may translate into, as language codes. Empty offers the site's own languages."
+            "The site languages an editor may translate into. A language left out does not "
+            "show in the translation menu. Empty offers every site language."
         ),
-        value_type=schema.TextLine(),
+        value_type=schema.Choice(vocabulary="plone.app.vocabularies.SupportedContentLanguages"),
         default=[],
         missing_value=[],
         required=False,

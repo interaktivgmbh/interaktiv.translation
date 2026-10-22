@@ -1,5 +1,6 @@
 from typing import Any, List, Optional, Dict
 
+from plone import api
 from plone.registry.interfaces import IRegistry
 from zope.component import getUtility
 from zope.interface.interfaces import ComponentLookupError
@@ -42,7 +43,11 @@ class Settings:
 
     @property
     def default_source_language(self) -> Optional[str]:
-        return self._get("default_source_language") or None
+        # content that names no language of its own is taken to be in the site's default language
+        try:
+            return api.portal.get_default_language() or None
+        except (ComponentLookupError, KeyError):
+            return None
 
     @property
     def target_languages(self) -> List[str]:

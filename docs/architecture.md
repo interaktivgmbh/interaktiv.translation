@@ -95,10 +95,10 @@ validation messages are therefore the same in both.
 `ContentTranslator.translate()` runs in phases:
 
 1. **Source language.** The request's `source_language`, else the
-   `language` field of the content, else the site default. The content knows
-   its language best; the default is a guess that cannot cover a
-   multilingual tree. `None` is allowed — the provider then detects the
-   language per text.
+   `language` field of the content, else the site's default language
+   (`plone.default_language`). The content knows its language best; the
+   default is a guess that cannot cover a multilingual tree. Only without a
+   site is it `None` — the provider then detects the language per text.
 2. **Collect.** For every field named in the control panel the matching
    extractor (`extractors.py`) reads the texts. A field that cannot be read
    is logged and skipped — one broken field must not lose the rest of the
@@ -202,14 +202,14 @@ translation in the target language is pointed at that translation, as a
 
 ## `helpers/metadata.py` — the mapping table
 
-The control panel stores the mapping exactly as it is delivered: a line
-`[field_id]` starts a table, its header names language codes, each further
-line is one term across those languages. `parse_metadata_mapping()` reads one
-direction out of it on demand; there is no second storage format.
-`validate_metadata_mapping_table()` is the schema constraint: it collects
-every problem with its line number (no section, unknown language code, a
-language twice, wrong number of cells) so a broken paste can be fixed in one
-go.
+The mapping is a `JSONField`: `{field_id: [{language: value}, ...]}`, one
+object per value with one entry per language. A missing or empty language
+keeps the source value. `parse_metadata_mapping()` reads one direction out of
+it on demand; there is no second storage format. The field checks the shape
+against `METADATA_MAPPING_JSON_SCHEMA`; `validate_metadata_mapping()` is the
+constraint on top and collects every problem at once (a field without an id,
+an unknown language code, a language twice in one row). The field names the
+Volto widget `translation_metadata_mapping`.
 
 ## `storage.py` — where a translation goes
 

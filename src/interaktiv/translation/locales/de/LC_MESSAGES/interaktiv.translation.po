@@ -52,20 +52,12 @@ msgid "Only for a proxy or a self-hosted endpoint. Empty means the host that mat
 msgstr "Nur für einen Proxy oder einen selbst betriebenen Endpunkt. Leer bedeutet den Host, der zum Key passt."
 
 #: ../registry/translation.py
-msgid "Source language"
-msgstr "Ausgangssprache"
-
-#: ../registry/translation.py
-msgid "Fallback for content that names no language of its own: a translation takes the source language from the content first. Empty lets DeepL detect the language per text; the metadata mapping then keeps values unchanged."
-msgstr "Ersatz für Inhalte ohne eigene Sprachangabe: Eine Übersetzung nimmt die Ausgangssprache zuerst vom Inhalt selbst. Leer lässt DeepL die Sprache je Text erkennen; das Metadaten-Mapping lässt die Werte dann unverändert."
-
-#: ../registry/translation.py
 msgid "Offered target languages"
 msgstr "Angebotene Zielsprachen"
 
 #: ../registry/translation.py
-msgid "The languages an editor may translate into, as language codes. Empty offers the site's own languages."
-msgstr "Die Sprachen, in die eine Redakteurin übersetzen darf, als Sprachcodes. Leer bietet die Sprachen der Website selbst an."
+msgid "The site languages an editor may translate into. A language left out does not show in the translation menu. Empty offers every site language."
+msgstr "Die Sprachen der Website, in die übersetzt werden darf. Nicht gewählte Sprachen tauchen im Übersetzungs-Menü nicht auf. Leer bietet alle Sprachen der Website an."
 
 #: ../registry/translation.py
 msgid "Translated fields"

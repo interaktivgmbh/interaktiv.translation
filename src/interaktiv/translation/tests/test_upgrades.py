@@ -8,7 +8,12 @@ from zope.component import getUtility
 
 from interaktiv.translation.testing import INTERAKTIV_TRANSLATION_INTEGRATION_TESTING, TestCase
 from interaktiv.translation.upgrades import v1000_to_v1001
-from interaktiv.translation.upgrades.v1000_to_v1001 import MAPPING_RECORD, csv_to_mapping
+from interaktiv.translation.upgrades.v1000_to_v1001 import (
+    MAPPING_RECORD,
+    SOURCE_LANGUAGE_RECORD,
+    TARGET_LANGUAGES_RECORD,
+    csv_to_mapping,
+)
 
 
 class TestUpgradeV1000ToV1001(TestCase):
@@ -72,6 +77,31 @@ class TestUpgradeV1000ToV1001(TestCase):
 
         # postcondition
         self.assertEqual(self.registry[MAPPING_RECORD], mapping)
+
+    def test_upgrade__keeps_the_target_languages_the_site_has(self):
+        # setup — 1.0.0a1 took any code; Italian is no site language
+        api.portal.get_tool("portal_languages").addSupportedLanguage("fr")
+        self.registry.records[TARGET_LANGUAGES_RECORD] = Record(
+            field.List(value_type=field.TextLine()), ["fr", "it"]
+        )
+
+        # do it
+        v1000_to_v1001.upgrade(None)
+
+        # postcondition — a choice of site languages, the unknown code dropped,
+        # not the whole list emptied (which would offer every site language)
+        self.assertIsInstance(self.registry.records[TARGET_LANGUAGES_RECORD].field.value_type, field.Choice)
+        self.assertEqual(self.registry[TARGET_LANGUAGES_RECORD], ["fr"])
+
+    def test_upgrade__removes_the_source_language_setting(self):
+        # setup
+        self.registry.records[SOURCE_LANGUAGE_RECORD] = Record(field.TextLine(), "de")
+
+        # do it
+        v1000_to_v1001.upgrade(None)
+
+        # postcondition
+        self.assertNotIn(SOURCE_LANGUAGE_RECORD, self.registry.records)
 
 
 class TestCsvToMapping(UnitTestCase):

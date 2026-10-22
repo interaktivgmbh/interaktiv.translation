@@ -4,8 +4,8 @@
     >
 
   <genericsetup:upgradeStep
-      title="Metadata mapping as JSON"
-      description="Turns the CSV text of the metadata mapping into the JSON field and keeps its values."
+      title="Metadata mapping as JSON, target languages from the site"
+      description="Turns the CSV text of the metadata mapping into the JSON field, keeps the target languages the site has and drops the source language setting."
       profile="interaktiv.translation:default"
       source="1000"
       destination="1001"

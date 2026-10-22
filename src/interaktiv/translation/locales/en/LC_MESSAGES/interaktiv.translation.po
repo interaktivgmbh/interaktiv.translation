@@ -52,19 +52,11 @@ msgid "Only for a proxy or a self-hosted endpoint. Empty means the host that mat
 msgstr ""
 
 #: ../registry/translation.py
-msgid "Source language"
-msgstr ""
-
-#: ../registry/translation.py
-msgid "Fallback for content that names no language of its own: a translation takes the source language from the content first. Empty lets DeepL detect the language per text; the metadata mapping then keeps values unchanged."
-msgstr ""
-
-#: ../registry/translation.py
 msgid "Offered target languages"
 msgstr ""
 
 #: ../registry/translation.py
-msgid "The languages an editor may translate into, as language codes. Empty offers the site's own languages."
+msgid "The site languages an editor may translate into. A language left out does not show in the translation menu. Empty offers every site language."
 msgstr ""
 
 #: ../registry/translation.py

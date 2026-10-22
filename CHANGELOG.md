@@ -16,6 +16,12 @@
   object per value with one entry per language. An empty or missing language
   keeps the source value.
   The upgrade step to profile version 1001 converts an existing CSV mapping.
+- Breaking: the source language setting (`default_source_language`) is gone;
+  content without a language of its own is taken to be in the site's default
+  language, so DeepL no longer detects the language. The upgrade step removes
+  the record.
+- The offered target languages are a choice of the site languages. The
+  upgrade step keeps the codes the site has and drops the others.
 
 ## 1.0.0a1 (2026-10-14)
 

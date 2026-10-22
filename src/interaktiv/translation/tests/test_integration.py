@@ -15,6 +15,7 @@ from zope.component import getUtility
 from zope.schema.interfaces import IVocabularyFactory
 
 from interaktiv.translation.registry.translation import ITranslationSettings
+from interaktiv.translation.settings import Settings
 from interaktiv.translation.storage import MACHINE_TRANSLATION_KEY, TranslationStorage
 from interaktiv.translation.services.translate.post import TranslatePost
 from interaktiv.translation.views.translate import TranslateContentView, TranslationAvailableView
@@ -152,6 +153,9 @@ class TestTranslateService(TestCase):
 
     def test_get__offers_the_configured_target_languages_without_multilingual(self):
         # setup
+        tool = api.portal.get_tool("portal_languages")
+        tool.addSupportedLanguage("fr")
+        tool.addSupportedLanguage("it")
         _records().target_languages = ["fr", "it"]
         transaction.commit()
 
@@ -510,8 +514,11 @@ class TestTranslateServiceOnAMultilingualSite(TestCase):
         self.assertEqual(body["translations"]["fr"], {"url": None, "status": None, "working_copy": None})
 
     def test_get__drops_target_languages_the_site_does_not_have(self):
-        # setup — Italian has no language root folder to translate into
+        # setup — Italian was offered, then removed from the site
+        tool = api.portal.get_tool("portal_languages")
+        tool.addSupportedLanguage("it")
         _records().target_languages = ["en", "it"]
+        tool.removeSupportedLanguages(["it"])
         transaction.commit()
 
         # do it
@@ -522,8 +529,12 @@ class TestTranslateServiceOnAMultilingualSite(TestCase):
         self.assertEqual(codes, ["en"])
 
     def test_vocabulary__drops_target_languages_the_site_does_not_have(self):
-        # setup — the vocabulary feeds the Classic form and the machine flags
+        # setup — the vocabulary feeds the Classic form and the machine flags;
+        # Italian was offered, then removed from the site
+        tool = api.portal.get_tool("portal_languages")
+        tool.addSupportedLanguage("it")
         _records().target_languages = ["en", "it"]
+        tool.removeSupportedLanguages(["it"])
         factory = getUtility(IVocabularyFactory, name="interaktiv.translation.TargetLanguages")
 
         # do it
@@ -1035,6 +1046,45 @@ class TestControlPanels(TestCase):
         self.assertEqual(field["type"], "dict")
         self.assertEqual(field["factory"], "JSONField")
 
+    def test_volto_panel__offers_the_site_languages_as_target_languages(self):
+        # do it
+        response = self.api_session.get("/@controlpanels/translation")
+
+        # postcondition — the front end fills its selection from the site languages
+        field = response.json()["schema"]["properties"]["target_languages"]
+        self.assertTrue(
+            field["items"]["vocabulary"]["@id"].endswith("@vocabularies/plone.app.vocabularies.SupportedContentLanguages")
+        )
+
+    def test_volto_panel__has_no_source_language_setting(self):
+        # do it
+        response = self.api_session.get("/@controlpanels/translation")
+
+        # postcondition — the source language is the site's default language
+        self.assertNotIn("default_source_language", response.json()["schema"]["properties"])
+
+    def test_patch__refuses_a_target_language_the_site_does_not_have(self):
+        # do it
+        response = self.api_session.patch("/@controlpanels/translation", json={"target_languages": ["it"]})
+
+        # postcondition
+        self.assertEqual(response.status_code, 400)
+        transaction.begin()
+        self.assertEqual(_records().target_languages, [])
+
+    def test_patch__accepts_a_site_language_as_target_language(self):
+        # setup
+        api.portal.get_tool("portal_languages").addSupportedLanguage("it")
+        transaction.commit()
+
+        # do it
+        response = self.api_session.patch("/@controlpanels/translation", json={"target_languages": ["it"]})
+
+        # postcondition
+        self.assertEqual(response.status_code, 204)
+        transaction.begin()
+        self.assertEqual(_records().target_languages, ["it"])
+
     def test_volto_panel__writes_the_key(self):
         # do it
         response = self.api_session.patch("/@controlpanels/translation", json={"api_key": "abc:fx"})
@@ -1048,6 +1098,17 @@ class TestControlPanels(TestCase):
         view = self.get_view("translation-controlpanel", self.portal)
 
         self.assertIsNotNone(view)
+
+
+class TestSettingsSourceLanguage(TestCase):
+    layer = INTERAKTIV_TRANSLATION_INTEGRATION_TESTING
+
+    def test_default_source_language__is_the_site_default_language(self):
+        # setup
+        api.portal.set_registry_record("plone.default_language", "it")
+
+        # do it / postcondition
+        self.assertEqual(Settings().default_source_language, "it")
 
 
 class TestActionCondition(TestCase):

@@ -1,6 +1,6 @@
 import csv
 import re
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from plone import api
 from plone.registry.interfaces import IRegistry
@@ -11,6 +11,8 @@ from interaktiv.translation import logger
 from interaktiv.translation.registry.translation import ITranslationSettings
 
 MAPPING_RECORD = f"{ITranslationSettings.__identifier__}.metadata_mapping_table"
+TARGET_LANGUAGES_RECORD = f"{ITranslationSettings.__identifier__}.target_languages"
+SOURCE_LANGUAGE_RECORD = f"{ITranslationSettings.__identifier__}.default_source_language"
 
 # the CSV format of 1.0.0a1, kept here so this step does not depend on the current helpers
 SECTION_RE = re.compile(r"^\[(?P<field_id>[^\]]+)\]$")
@@ -20,14 +22,28 @@ LANGUAGE_RE = re.compile(r"^[A-Za-z]{2,3}([-_][A-Za-z0-9]{2,8})?$")
 # noinspection PyUnusedLocal
 def upgrade(site_setup: Optional[SetupTool] = None) -> None:
     registry = getUtility(IRegistry)
-    old_value = registry.records[MAPPING_RECORD].value if MAPPING_RECORD in registry.records else None
+    old_mapping = _value(registry, MAPPING_RECORD)
+    old_target_languages = _value(registry, TARGET_LANGUAGES_RECORD)
 
-    # the registry step turns the record into the JSON field
+    # the registry step turns the records into the new fields
     setup_tool = site_setup or api.portal.get_tool("portal_setup")
     setup_tool.runImportStepFromProfile(
         "profile-interaktiv.translation:default", "plone.app.registry", run_dependencies=False
     )
 
+    _upgrade_mapping(registry, old_mapping)
+    _upgrade_target_languages(registry, old_target_languages)
+
+    # the source language is the site's default language now
+    if SOURCE_LANGUAGE_RECORD in registry.records:
+        del registry.records[SOURCE_LANGUAGE_RECORD]
+
+
+def _value(registry: IRegistry, record_name: str) -> Any:
+    return registry.records[record_name].value if record_name in registry.records else None
+
+
+def _upgrade_mapping(registry: IRegistry, old_value: Any) -> None:
     if isinstance(old_value, dict):
         registry[MAPPING_RECORD] = old_value
         return
@@ -39,6 +55,17 @@ def upgrade(site_setup: Optional[SetupTool] = None) -> None:
         len(mapping),
         sum(len(rows) for rows in mapping.values()),
     )
+
+
+def _upgrade_target_languages(registry: IRegistry, old_value: Any) -> None:
+    # the import empties the whole list for a single code that is no site language,
+    # and an empty list offers every site language
+    site_languages = api.portal.get_tool("portal_languages").getSupportedLanguages()
+    kept = [code for code in old_value or [] if code in site_languages]
+    dropped = [code for code in old_value or [] if code not in site_languages]
+    if dropped:
+        logger.warning("Offered target languages: %s dropped, the site does not have them.", ", ".join(dropped))
+    registry[TARGET_LANGUAGES_RECORD] = kept
 
 
 def csv_to_mapping(table: str) -> Dict[str, List[Dict[str, str]]]:
