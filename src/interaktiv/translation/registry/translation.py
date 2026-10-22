@@ -4,7 +4,7 @@ from zope import schema
 from zope.interface import Interface
 
 from interaktiv.translation import _
-from interaktiv.translation.helpers.metadata import METADATA_MAPPING_SCHEMA, validate_metadata_mapping
+from interaktiv.translation.helpers.metadata import METADATA_MAPPING_JSON_SCHEMA, validate_metadata_mapping
 
 DEFAULT_BLOCK_TEXT_KEYS = [
     "title",
@@ -193,7 +193,8 @@ class ITranslationSettings(Interface):
             "value with one entry per language. An empty or missing language keeps the "
             "value of the source language."
         ),
-        schema=METADATA_MAPPING_SCHEMA,
+        schema=METADATA_MAPPING_JSON_SCHEMA,
+        widget="translation_metadata_mapping",
         default={},
         missing_value={},
         constraint=validate_metadata_mapping,

@@ -12,7 +12,7 @@ from interaktiv.translation import _
 LANGUAGE_RE = re.compile(r"^[A-Za-z]{2,3}([-_][A-Za-z0-9]{2,8})?$")
 
 # {field_id: [{language: value}, ...]} — the structure, checked by the JSONField itself
-METADATA_MAPPING_SCHEMA = json.dumps(
+METADATA_MAPPING_JSON_SCHEMA = json.dumps(
     {
         "type": "object",
         "additionalProperties": {

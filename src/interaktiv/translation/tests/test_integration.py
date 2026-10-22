@@ -1025,6 +1025,16 @@ class TestControlPanels(TestCase):
         self.assertIn("api_key", response.json()["schema"]["properties"])
         self.assertIsNone(response.json()["data"]["api_key"])
 
+    def test_volto_panel__names_the_widget_of_the_metadata_mapping(self):
+        # do it
+        response = self.api_session.get("/@controlpanels/translation")
+
+        # postcondition — the front end picks its mapping widget by this name
+        field = response.json()["schema"]["properties"]["metadata_mapping_table"]
+        self.assertEqual(field["widget"], "translation_metadata_mapping")
+        self.assertEqual(field["type"], "dict")
+        self.assertEqual(field["factory"], "JSONField")
+
     def test_volto_panel__writes_the_key(self):
         # do it
         response = self.api_session.patch("/@controlpanels/translation", json={"api_key": "abc:fx"})
