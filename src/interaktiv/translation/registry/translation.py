@@ -62,11 +62,58 @@ class ITranslationSettings(Interface):
     )
 
     model.fieldset(
-        'translation_options',
-        label=_("Translation Options"),
+        'translation_metadata_field_selection',
+        label=_("Metadata Field Selection"),
+        fields=[
+            'metadata_selection',
+        ]
+    )
+
+    metadata_selection = JSONField(
+        title=_("Fields per content type"),
+        description=_(
+            "Sets per content type which fields go along into the translation. Only fields "
+            "filled in on the page count. Whether a field is translated or taken over as it "
+            "is follows from the kind of field; a field with values in the metadata mapping "
+            "goes through the mapping."
+        ),
+#        schema=METADATA_MAPPING_JSON_SCHEMA,
+        widget="translation_metadata_selection",
+        default={},
+        missing_value={},
+        required=False,
+    )
+
+    model.fieldset(
+        'translation_metadata_mapping',
+        label=_("Metadata Mapping"),
+        fields=[
+            'metadata_mapping_table',
+        ]
+    )
+
+    metadata_mapping_table = JSONField(
+        title=_("Metadata mapping"),
+        description=_(
+            "Fixed translations for the values of metadata fields, per field one row per "
+            "value with one entry per language. An empty or missing language keeps the "
+            "value of the source language."
+        ),
+        schema=METADATA_MAPPING_JSON_SCHEMA,
+        widget="translation_metadata_mapping",
+        default={},
+        missing_value={},
+        constraint=validate_metadata_mapping,
+        required=False,
+    )
+
+    model.fieldset(
+        'translation_advanced_settings',
+        label=_("Advanced Settings"),
         fields=[
             'target_languages',
             'translate_fields',
+            'copy_fields',
             'link_fields',
             'block_link_fields',
             'block_text_keys',
@@ -91,6 +138,21 @@ class ITranslationSettings(Interface):
         description=_("The content fields the action translates, in this order."),
         value_type=schema.TextLine(),
         default=["title", "description", "text", "blocks"],
+        missing_value=[],
+        required=False,
+    )
+
+    copy_fields = schema.List(
+        title=_("Fields carried over unchanged"),
+        description=_(
+            "Fields of the content whose values the translation takes over as they are, "
+            "neither translated nor mapped — keywords that are codes, a project number. "
+            "Named as the object stores them, one per line (e.g. subject, rights, image). "
+            "Only text, numbers, dates, lists of them, and files and images, which the "
+            "translation gets a copy of; editors may change the values afterwards."
+        ),
+        value_type=schema.TextLine(),
+        default=DEFAULT_COPY_FIELDS,
         missing_value=[],
         required=False,
     )
@@ -145,48 +207,3 @@ class ITranslationSettings(Interface):
         required=False,
     )
 
-    model.fieldset(
-        'translation_metadata_field_selection',
-        label=_("Metadata Field Selection"),
-        fields=[
-            'copy_fields',
-        ]
-    )
-
-    copy_fields = schema.List(
-        title=_("Fields carried over unchanged"),
-        description=_(
-            "Fields of the content whose values the translation takes over as they are, "
-            "neither translated nor mapped — keywords that are codes, a project number. "
-            "Named as the object stores them, one per line (e.g. subject, rights, image). "
-            "Only text, numbers, dates, lists of them, and files and images, which the "
-            "translation gets a copy of; editors may change the values afterwards."
-        ),
-        value_type=schema.TextLine(),
-        default=DEFAULT_COPY_FIELDS,
-        missing_value=[],
-        required=False,
-    )
-
-    model.fieldset(
-        'translation_metadata_mapping',
-        label=_("Metadata Mapping"),
-        fields=[
-            'metadata_mapping_table',
-        ]
-    )
-
-    metadata_mapping_table = JSONField(
-        title=_("Metadata mapping"),
-        description=_(
-            "Fixed translations for the values of metadata fields, per field one row per "
-            "value with one entry per language. An empty or missing language keeps the "
-            "value of the source language."
-        ),
-        schema=METADATA_MAPPING_JSON_SCHEMA,
-        widget="translation_metadata_mapping",
-        default={},
-        missing_value={},
-        constraint=validate_metadata_mapping,
-        required=False,
-    )

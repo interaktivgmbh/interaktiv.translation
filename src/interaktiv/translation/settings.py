@@ -85,6 +85,12 @@ class Settings:
 
         return list(getattr(self._records, "copy_fields", None) or [])
 
+    @property
+    def mapped_fields(self) -> List[str]:
+        # the fields the metadata mapping has values for
+        mapping = self._get("metadata_mapping_table", {})
+        return [field_id for field_id, rows in mapping.items() if rows] if isinstance(mapping, dict) else []
+
     def get_metadata_mapping(self, source_language: str, target_language: str) -> Dict[str, Dict[str, str]]:
         # {field_id: {source_value: target_value}}
         return parse_metadata_mapping(self._get("metadata_mapping_table", {}), source_language, target_language)

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added `GET @translation-fields` service to be used for type specific metadata selection
 - Machine translations of content without a workflow get the status
   `machine_without_review`.
 - Breaking: an existing working copy is never overwritten, not even with

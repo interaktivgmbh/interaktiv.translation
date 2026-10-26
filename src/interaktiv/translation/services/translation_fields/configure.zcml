@@ -1,0 +1,17 @@
+<configure
+        xmlns="http://namespaces.zope.org/zope"
+        xmlns:plone="http://namespaces.plone.org/plone">
+
+    <include package="plone.rest" file="meta.zcml"/>
+
+    <!-- the fields per content type the control panel lists, with what the add-on suggests -->
+    <plone:service
+            method="GET"
+            factory=".get.TranslationFieldsGet"
+            for="Products.CMFPlone.interfaces.IPloneSiteRoot"
+            permission="cmf.ManagePortal"
+            name="@translation-fields"
+            layer="interaktiv.translation.interfaces.IInteraktivTranslationBrowserLayer"
+    />
+
+</configure>

@@ -2,6 +2,7 @@
 
     <include package=".machine_translation"/>
     <include package=".translate"/>
+    <include package=".translation_fields"/>
     <include package=".workingcopy"/>
 
 </configure>
