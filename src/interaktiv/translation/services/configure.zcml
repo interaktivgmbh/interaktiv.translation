@@ -1,5 +1,6 @@
 <configure xmlns="http://namespaces.zope.org/zope">
 
+    <include package=".connection"/>
     <include package=".machine_translation"/>
     <include package=".translate"/>
     <include package=".translation_fields"/>

@@ -4,6 +4,7 @@ from unittest import mock
 import plone.api as api
 import transaction
 from Acquisition import aq_base
+from interaktiv.translation.controlpanels.api_key import API_KEY_PLACEHOLDER
 from interaktiv.translation.helpers.field_selection import ALWAYS_FIELDS, COPIED_FIELDS, EXCLUDED_FIELDS
 from interaktiv.translation.testing import TestCase
 from plone.app.testing import SITE_OWNER_NAME, SITE_OWNER_PASSWORD, TEST_USER_ID
@@ -1127,6 +1128,76 @@ class TestControlPanels(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("api_key", response.json()["schema"]["properties"])
         self.assertIsNone(response.json()["data"]["api_key"])
+
+    def test_volto_panel__never_hands_out_the_api_key(self):
+        # setup
+        _records().api_key = "key-value-a"
+        transaction.commit()
+
+        # do it
+        response = self.api_session.get("/@controlpanels/translation")
+
+        # postcondition — that a key is stored, not which
+        self.assertEqual(response.json()["data"]["api_key"], API_KEY_PLACEHOLDER)
+        self.assertNotIn("key-value-a", response.text)
+
+    def test_patch__keeps_the_api_key_for_the_placeholder(self):
+        # setup
+        _records().api_key = "key-value-a"
+        transaction.commit()
+
+        # do it — the form comes back as it was shown
+        response = self.api_session.patch("/@controlpanels/translation", json={"api_key": API_KEY_PLACEHOLDER})
+
+        # postcondition
+        self.assertEqual(response.status_code, 204)
+        transaction.begin()
+        self.assertEqual(_records().api_key, "key-value-a")
+
+    def test_patch__takes_a_new_api_key(self):
+        # setup
+        _records().api_key = "key-value-a"
+        transaction.commit()
+
+        # do it
+        response = self.api_session.patch("/@controlpanels/translation", json={"api_key": "key-value-b"})
+
+        # postcondition
+        self.assertEqual(response.status_code, 204)
+        transaction.begin()
+        self.assertEqual(_records().api_key, "key-value-b")
+
+    def test_patch__removes_the_api_key_for_an_empty_value(self):
+        # setup
+        _records().api_key = "key-value-a"
+        transaction.commit()
+
+        # do it
+        response = self.api_session.patch("/@controlpanels/translation", json={"api_key": ""})
+
+        # postcondition
+        self.assertEqual(response.status_code, 204)
+        transaction.begin()
+        self.assertFalse(_records().api_key)
+
+    def test_volto_panel__names_the_widget_of_the_api_key(self):
+        # do it
+        response = self.api_session.get("/@controlpanels/translation")
+
+        # postcondition — the front end picks the widget with the connection test by this name
+        field = response.json()["schema"]["properties"]["api_key"]
+        self.assertEqual(field["widgetOptions"]["frontendOptions"]["widget"], "translation_api_key")
+
+    def test_mail_panel__keeps_its_own_password_field(self):
+        # setup — another password field of the site is none of the add-on's business
+        api.portal.set_registry_record("plone.smtp_pass", "password-a")
+        transaction.commit()
+
+        # do it
+        response = self.api_session.get("/@controlpanels/mail")
+
+        # postcondition
+        self.assertEqual(response.json()["data"]["smtp_pass"], "password-a")
 
     def test_volto_panel__names_the_widget_of_the_metadata_mapping(self):
         # do it

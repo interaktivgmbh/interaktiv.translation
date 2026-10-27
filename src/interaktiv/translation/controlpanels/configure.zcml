@@ -9,6 +9,10 @@
             name="translation"
     />
 
+    <!-- The API key never goes to the browser -->
+    <adapter factory=".api_key.ApiKeySerializer"/>
+    <adapter factory=".api_key.ApiKeyDeserializer"/>
+
     <!-- Controlpanel Backend -->
     <browser:page
             name="translation-controlpanel"

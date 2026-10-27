@@ -40,8 +40,8 @@ msgid "DeepL API key"
 msgstr "DeepL-API-Key"
 
 #: ../registry/translation.py
-msgid "The key from your DeepL account. A free key ends in ':fx' and is sent to the free endpoint; anything else goes to the pro one."
-msgstr "Der Key aus Ihrem DeepL-Konto. Ein kostenloser Key endet auf ':fx' und geht an den Free-Endpunkt, jeder andere an den Pro-Endpunkt."
+msgid "Found in the DeepL account under “Account → API keys”. Only used on the server."
+msgstr "Im DeepL-Konto unter „Konto → API-Schlüssel“ zu finden. Wird ausschließlich serverseitig verwendet."
 
 #: ../registry/translation.py
 msgid "DeepL API URL"

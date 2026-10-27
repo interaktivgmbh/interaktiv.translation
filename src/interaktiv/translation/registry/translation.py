@@ -1,3 +1,4 @@
+from plone.autoform import directives
 from plone.schema import JSONField
 from plone.supermodel import model
 from zope import schema
@@ -40,7 +41,7 @@ class ITranslationSettings(Interface):
     model.fieldset(
         'provider_options',
         label=_("Translation Service"),
-        fields=['provider', 'api_key', 'api_url', 'target_languages']
+        fields=['provider', 'target_languages', 'api_url', 'api_key']
     )
 
     provider = schema.Choice(
@@ -48,21 +49,6 @@ class ITranslationSettings(Interface):
         description=_("Which service translates. Only DeepL ships with this add-on."),
         vocabulary="interaktiv.translation.Providers",
         default="deepl",
-        required=False,
-    )
-
-    api_key = schema.Password(
-        title=_("DeepL API key"),
-        description=_(
-            "The key from your DeepL account. A free key ends in ':fx' and is sent to "
-            "the free endpoint; anything else goes to the pro one."
-        ),
-        required=False,
-    )
-
-    api_url = schema.TextLine(
-        title=_("DeepL API URL"),
-        description=_("Only for a proxy or a self-hosted endpoint. Empty means the host that matches the key."),
         required=False,
     )
 
@@ -75,6 +61,21 @@ class ITranslationSettings(Interface):
         value_type=schema.Choice(vocabulary="interaktiv.translation.SiteLanguages"),
         default=[],
         missing_value=[],
+        required=False,
+    )
+
+    api_url = schema.TextLine(
+        title=_("DeepL API URL"),
+        description=_("Only for a proxy or a self-hosted endpoint. Empty means the host that matches the key."),
+        required=False,
+    )
+
+    # the key never goes to the browser, see controlpanels/api_key.py; its widget
+    # tests the connection
+    directives.widget("api_key", frontendOptions={"widget": "translation_api_key"})
+    api_key = schema.Password(
+        title=_("DeepL API key"),
+        description=_("Found in the DeepL account under “Account → API keys”. Only used on the server."),
         required=False,
     )
 

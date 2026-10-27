@@ -1,18 +1,24 @@
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Type
+from typing import Any, Dict, List, Optional, Type
 
 from interaktiv.translation import logger
 
 
 class TranslationError(Exception):
-    def __init__(self, message: str, status: int = 502) -> None:
+    def __init__(self, message: str, status: int = 502, code: str = "error") -> None:
         super().__init__(message)
         self.status = status
+        # what went wrong, for a front end to say in its own language
+        self.code = code
 
 
 class TranslationProvider(ABC):
     name: str = ""
     title: str = ""
+
+    def __init__(self, api_key: Optional[str] = None, api_url: Optional[str] = None) -> None:
+        # a provider without access data of its own ignores them
+        pass
 
     @abstractmethod
     def translate(self, texts: List[str], target_language: str, source_language: Optional[str] = None) -> List[str]:
@@ -25,6 +31,16 @@ class TranslationProvider(ABC):
     @abstractmethod
     def configured(self) -> bool:
         raise NotImplementedError
+
+    def check(self) -> Dict[str, Any]:
+        """Whether the service answers with the access it is given; raises TranslationError if not.
+
+        Answers what it knows of the account: ``plan``, ``character_count``, ``character_limit``.
+        """
+        if not self.configured():
+            raise TranslationError("The translation service is not configured.", status=503, code="not_configured")
+
+        return {}
 
     def translate_texts_by_key(
         self, texts_by_key: Dict[str, List[str]], target_language: str, source_language: Optional[str] = None

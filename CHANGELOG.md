@@ -23,6 +23,10 @@
 - Added vocabulary `interaktiv.translation.ContentTypes`
   for choice of not translated content types
 - Fix: target language choice vocabulary when unknown value is stored
+- Fixed do not show a stored API key in the browser
+- Added service @translation-connection to test connection and retrieve account information
+- The translation service tab lists the offered target languages before the
+  API URL and the key.
 - Machine translations of content without a workflow get the status
   `machine_without_review`.
 - Breaking: an existing working copy is never overwritten, not even with

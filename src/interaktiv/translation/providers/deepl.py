@@ -1,6 +1,6 @@
 import random
 import time
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 
@@ -48,7 +48,7 @@ class DeepLProvider(TranslationProvider):
 
     def _post(self, path: str, payload: Dict) -> Dict:
         if not self.configured():
-            raise TranslationError("No DeepL API key is configured for this site.", status=503)
+            raise TranslationError("No DeepL API key is configured for this site.", status=503, code="not_configured")
 
         response = None
         for attempt in range(RETRY_ATTEMPTS):
@@ -66,17 +66,17 @@ class DeepLProvider(TranslationProvider):
                 )
             except requests.RequestException as error:
                 logger.warning("DeepL is not reachable: %s", error)
-                raise TranslationError("DeepL is not reachable.") from error
+                raise TranslationError("DeepL is not reachable.", code="unreachable") from error
 
             if response.status_code != 429:
                 break
 
         if response.status_code == 403:
-            raise TranslationError("DeepL refused the API key.", status=403)
+            raise TranslationError("DeepL refused the API key.", status=403, code="key_refused")
         if response.status_code == 456:
-            raise TranslationError("The DeepL quota for this key is used up.", status=429)
+            raise TranslationError("The DeepL quota for this key is used up.", status=429, code="quota_exceeded")
         if response.status_code == 429:
-            raise TranslationError("DeepL is rate-limiting this site.", status=429)
+            raise TranslationError("DeepL is rate-limiting this site.", status=429, code="rate_limited")
         if not response.ok:
             logger.warning("DeepL answered %s: %s", response.status_code, response.text[:200])
             raise TranslationError(f"DeepL answered {response.status_code}.")
@@ -153,6 +153,19 @@ class DeepLProvider(TranslationProvider):
             consumed += count
 
         return result
+
+    def check(self) -> Dict[str, Any]:
+        # the usage costs no characters and tells the account
+        data = self._post("/usage", {})
+        plan = None
+        if not self._api_url:
+            plan = "free" if self._api_key.endswith(FREE_KEY_SUFFIX) else "pro"
+
+        return {
+            "plan": plan,
+            "character_count": data.get("character_count"),
+            "character_limit": data.get("character_limit"),
+        }
 
     def languages(self) -> List[Dict[str, str]]:
         if not self.configured():
