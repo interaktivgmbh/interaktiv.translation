@@ -20,6 +20,7 @@ apart as ``mapped``: the control panel shows the mapping it is editing, not the
 saved one, and a field taken out of the mapping falls back to its mode.
 """
 
+import json
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 from plone.app.textfield.interfaces import IRichText
@@ -44,6 +45,20 @@ try:
 except ImportError:  # pragma: no cover - plone.app.multilingual is a dependency
     MULTILINGUAL_KEY = None
     ILanguageIndependentField = None
+
+# {portal_type: [field_id, ...]}:
+# list of field_ids that are handled by translation for each portal_type
+# for a missing portal_type the default and mapped fields are handled
+METADATA_SELECTION_JSON_SCHEMA = json.dumps(
+    {
+        "type": "object",
+        "additionalProperties": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1},
+            "uniqueItems": True,
+        },
+    }
+)
 
 ROLE_ALWAYS = "always"
 ROLE_DEFAULT = "default"

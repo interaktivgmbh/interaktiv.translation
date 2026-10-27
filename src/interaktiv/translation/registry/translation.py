@@ -4,6 +4,7 @@ from zope import schema
 from zope.interface import Interface
 
 from interaktiv.translation import _
+from interaktiv.translation.helpers.field_selection import METADATA_SELECTION_JSON_SCHEMA
 from interaktiv.translation.helpers.metadata import METADATA_MAPPING_JSON_SCHEMA, validate_metadata_mapping
 
 DEFAULT_BLOCK_TEXT_KEYS = [
@@ -77,7 +78,7 @@ class ITranslationSettings(Interface):
             "is follows from the kind of field; a field with values in the metadata mapping "
             "goes through the mapping."
         ),
-#        schema=METADATA_MAPPING_JSON_SCHEMA,
+        schema=METADATA_SELECTION_JSON_SCHEMA,
         widget="translation_metadata_selection",
         default={},
         missing_value={},

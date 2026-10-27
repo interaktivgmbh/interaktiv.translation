@@ -1022,6 +1022,31 @@ class TestControlPanels(TestCase):
         response = self.api_session.get("/@controlpanels/translation")
         self.assertEqual(response.json()["data"]["metadata_mapping_table"], mapping)
 
+    def test_patch__accepts_a_selection_of_fields_per_type(self):
+        # setup
+        selection = {"type_a": ["field_a", "field_b"], "type_b": []}
+
+        # do it
+        response = self.api_session.patch("/@controlpanels/translation", json={"metadata_selection": selection})
+
+        # postcondition
+        self.assertEqual(response.status_code, 204)
+        transaction.begin()
+        self.assertEqual(_records().metadata_selection, selection)
+
+    def test_patch__refuses_a_selection_of_the_wrong_shape(self):
+        for selection in ({"type_a": "field_a"}, {"type_a": ["field_a", "field_a"]}, {"type_a": [""]}):
+            with self.subTest(selection=selection):
+                # do it
+                response = self.api_session.patch(
+                    "/@controlpanels/translation", json={"metadata_selection": selection}
+                )
+
+                # postcondition
+                self.assertEqual(response.status_code, 400)
+                transaction.begin()
+                self.assertFalse(_records().metadata_selection)
+
     def test_configlet__is_installed_for_classic(self):
         action_ids = [action.getId() for action in api.portal.get_tool("portal_controlpanel").listActions()]
 
