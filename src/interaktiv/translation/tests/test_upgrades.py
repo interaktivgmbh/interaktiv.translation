@@ -10,6 +10,7 @@ from interaktiv.translation.testing import INTERAKTIV_TRANSLATION_INTEGRATION_TE
 from interaktiv.translation.upgrades import v1000_to_v1001
 from interaktiv.translation.upgrades.v1000_to_v1001 import (
     MAPPING_RECORD,
+    REMOVED_RECORDS,
     SOURCE_LANGUAGE_RECORD,
     TARGET_LANGUAGES_RECORD,
     csv_to_mapping,
@@ -102,6 +103,18 @@ class TestUpgradeV1000ToV1001(TestCase):
 
         # postcondition
         self.assertNotIn(SOURCE_LANGUAGE_RECORD, self.registry.records)
+
+    def test_upgrade__removes_the_old_field_lists(self):
+        # setup
+        for record_name in REMOVED_RECORDS[1:]:
+            self.registry.records[record_name] = Record(field.List(value_type=field.TextLine()), ["field_a"])
+
+        # do it
+        v1000_to_v1001.upgrade(None)
+
+        # postcondition
+        for record_name in REMOVED_RECORDS:
+            self.assertNotIn(record_name, self.registry.records)
 
 
 class TestCsvToMapping(UnitTestCase):

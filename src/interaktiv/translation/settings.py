@@ -5,11 +5,16 @@ from plone.registry.interfaces import IRegistry
 from zope.component import getUtility
 from zope.interface.interfaces import ComponentLookupError
 
+from interaktiv.translation.helpers.field_selection import (
+    ALWAYS_FIELDS,
+    COPIED_FIELDS,
+    EXCLUDED_FIELDS,
+    FieldRules,
+)
 from interaktiv.translation.helpers.metadata import parse_metadata_mapping
 from interaktiv.translation.registry.translation import (
     DEFAULT_BLOCK_LINK_FIELDS,
     DEFAULT_BLOCK_TEXT_KEYS,
-    DEFAULT_COPY_FIELDS,
     DEFAULT_EXCLUDED_TYPES,
     ITranslationSettings,
 )
@@ -54,10 +59,6 @@ class Settings:
         return list(self._get("target_languages", []))
 
     @property
-    def translate_fields(self) -> List[str]:
-        return list(self._get("translate_fields", ["title", "description", "text", "blocks"]))
-
-    @property
     def link_fields(self) -> List[str]:
         return list(self._get("link_fields", []))
 
@@ -77,13 +78,34 @@ class Settings:
 
         return list(getattr(self._records, "excluded_types", None) or [])
 
-    @property
-    def copy_fields(self) -> List[str]:
-        # an empty list means "copy nothing" and must not fall back to the default
+    def _field_list(self, name: str, default: tuple) -> List[str]:
+        # an emptied list means "none" and must not fall back to the default
         if self._records is None:
-            return list(DEFAULT_COPY_FIELDS)
+            return list(default)
 
-        return list(getattr(self._records, "copy_fields", None) or [])
+        value = getattr(self._records, name, None)
+        return list(default) if value is None else list(value)
+
+    @property
+    def excluded_fields(self) -> List[str]:
+        return self._field_list("excluded_fields", EXCLUDED_FIELDS)
+
+    @property
+    def always_fields(self) -> List[str]:
+        return self._field_list("always_fields", ALWAYS_FIELDS)
+
+    @property
+    def copied_fields(self) -> List[str]:
+        return self._field_list("copied_fields", COPIED_FIELDS)
+
+    @property
+    def field_rules(self) -> FieldRules:
+        # the lists the field rules go by, as this site has them
+        return FieldRules(
+            excluded=tuple(self.excluded_fields),
+            always=tuple(self.always_fields),
+            copied=tuple(self.copied_fields),
+        )
 
     @property
     def metadata_selection(self) -> Dict[str, List[str]]:

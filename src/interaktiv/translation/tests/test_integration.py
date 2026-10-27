@@ -4,6 +4,7 @@ from unittest import mock
 import plone.api as api
 import transaction
 from Acquisition import aq_base
+from interaktiv.translation.helpers.field_selection import ALWAYS_FIELDS, COPIED_FIELDS, EXCLUDED_FIELDS
 from interaktiv.translation.testing import TestCase
 from plone.app.testing import SITE_OWNER_NAME, SITE_OWNER_PASSWORD, TEST_USER_ID
 from plone.protect.interfaces import IDisableCSRFProtection
@@ -59,8 +60,9 @@ class TestSettings(TestCase):
         self.assertIsNone(records.api_key)
         self.assertIsNone(records.api_url)
         self.assertEqual(records.provider, "deepl")
-        self.assertEqual(records.translate_fields, ["title", "description", "text", "blocks"])
-        self.assertEqual(records.copy_fields, ["image", "file"])
+        self.assertEqual(records.excluded_fields, list(EXCLUDED_FIELDS))
+        self.assertEqual(records.always_fields, list(ALWAYS_FIELDS))
+        self.assertEqual(records.copied_fields, list(COPIED_FIELDS))
         self.assertEqual(records.excluded_types, [])
 
     def test_provider__ships_deepl_and_the_mock(self):
@@ -613,8 +615,7 @@ class TestTranslateServiceOnAMultilingualSite(TestCase):
         self.assertCountEqual(response.json()["report"]["copied"], ["subjects", "exclude_from_nav"])
 
     def test_post__carries_over_nothing_that_was_not_chosen(self):
-        # setup — the old setting no longer counts
-        _records().copy_fields = ["subjects"]
+        # setup
         self.page.setSubject(("Wert A",))
         transaction.commit()
 

@@ -4,6 +4,7 @@ from plone.app.testing import SITE_OWNER_NAME, SITE_OWNER_PASSWORD
 from interaktiv.translation.helpers.field_selection import (
     EXCLUDED_TYPES,
     EXCLUDED_FIELDS,
+    FieldRules,
     MODE_COPY,
     MODE_MAPPING,
     MODE_TRANSLATE,
@@ -161,6 +162,24 @@ class TestTranslationFieldsGet(TranslationFieldsTestCase):
         # postcondition
         self.assertFalse(related["mapped"])
 
+    def test_get__goes_by_the_field_lists_of_the_site(self):
+        # setup — the site leaves out "rights", takes "location" over, always translates "contact_name"
+        _records().excluded_fields = list(EXCLUDED_FIELDS) + ["rights"]
+        _records().copied_fields = ["location"]
+        _records().always_fields = ["title", "contact_name"]
+        transaction.commit()
+
+        # do it
+        event = self._fields("Event")
+
+        # postcondition
+        self.assertNotIn("rights", event)
+        self.assertEqual(event["location"]["mode"], MODE_COPY)
+        self.assertEqual(event["contact_name"]["role"], ROLE_ALWAYS)
+        self.assertEqual(list(event)[:2], ["title", "contact_name"])
+        # no longer named: back to its kind of field
+        self.assertEqual(event["contact_email"]["mode"], MODE_TRANSLATE)
+
 
 class TestTranslationFieldsGetMultilingual(TranslationFieldsTestCase):
     layer = INTERAKTIV_TRANSLATION_MULTILINGUAL_FUNCTIONAL_TESTING
@@ -221,6 +240,15 @@ class TestHandledFields(TestCase):
 
         # postcondition
         self.assertNotIn("subjects", modes)
+
+    def test_handled_fields__goes_by_the_rules_given(self):
+        # do it
+        modes = get_handled_fields(
+            "Document", {"Document": ["rights"]}, rules=FieldRules(excluded=("rights",), always=("title",), copied=())
+        )
+
+        # postcondition — "text", the main field of a page, goes along all the same
+        self.assertEqual(list(modes), ["title", "text"])
 
     def test_handled_fields__translates_the_title_of_a_type_dexterity_does_not_know(self):
         self.assertEqual(get_handled_fields("type_unknown", {})["title"], MODE_TRANSLATE)

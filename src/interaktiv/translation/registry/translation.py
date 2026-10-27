@@ -4,7 +4,12 @@ from zope import schema
 from zope.interface import Interface
 
 from interaktiv.translation import _
-from interaktiv.translation.helpers.field_selection import METADATA_SELECTION_JSON_SCHEMA
+from interaktiv.translation.helpers.field_selection import (
+    ALWAYS_FIELDS,
+    COPIED_FIELDS,
+    EXCLUDED_FIELDS,
+    METADATA_SELECTION_JSON_SCHEMA,
+)
 from interaktiv.translation.helpers.metadata import METADATA_MAPPING_JSON_SCHEMA, validate_metadata_mapping
 
 DEFAULT_BLOCK_TEXT_KEYS = [
@@ -28,7 +33,6 @@ DEFAULT_BLOCK_TEXT_KEYS = [
 ]
 DEFAULT_BLOCK_LINK_FIELDS = ["url", "href", "preview_image", "@id"]
 DEFAULT_EXCLUDED_TYPES = []
-DEFAULT_COPY_FIELDS = ["image", "file"]
 
 
 class ITranslationSettings(Interface):
@@ -36,7 +40,7 @@ class ITranslationSettings(Interface):
     model.fieldset(
         'provider_options',
         label=_("Translation Service"),
-        fields=['provider', 'api_key', 'api_url']
+        fields=['provider', 'api_key', 'api_url', 'target_languages']
     )
 
     provider = schema.Choice(
@@ -59,6 +63,18 @@ class ITranslationSettings(Interface):
     api_url = schema.TextLine(
         title=_("DeepL API URL"),
         description=_("Only for a proxy or a self-hosted endpoint. Empty means the host that matches the key."),
+        required=False,
+    )
+
+    target_languages = schema.List(
+        title=_("Offered target languages"),
+        description=_(
+            "The site languages an editor may translate into. A language left out does not "
+            "show in the translation menu. Empty offers every site language."
+        ),
+        value_type=schema.Choice(vocabulary="plone.app.vocabularies.SupportedContentLanguages"),
+        default=[],
+        missing_value=[],
         required=False,
     )
 
@@ -112,9 +128,9 @@ class ITranslationSettings(Interface):
         'translation_advanced_settings',
         label=_("Advanced Settings"),
         fields=[
-            'target_languages',
-            'translate_fields',
-            'copy_fields',
+            'excluded_fields',
+            'always_fields',
+            'copied_fields',
             'link_fields',
             'block_link_fields',
             'block_text_keys',
@@ -122,38 +138,42 @@ class ITranslationSettings(Interface):
         ]
     )
 
-    target_languages = schema.List(
-        title=_("Offered target languages"),
+    excluded_fields = schema.List(
+        title=_("Fields never translated"),
         description=_(
-            "The site languages an editor may translate into. A language left out does not "
-            "show in the translation menu. Empty offers every site language."
+            "Fields that never go into a translation and are not listed per content type: "
+            "they belong to the object, not to its language. Named as in the schema, one per "
+            "line, for every content type."
         ),
-        value_type=schema.Choice(vocabulary="plone.app.vocabularies.SupportedContentLanguages"),
-        default=[],
+        value_type=schema.TextLine(),
+        default=list(EXCLUDED_FIELDS),
         missing_value=[],
         required=False,
     )
 
-    translate_fields = schema.List(
-        title=_("Translated fields"),
-        description=_("The content fields the action translates, in this order."),
+    always_fields = schema.List(
+        title=_("Fields always translated"),
+        description=_(
+            "Fields that always go into a translation and cannot be left out per content "
+            "type; they come first in the list. Named as in the schema, one per line. The "
+            "main field of a type, as the image of an image, always goes along too."
+        ),
         value_type=schema.TextLine(),
-        default=["title", "description", "text", "blocks"],
+        default=list(ALWAYS_FIELDS),
         missing_value=[],
         required=False,
     )
 
-    copy_fields = schema.List(
-        title=_("Fields carried over unchanged"),
+    copied_fields = schema.List(
+        title=_("Fields taken over unchanged"),
         description=_(
-            "Fields of the content whose values the translation takes over as they are, "
-            "neither translated nor mapped — keywords that are codes, a project number. "
-            "Named as the object stores them, one per line (e.g. subject, rights, image). "
-            "Only text, numbers, dates, lists of them, and files and images, which the "
-            "translation gets a copy of; editors may change the values afterwards."
+            "Fields taken over as they are where their kind would have them translated: "
+            "text that is no prose, as an address or a project number. Named as in the "
+            "schema, one per line, for every content type. A field still only goes along "
+            "when it is chosen for the content type."
         ),
         value_type=schema.TextLine(),
-        default=DEFAULT_COPY_FIELDS,
+        default=list(COPIED_FIELDS),
         missing_value=[],
         required=False,
     )

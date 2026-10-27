@@ -99,10 +99,14 @@ validation messages are therefore the same in both.
    (`plone.default_language`). The content knows its language best; the
    default is a guess that cannot cover a multilingual tree. Only without a
    site is it `None` — the provider then detects the language per text.
-2. **Collect.** For every field named in the control panel the matching
-   extractor (`extractors.py`) reads the texts. A field that cannot be read
-   is logged and skipped — one broken field must not lose the rest of the
-   page.
+2. **Collect.** `get_handled_fields()` (`helpers/field_selection.py`) names
+   the fields of the content's type that go along and how: translated,
+   taken over or mapped (see "Which fields go along" below). Every field is
+   read by its schema name through its data manager (`helpers/field_access.py`),
+   as the edit form reads it, and never acquired from a parent. For the
+   fields to translate the matching extractor (`extractors.py`) reads the
+   texts. A field that cannot be read is logged and skipped — one broken
+   field must not lose the rest of the page.
 3. **Translate.** All texts of all fields go to the provider in one
    `translate_texts_by_key()` call. A `TranslationError` is not swallowed:
    that is the service itself failing, and the editor has to hear about it.
@@ -112,22 +116,42 @@ validation messages are therefore the same in both.
 5. **Links.** `helpers/links.py` points internal links at the translated
    pages. A failure here costs the rewritten links, never the paid
    translation.
-6. **Metadata.** Fields named in `copy_fields` are carried over as they
-   are — plain values (text, numbers, dates, lists of them) and files and
-   images; a reference would still belong to the source. A file or image
-   becomes a new object with the same data, never the source's own: two
-   contents sharing one persistent object would both change when one is
-   edited. By default `copy_fields` names `image` and `file`, so an image or
-   a file gets its content and a page its lead image. Fields that have a
-   table in the metadata mapping are carried over instead of translated:
-   each value is looked up for the direction of the run, and an unknown
-   value stays as it is. The mapping runs last, so it wins over both a
-   translation and a copy of the same field. A field that is empty in the
-   source is skipped by both: the translation keeps what it has.
+6. **Metadata.** The fields to take over are carried over as they are —
+   plain values (text, numbers, dates, lists and dicts of them, as the
+   search of a collection) and files and images; a reference would still
+   belong to the source. A file or image becomes a new object with the same
+   data, never the source's own: two contents sharing one persistent object
+   would both change when one is edited. The fields to map are looked up in
+   the metadata mapping for the direction of the run, and an unknown value
+   stays as it is. A field that is empty in the source is skipped: the
+   translation keeps what it has. The values are written back through the
+   same data managers.
 
 `link_report` and `metadata_report` record what steps 5 and 6 did, in the
 same shape: `before`, `after`, and `after: null` for a value that stayed as
 it was. `copied_report` only names the fields that were carried over.
+
+### Which fields go along
+
+`helpers/field_selection.py` holds the rules, for the translation
+(`get_handled_fields()`) and for the control panel's list
+(`get_listed_fields()`, served by `GET @translation-fields`) alike. The
+fields of a type are its schema and its behaviors, minus the fields named in
+`excluded_fields`. Of these go along, first rule that applies:
+
+1. the fields named in `always_fields` (title, description, page content)
+   and the type's primary field, as the image of an image — always;
+2. a field the metadata mapping has values for — through the mapping;
+3. a field chosen for the type in `metadata_selection`
+   (`{portal_type: [field_id, …]}`); nothing else.
+
+How a going field is treated follows from `copied_fields` (taken over),
+plone.app.multilingual's language independent fields (taken over), and else
+the kind of field: text is translated; booleans, numbers, dates, choices,
+addresses, files and images are taken over; a reference cannot go along.
+`excluded_fields`, `always_fields` and `copied_fields` default to the lists
+in `helpers/field_selection.py`; a site changes them in the advanced
+settings.
 
 ## `extractors.py` — what counts as text
 

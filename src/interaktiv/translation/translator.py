@@ -80,7 +80,9 @@ class ContentTranslator:
         current = settings()
         portal_type = getattr(aq_base(content), "portal_type", None)
 
-        return get_handled_fields(portal_type, current.metadata_selection, current.mapped_fields)
+        return get_handled_fields(
+            portal_type, current.metadata_selection, current.mapped_fields, current.field_rules
+        )
 
     def _handled_fields_in_mode(self, content: Any, mode: str) -> List[str]:
         return [name for name, field_mode in self.get_handled_fields(content).items() if field_mode == mode]

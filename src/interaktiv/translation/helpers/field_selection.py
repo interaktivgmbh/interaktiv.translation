@@ -21,7 +21,7 @@ saved one, and a field taken out of the mapping falls back to its mode.
 """
 
 import json
-from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
+from typing import Any, Dict, Iterable, List, NamedTuple, Optional, Set, Tuple
 
 from plone.app.textfield.interfaces import IRichText
 from plone.dexterity.interfaces import IDexterityFTI
@@ -75,6 +75,9 @@ REASON_FIELD_NAME = "field_name"
 REASON_LANGUAGE_INDEPENDENT = "language_independent"
 REASON_FIELD_TYPE = "field_type"
 
+# The three lists below are the defaults of the settings `excluded_fields`,
+# `always_fields` and `copied_fields`; a site changes them in the advanced settings.
+
 # fields that never go along and are not listed: they belong to the object, not to its language
 EXCLUDED_FIELDS = (
     "id",
@@ -112,6 +115,17 @@ COPIED_FIELDS = (
     # the address of a link; TODO: an internal one still points at the source language
     "remoteUrl",
 )
+
+
+class FieldRules(NamedTuple):
+    """The lists of field names the rules go by: the add-on's defaults, or a site's own."""
+
+    excluded: Tuple[str, ...] = EXCLUDED_FIELDS
+    always: Tuple[str, ...] = ALWAYS_FIELDS
+    copied: Tuple[str, ...] = COPIED_FIELDS
+
+
+DEFAULT_RULES = FieldRules()
 
 # plone.app.multilingual's language folders are no content of their own
 EXCLUDED_TYPES = ("LRF", "LIF")
@@ -176,13 +190,14 @@ def classify_field(
     primary: bool = False,
     language_independent: bool = False,
     mapped_fields: Iterable[str] = (),
+    rules: FieldRules = DEFAULT_RULES,
 ) -> Tuple[str, Optional[str], str]:
     """The role, the mode and the reason for the mode of one field."""
     name = field.getName()
     # a field named to be copied goes along, whatever its type
-    by_type = MODE_COPY if name in COPIED_FIELDS else mode_by_field_type(field)
+    by_type = MODE_COPY if name in rules.copied else mode_by_field_type(field)
 
-    if name in ALWAYS_FIELDS:
+    if name in rules.always:
         role, role_reason = ROLE_ALWAYS, REASON_ALWAYS
     elif primary and by_type is not None:
         role, role_reason = ROLE_ALWAYS, REASON_PRIMARY
@@ -193,7 +208,7 @@ def classify_field(
 
     if name in mapped_fields:
         return role, MODE_MAPPING, REASON_MAPPING
-    if name in COPIED_FIELDS:
+    if name in rules.copied:
         return role, MODE_COPY, REASON_FIELD_NAME
     if language_independent:
         return role, MODE_COPY, REASON_LANGUAGE_INDEPENDENT
@@ -216,8 +231,8 @@ def _language_independent_names(schemata: Iterable[Any]) -> Set[str]:
     return names
 
 
-def always_first(fields: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    rank = {name: position for position, name in enumerate(ALWAYS_FIELDS)}
+def always_first(fields: List[Dict[str, Any]], always: Iterable[str] = ALWAYS_FIELDS) -> List[Dict[str, Any]]:
+    rank = {name: position for position, name in enumerate(always)}
     # sorted() is stable: fields of the same rank keep their order
     return sorted(fields, key=lambda field: rank.get(field["id"], len(rank)))
 
@@ -236,7 +251,11 @@ def selectable_types(context: Any, excluded: Iterable[str] = ()) -> List[Tuple[s
 
 
 def get_listed_fields(
-    portal_type: str, context: Any, request: Any, mapped_fields: Iterable[str] = ()
+    portal_type: str,
+    context: Any,
+    request: Any,
+    mapped_fields: Iterable[str] = (),
+    rules: FieldRules = DEFAULT_RULES,
 ) -> List[Dict[str, Any]]:
     """ get all fields of type that are not excluded
         mode: how the field should be handled
@@ -257,7 +276,7 @@ def get_listed_fields(
             field = form_field.field
             name = field.getName()
             # an excluded field never goes along; a hidden form field is no choice of the editor's
-            if name in EXCLUDED_FIELDS or form_field.mode == HIDDEN_MODE:
+            if name in rules.excluded or form_field.mode == HIDDEN_MODE:
                 continue
 
             role, mode, reason = classify_field(
@@ -265,6 +284,7 @@ def get_listed_fields(
                 primary=IPrimaryField.providedBy(field),
                 language_independent=name in independent
                 or bool(ILanguageIndependentField and ILanguageIndependentField.providedBy(field)),
+                rules=rules,
             )
             fields.append(
                 {
@@ -279,18 +299,19 @@ def get_listed_fields(
                 }
             )
 
-    return always_first(fields)
+    return always_first(fields, rules.always)
 
 
 def get_handled_fields(
     portal_type: Optional[str],
     selection: Dict[str, List[str]],
     mapped_fields: Iterable[str] = (),
+    rules: FieldRules = DEFAULT_RULES,
 ) -> Dict[str, str]:
     """ {field_id: mode} of fields that are handled by translation """
     fti = queryUtility(IDexterityFTI, name=portal_type) if portal_type else None
     if fti is None:
-        return {name: MODE_TRANSLATE for name in ALWAYS_FIELDS}
+        return {name: MODE_TRANSLATE for name in rules.always}
 
     schemata = (fti.lookupSchema(),) + tuple(getAdditionalSchemata(portal_type=portal_type))
     independent = _language_independent_names(schemata)
@@ -301,7 +322,7 @@ def get_handled_fields(
     seen: Set[str] = set()
     for item in schemata:
         for name, field in schema.getFieldsInOrder(item):
-            if name in seen or name in EXCLUDED_FIELDS:
+            if name in seen or name in rules.excluded:
                 continue
             seen.add(name)
 
@@ -311,6 +332,7 @@ def get_handled_fields(
                 language_independent=name in independent
                 or bool(ILanguageIndependentField and ILanguageIndependentField.providedBy(field)),
                 mapped_fields=mapped,
+                rules=rules,
             )
             if role == ROLE_IMPOSSIBLE:
                 continue
@@ -318,6 +340,6 @@ def get_handled_fields(
                 going.append({"id": name, "mode": mode})
 
     # what always goes along, also where no schema names it (blocks without the behavior)
-    going.extend({"id": name, "mode": MODE_TRANSLATE} for name in ALWAYS_FIELDS if name not in seen)
+    going.extend({"id": name, "mode": MODE_TRANSLATE} for name in rules.always if name not in seen)
 
-    return {field["id"]: field["mode"] for field in always_first(going)}
+    return {field["id"]: field["mode"] for field in always_first(going, rules.always)}

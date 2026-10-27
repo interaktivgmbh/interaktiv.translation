@@ -7,10 +7,19 @@
 - Breaking: which fields go into a translation is decided per content type:
   title, description and page content always, the fields the metadata
   mapping has values for, and the fields chosen in `metadata_selection`;
-  translated or taken over by the kind of field. `translate_fields` and
-  `copy_fields` no longer count. Fields are read and written by their
-  schema name (`subjects`, not `subject`), also in the metadata mapping and
-  the report.
+  translated or taken over by the kind of field. Fields are read and written
+  by their schema name (`subjects`, not `subject`), also in the metadata
+  mapping and the report.
+- Breaking: removed `translate_fields` and `copy_fields` from settings
+- Added `excluded_fields` -> fields that are skipped
+- Added `always_fields` -> fields that are always handled by translation
+- Added `copied_fields` -> fields that are copied untranslated when handled
+- Breaking: the settings `translate_fields` and `copy_fields` are gone; the
+  upgrade step to profile version 1001 removes them. The advanced settings
+  name instead the fields never translated (`excluded_fields`), always
+  translated (`always_fields`) and taken over unchanged (`copied_fields`),
+  for every content type, with the add-on's lists as defaults. The offered
+  target languages moved back to the translation service tab.
 - Machine translations of content without a workflow get the status
   `machine_without_review`.
 - Breaking: an existing working copy is never overwritten, not even with

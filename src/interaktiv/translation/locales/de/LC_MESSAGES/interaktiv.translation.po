@@ -59,13 +59,7 @@ msgstr "Angebotene Zielsprachen"
 msgid "The site languages an editor may translate into. A language left out does not show in the translation menu. Empty offers every site language."
 msgstr "Die Sprachen der Website, in die übersetzt werden darf. Nicht gewählte Sprachen tauchen im Übersetzungs-Menü nicht auf. Leer bietet alle Sprachen der Website an."
 
-#: ../registry/translation.py
-msgid "Translated fields"
-msgstr "Übersetzte Felder"
 
-#: ../registry/translation.py
-msgid "The content fields the action translates, in this order."
-msgstr "Die Inhaltsfelder, die die Aktion übersetzt, in dieser Reihenfolge."
 
 #: ../views/translate.py
 msgid "Choose a language to translate into."
@@ -175,13 +169,7 @@ msgstr "Nicht maschinell übersetzte Inhaltstypen"
 msgid "Content of these types is never offered for machine translation."
 msgstr "Inhalte dieser Typen werden nie zur maschinellen Übersetzung angeboten."
 
-#: ../registry/translation.py
-msgid "Fields carried over unchanged"
-msgstr "Unverändert übernommene Felder"
 
-#: ../registry/translation.py
-msgid "Fields of the content whose values the translation takes over as they are, neither translated nor mapped — keywords that are codes, a project number. Named as the object stores them, one per line (e.g. subject, rights, image). Only text, numbers, dates, lists of them, and files and images, which the translation gets a copy of; editors may change the values afterwards."
-msgstr "Felder des Inhalts, deren Werte die Übersetzung so übernimmt, wie sie sind — weder übersetzt noch zugeordnet: Schlagwörter, die Kürzel sind, eine Projektnummer. So benannt, wie das Objekt sie speichert, eines pro Zeile (z. B. subject, rights, image). Nur Text, Zahlen, Datumswerte, Listen davon sowie Dateien und Bilder, von denen die Übersetzung eine Kopie erhält; Redakteure können die Werte danach ändern."
 
 #: ../helpers/field_selection.py
 msgid "Page content"
@@ -194,3 +182,27 @@ msgstr "Felder je Inhaltstyp"
 #: ../registry/translation.py
 msgid "Sets per content type which fields go along into the translation. Only fields filled in on the page count. Whether a field is translated or taken over as it is follows from the kind of field; a field with values in the metadata mapping goes through the mapping."
 msgstr "Legt je Inhaltstyp fest, welche Felder in die Übersetzung mitgehen. Berücksichtigt werden nur Felder, die auf der Seite tatsächlich ausgefüllt sind. Ob ein Feld übersetzt oder unverändert übernommen wird, ergibt sich aus der Art des Feldes; ein Feld mit Einträgen im Metadaten-Mapping geht über das Mapping."
+
+#: ../registry/translation.py
+msgid "Fields never translated"
+msgstr "Nie übersetzte Felder"
+
+#: ../registry/translation.py
+msgid "Fields that never go into a translation and are not listed per content type: they belong to the object, not to its language. Named as in the schema, one per line, for every content type."
+msgstr "Felder, die nie in eine Übersetzung gehen und je Inhaltstyp nicht aufgeführt werden: Sie gehören zum Objekt, nicht zu seiner Sprache. Benannt wie im Schema, eines pro Zeile, für alle Inhaltstypen."
+
+#: ../registry/translation.py
+msgid "Fields always translated"
+msgstr "Immer übersetzte Felder"
+
+#: ../registry/translation.py
+msgid "Fields that always go into a translation and cannot be left out per content type; they come first in the list. Named as in the schema, one per line. The main field of a type, as the image of an image, always goes along too."
+msgstr "Felder, die immer in die Übersetzung gehen und je Inhaltstyp nicht abgewählt werden können; sie stehen oben in der Liste. Benannt wie im Schema, eines pro Zeile. Das Hauptfeld eines Typs, etwa das Bild eines Bildes, geht ebenfalls immer mit."
+
+#: ../registry/translation.py
+msgid "Fields taken over unchanged"
+msgstr "Unverändert übernommene Felder"
+
+#: ../registry/translation.py
+msgid "Fields taken over as they are where their kind would have them translated: text that is no prose, as an address or a project number. Named as in the schema, one per line, for every content type. A field still only goes along when it is chosen for the content type."
+msgstr "Felder, die unverändert übernommen werden, wo sie ihrer Art nach übersetzt würden: Text, der keine Sprache ist, etwa eine Adresse oder eine Projektnummer. Benannt wie im Schema, eines pro Zeile, für alle Inhaltstypen. Ein Feld geht trotzdem nur mit, wenn es für den Inhaltstyp ausgewählt ist."

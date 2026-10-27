@@ -3,6 +3,7 @@ from unittest import TestCase, mock
 from zope.interface import Invalid
 from zope.schema.interfaces import WrongContainedType
 
+from interaktiv.translation.helpers.field_selection import FieldRules
 from interaktiv.translation.helpers.metadata import parse_metadata_mapping, validate_metadata_mapping
 from interaktiv.translation.registry.translation import ITranslationSettings
 from interaktiv.translation.settings import Settings
@@ -177,12 +178,17 @@ class TestSettingsExcludedTypes(TestCase):
 
 
 class TestSettingsCopyFields(TestCase):
-    def test_copy_fields__default_to_the_file_fields_without_a_site(self):
-        self.assertEqual(Settings(records=None).copy_fields, ["image", "file"])
+    def test_field_lists__default_to_the_rules_of_the_add_on_without_a_site(self):
+        rules = Settings(records=None).field_rules
 
-    def test_copy_fields__keep_an_emptied_list(self):
-        # setup — emptied on purpose: nothing is carried over
-        records = mock.Mock(copy_fields=[])
+        self.assertEqual(rules, FieldRules())
 
-        # do it / postcondition
-        self.assertEqual(Settings(records=records).copy_fields, [])
+    def test_field_lists__keep_an_emptied_list(self):
+        # setup — nothing taken over unchanged: no fallback to the default
+        records = mock.Mock(excluded_fields=["field_a"], always_fields=["field_b"], copied_fields=[])
+
+        # do it
+        rules = Settings(records=records).field_rules
+
+        # postcondition
+        self.assertEqual(rules, FieldRules(excluded=("field_a",), always=("field_b",), copied=()))
