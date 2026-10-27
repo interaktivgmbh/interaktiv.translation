@@ -6,6 +6,7 @@ from AccessControl import getSecurityManager
 from Acquisition import aq_base, aq_inner, aq_parent
 from Products.GenericSetup.tool import UNKNOWN
 from interaktiv.translation import logger
+from interaktiv.translation.helpers.field_access import set_field_value
 from interaktiv.translation.providers.base import PROVIDERS, TranslationError
 from interaktiv.translation.settings import settings
 from plone.app.iterate.interfaces import ICheckinCheckoutPolicy, IObjectArchiver
@@ -271,7 +272,7 @@ class TranslationStorage:
 
     def _apply(self, content: Any, fields: Dict[str, Any], target_language: str) -> Any:
         for name, value in fields.items():
-            setattr(content, name, value)
+            set_field_value(content, name, value)
 
         self._mark_machine_translated(content, target_language)
         self._note_change(target_language)

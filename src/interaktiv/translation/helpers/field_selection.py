@@ -15,7 +15,7 @@ Every listed field has a role and a mode:
 
 ``reason`` names the rule that decided the mode, for the control panel to tell.
 
-The listing (``type_fields``) leaves the mapping out of the mode and tells it
+The listing (``get_listed_fields``) leaves the mapping out of the mode and tells it
 apart as ``mapped``: the control panel shows the mapping it is editing, not the
 saved one, and a field taken out of the mapping falls back to its mode.
 """
@@ -142,7 +142,7 @@ def _provides(field: Any, interfaces: Iterable[Any]) -> bool:
 
 
 def mode_by_field_type(field: Any) -> Optional[str]:
-    """``translate`` or ``copy`` by the kind of field, ``None`` if it cannot go along."""
+    """ get mode how to handle field by field type -> ``translate``, ``copy`` or ``None`` """
     # the order matters: an URI is a text line too, a relation a choice
     if IRelation.providedBy(field):
         return None
@@ -217,14 +217,12 @@ def _language_independent_names(schemata: Iterable[Any]) -> Set[str]:
 
 
 def always_first(fields: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """The fields that always go along at the top, in the order of ``ALWAYS_FIELDS``; the rest as they were."""
     rank = {name: position for position, name in enumerate(ALWAYS_FIELDS)}
     # sorted() is stable: fields of the same rank keep their order
     return sorted(fields, key=lambda field: rank.get(field["id"], len(rank)))
 
 
 def selectable_types(context: Any, excluded: Iterable[str] = ()) -> List[Tuple[str, str]]:
-    """``(portal_type, title)`` of the types an editor adds, in the order Plone lists them."""
     factory = queryUtility(IVocabularyFactory, name="plone.app.vocabularies.ReallyUserFriendlyTypes")
     if factory is None:
         return []
@@ -237,13 +235,12 @@ def selectable_types(context: Any, excluded: Iterable[str] = ()) -> List[Tuple[s
     ]
 
 
-def type_fields(
+def get_listed_fields(
     portal_type: str, context: Any, request: Any, mapped_fields: Iterable[str] = ()
 ) -> List[Dict[str, Any]]:
-    """The listed fields of one type, in the order and the fieldsets of its edit form.
-
-    ``mapped`` tells whether the saved mapping has values for the field; ``mode``
-    is what the field gets without them.
+    """ get all fields of type that are not excluded
+        mode: how the field should be handled
+        mapped: is there a metadata mapping for the field
     """
     fti = queryUtility(IDexterityFTI, name=portal_type)
     if fti is None:
@@ -283,3 +280,44 @@ def type_fields(
             )
 
     return always_first(fields)
+
+
+def get_handled_fields(
+    portal_type: Optional[str],
+    selection: Dict[str, List[str]],
+    mapped_fields: Iterable[str] = (),
+) -> Dict[str, str]:
+    """ {field_id: mode} of fields that are handled by translation """
+    fti = queryUtility(IDexterityFTI, name=portal_type) if portal_type else None
+    if fti is None:
+        return {name: MODE_TRANSLATE for name in ALWAYS_FIELDS}
+
+    schemata = (fti.lookupSchema(),) + tuple(getAdditionalSchemata(portal_type=portal_type))
+    independent = _language_independent_names(schemata)
+    chosen = set((selection or {}).get(portal_type) or ())
+    mapped = set(mapped_fields)
+
+    going: List[Dict[str, Any]] = []
+    seen: Set[str] = set()
+    for item in schemata:
+        for name, field in schema.getFieldsInOrder(item):
+            if name in seen or name in EXCLUDED_FIELDS:
+                continue
+            seen.add(name)
+
+            role, mode, _reason = classify_field(
+                field,
+                primary=IPrimaryField.providedBy(field),
+                language_independent=name in independent
+                or bool(ILanguageIndependentField and ILanguageIndependentField.providedBy(field)),
+                mapped_fields=mapped,
+            )
+            if role == ROLE_IMPOSSIBLE:
+                continue
+            if role == ROLE_ALWAYS or name in mapped or name in chosen:
+                going.append({"id": name, "mode": mode})
+
+    # what always goes along, also where no schema names it (blocks without the behavior)
+    going.extend({"id": name, "mode": MODE_TRANSLATE} for name in ALWAYS_FIELDS if name not in seen)
+
+    return {field["id"]: field["mode"] for field in always_first(going)}

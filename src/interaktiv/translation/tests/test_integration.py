@@ -574,8 +574,8 @@ class TestTranslateServiceOnAMultilingualSite(TestCase):
         self.assertEqual(self.page.title, "Guten Tag")
 
     def test_post__maps_metadata_and_reports_it(self):
-        # setup — a mapping table for the subject field, keywords on the page
-        _records().metadata_mapping_table = {"subject": [{"de": "Wert A", "en": "value a"}]}
+        # setup — a mapping table for the keywords, keywords on the page
+        _records().metadata_mapping_table = {"subjects": [{"de": "Wert A", "en": "value a"}]}
         self.page.setSubject(("Wert A", "Wert X"))
         transaction.commit()
 
@@ -590,16 +590,16 @@ class TestTranslateServiceOnAMultilingualSite(TestCase):
         self.assertEqual(
             response.json()["report"]["metadata"],
             [
-                {"field": "subject", "before": "Wert A", "after": "value a"},
-                {"field": "subject", "before": "Wert X", "after": None},
+                {"field": "subjects", "before": "Wert A", "after": "value a"},
+                {"field": "subjects", "before": "Wert X", "after": None},
             ],
         )
 
-    def test_post__carries_copy_fields_over_and_reports_them(self):
+    def test_post__carries_the_chosen_fields_over_and_reports_them(self):
         # setup
-        _records().copy_fields = ["subject", "rights"]
+        _records().metadata_selection = {"Document": ["subjects", "exclude_from_nav"]}
         self.page.setSubject(("Wert A", "Wert B"))
-        self.page.rights = "Rechte"
+        self.page.exclude_from_nav = True
         transaction.commit()
 
         # do it
@@ -609,12 +609,41 @@ class TestTranslateServiceOnAMultilingualSite(TestCase):
         transaction.begin()
         translation = self.portal["en"]["page"]
         self.assertEqual(tuple(translation.Subject()), ("Wert A", "Wert B"))
-        self.assertEqual(translation.rights, "Rechte")
-        self.assertEqual(response.json()["report"]["copied"], ["subject", "rights"])
+        self.assertTrue(translation.exclude_from_nav)
+        self.assertCountEqual(response.json()["report"]["copied"], ["subjects", "exclude_from_nav"])
+
+    def test_post__carries_over_nothing_that_was_not_chosen(self):
+        # setup — the old setting no longer counts
+        _records().copy_fields = ["subjects"]
+        self.page.setSubject(("Wert A",))
+        transaction.commit()
+
+        # do it
+        response = self._translate()
+
+        # postcondition
+        transaction.begin()
+        self.assertEqual(tuple(self.portal["en"]["page"].Subject()), ())
+        self.assertEqual(response.json()["report"]["copied"], [])
+
+    def test_post__translates_a_chosen_text_field(self):
+        # setup
+        _records().metadata_selection = {"Document": ["rights"]}
+        self.page.rights = "Rechte"
+        transaction.commit()
+
+        # do it
+        with mock.patch("requests.post", return_value=_deepl("Good day", "A page", "Rights")):
+            response = self.api_session.post("/de/page/@translate", json={"target_language": "en", "save": True})
+
+        # postcondition
+        self.assertEqual(response.status_code, 200)
+        transaction.begin()
+        self.assertEqual(self.portal["en"]["page"].rights, "Rights")
 
     def test_post__does_not_take_metadata_over_from_the_folder(self):
         # setup — the fields sit on the language folder, not on the page
-        _records().copy_fields = ["field_a"]
+        _records().metadata_selection = {"Document": ["field_a"]}
         _records().metadata_mapping_table = {"field_b": [{"de": "Wert B", "en": "value b"}]}
         self.portal["de"].field_a = "Wert A"
         self.portal["de"].field_b = "Wert B"
@@ -1281,8 +1310,8 @@ class TestExcludedTypes(TestCase):
 
 
 class TestImagesAndFiles(TestCase):
-    """An image or a file is translated like a page; its file comes along as
-    a copy of its own, through the default `copy_fields`."""
+    """An image or a file is translated like a page; its file, the type's
+    main field, always comes along as a copy of its own."""
 
     layer = INTERAKTIV_TRANSLATION_MULTILINGUAL_FUNCTIONAL_TESTING
 

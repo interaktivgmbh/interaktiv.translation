@@ -3,6 +3,14 @@
 ## Unreleased
 
 - Added `GET @translation-fields` service to be used for type specific metadata selection
+- Breaking: which fields are handled by translation is configured in metadata_selection
+- Breaking: which fields go into a translation is decided per content type:
+  title, description and page content always, the fields the metadata
+  mapping has values for, and the fields chosen in `metadata_selection`;
+  translated or taken over by the kind of field. `translate_fields` and
+  `copy_fields` no longer count. Fields are read and written by their
+  schema name (`subjects`, not `subject`), also in the metadata mapping and
+  the report.
 - Machine translations of content without a workflow get the status
   `machine_without_review`.
 - Breaking: an existing working copy is never overwritten, not even with

@@ -5,13 +5,16 @@ from interaktiv.translation.helpers.field_selection import (
     EXCLUDED_TYPES,
     EXCLUDED_FIELDS,
     MODE_COPY,
+    MODE_MAPPING,
     MODE_TRANSLATE,
     REASON_PRIMARY,
     ROLE_ALWAYS,
     ROLE_IMPOSSIBLE,
+    get_handled_fields,
 )
 from interaktiv.translation.testing import (
     INTERAKTIV_TRANSLATION_FUNCTIONAL_TESTING,
+    INTERAKTIV_TRANSLATION_INTEGRATION_TESTING,
     INTERAKTIV_TRANSLATION_MULTILINGUAL_FUNCTIONAL_TESTING,
     RelativeSession,
     TestCase,
@@ -176,3 +179,48 @@ class TestTranslationFieldsGetMultilingual(TranslationFieldsTestCase):
 
         # postcondition
         self.assertEqual((start["mode"], start["reason"]), (MODE_COPY, "language_independent"))
+
+
+class TestHandledFields(TestCase):
+    layer = INTERAKTIV_TRANSLATION_INTEGRATION_TESTING
+
+    def test_handled_fields__without_a_choice_takes_what_always_goes_along(self):
+        # do it
+        modes = get_handled_fields("Document", {})
+
+        # postcondition
+        self.assertEqual(list(modes)[:3], ["title", "description", "text"])
+        self.assertNotIn("subjects", modes)
+
+    def test_handled_fields__takes_the_chosen_fields_by_their_mode(self):
+        # do it
+        modes = get_handled_fields("Document", {"Document": ["subjects", "rights"]})
+
+        # postcondition
+        self.assertEqual(modes["subjects"], MODE_COPY)
+        self.assertEqual(modes["rights"], MODE_TRANSLATE)
+
+    def test_handled_fields__a_mapped_field_goes_along_unchosen(self):
+        # do it
+        modes = get_handled_fields("Document", {}, mapped_fields=["subjects"])
+
+        # postcondition
+        self.assertEqual(modes["subjects"], MODE_MAPPING)
+
+    def test_handled_fields__never_takes_an_excluded_field_or_a_reference(self):
+        # do it
+        modes = get_handled_fields("Document", {"Document": ["id", "relatedItems"]})
+
+        # postcondition
+        self.assertNotIn("id", modes)
+        self.assertNotIn("relatedItems", modes)
+
+    def test_handled_fields__ignores_the_choice_of_another_type(self):
+        # do it
+        modes = get_handled_fields("Document", {"Event": ["subjects"]})
+
+        # postcondition
+        self.assertNotIn("subjects", modes)
+
+    def test_handled_fields__translates_the_title_of_a_type_dexterity_does_not_know(self):
+        self.assertEqual(get_handled_fields("type_unknown", {})["title"], MODE_TRANSLATE)

@@ -8,8 +8,15 @@ from plone.namedfile.interfaces import INamedFile
 from interaktiv.translation import logger
 from interaktiv.translation.extractors import ExtractorRegistry, FieldExtractor, Share, default_extractors
 from interaktiv.translation.providers.base import PROVIDERS, TranslationError, TranslationProvider
-from interaktiv.translation.settings import settings
+from interaktiv.translation.helpers.field_access import MISSING, field_value
+from interaktiv.translation.helpers.field_selection import (
+    MODE_COPY,
+    MODE_MAPPING,
+    MODE_TRANSLATE,
+    get_handled_fields,
+)
 from interaktiv.translation.helpers.links import postprocess_links
+from interaktiv.translation.settings import settings
 
 
 # What may travel unchanged: values that mean the same in every language. A
@@ -25,17 +32,21 @@ def is_empty(value: Any) -> bool:
 def is_copyable(value: Any) -> bool:
     if INamedFile.providedBy(value):
         return True
-    if isinstance(value, COLLECTION_TYPES):
-        return all(isinstance(item, COPYABLE_TYPES) for item in value)
 
-    return isinstance(value, COPYABLE_TYPES)
+    if isinstance(value, dict):
+        return all(isinstance(key, str) and is_copyable(item) for key, item in value.items())
+
+    if isinstance(value, COLLECTION_TYPES):
+        return all(is_copyable(item) for item in value)
+
+    return value is None or isinstance(value, COPYABLE_TYPES)
 
 
 def copied_value(value: Any) -> Any:
     if INamedFile.providedBy(value):
         return type(value)(data=value.data, contentType=value.contentType, filename=value.filename)
 
-    return copy.copy(value)
+    return copy.deepcopy(value)
 
 
 class QueueEntry(TypedDict):
@@ -64,8 +75,23 @@ class ContentTranslator:
         self.metadata_report: List[Dict[str, Any]] = []
         self.copied_report: List[str] = []
 
+    def get_handled_fields(self, content: Any) -> Dict[str, str]:
+        """``{field_id: mode}`` of the fields that go into the translation of this content."""
+        current = settings()
+        portal_type = getattr(aq_base(content), "portal_type", None)
+
+        return get_handled_fields(portal_type, current.metadata_selection, current.mapped_fields)
+
+    def _handled_fields_in_mode(self, content: Any, mode: str) -> List[str]:
+        return [name for name, field_mode in self.get_handled_fields(content).items() if field_mode == mode]
+
     def fields_of(self, content: Any) -> List[str]:
-        return [name for name in settings().translate_fields if hasattr(content, name)]
+        """The fields to translate that the content has."""
+        return [
+            name
+            for name in self._handled_fields_in_mode(content, MODE_TRANSLATE)
+            if field_value(content, name, MISSING) is not MISSING
+        ]
 
     def create_queue_entry(self, value: Any) -> QueueEntry:
         data = {
@@ -109,9 +135,8 @@ class ContentTranslator:
 
     def copied_fields(self, content: Any) -> Dict[str, Any]:
         result: Dict[str, Any] = {}
-        for field_id in settings().copy_fields:
-            # use aq_base tp prevent aquiring of value
-            value = getattr(aq_base(content), field_id, None)
+        for field_id in self._handled_fields_in_mode(content, MODE_COPY):
+            value = field_value(content, field_id)
             if is_empty(value):
                 continue
             if not is_copyable(value):
@@ -128,9 +153,12 @@ class ContentTranslator:
     ) -> Dict[str, Any]:
         result: Dict[str, Any] = {}
         metadata_mapping = settings().get_metadata_mapping(source_language, target_language)
-        for field_id, mapping in metadata_mapping.items():
-            # aq_base: a field the content lacks must not be acquired from its folder.
-            source_value = getattr(aq_base(content), field_id, None)
+        for field_id in self._handled_fields_in_mode(content, MODE_MAPPING):
+            mapping = metadata_mapping.get(field_id)
+            if not mapping:
+                # no value of this direction is mapped: the translation keeps what it has
+                continue
+            source_value = field_value(content, field_id)
             if is_empty(source_value):
                 # Nothing to map: the translation keeps what it has.
                 continue
@@ -163,7 +191,7 @@ class ContentTranslator:
         # queue values
         queue = {}
         for field_id in self.fields_of(content):
-            value = getattr(content, field_id, None)
+            value = field_value(content, field_id)
             if value in (None, "", {}, []):
                 continue
 

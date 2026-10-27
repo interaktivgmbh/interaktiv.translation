@@ -86,6 +86,12 @@ class Settings:
         return list(getattr(self._records, "copy_fields", None) or [])
 
     @property
+    def metadata_selection(self) -> Dict[str, List[str]]:
+        # {portal_type: [field_id, ...]}: the fields chosen per content type
+        selection = self._get("metadata_selection", {})
+        return selection if isinstance(selection, dict) else {}
+
+    @property
     def mapped_fields(self) -> List[str]:
         # the fields the metadata mapping has values for
         mapping = self._get("metadata_mapping_table", {})

@@ -42,15 +42,22 @@ class TestContentTranslator(TestCase):
     def setUp(self):
         self.provider = Upper()
         self.settings = mock.Mock(
-            translate_fields=["title", "description", "blocks"],
             block_text_keys=None,
             default_source_language="de",
-            copy_fields=[],
         )
         self.settings.get_metadata_mapping.return_value = {}
         patcher = mock.patch(
             "interaktiv.translation.translator.settings",
             return_value=self.settings,
+        )
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        # which fields go along, and how: what the content type and the
+        # control panel decide, here decided by the test
+        self.modes = {"title": "translate", "description": "translate", "blocks": "translate"}
+        patcher = mock.patch(
+            "interaktiv.translation.translator.get_handled_fields",
+            side_effect=lambda *args: dict(self.modes),
         )
         patcher.start()
         self.addCleanup(patcher.stop)
@@ -193,6 +200,7 @@ class TestContentTranslator(TestCase):
 
     def test_translate__maps_metadata_values_instead_of_translating_them(self):
         # setup
+        self.modes.update({"field_a": "mapping"})
         self.settings.get_metadata_mapping.return_value = {
             "field_a": {"Wert A": "value a", "Wert B": "value b"},
         }
@@ -210,6 +218,7 @@ class TestContentTranslator(TestCase):
 
     def test_translate__maps_a_plain_string_metadata_field(self):
         # setup
+        self.modes.update({"field_a": "mapping"})
         self.settings.get_metadata_mapping.return_value = {"field_a": {"Wert A": "value a"}}
         content = Content(title="Titel", field_a="Wert A")
 
@@ -221,6 +230,7 @@ class TestContentTranslator(TestCase):
 
     def test_translate__reports_what_the_mapping_did_and_what_it_missed(self):
         # setup
+        self.modes.update({"field_a": "mapping"})
         self.settings.get_metadata_mapping.return_value = {"field_a": {"Wert A": "value a"}}
         translator = self._translator()
 
@@ -243,6 +253,7 @@ class TestContentTranslator(TestCase):
 
     def test_translate__skips_a_mapped_field_the_content_does_not_have(self):
         # setup
+        self.modes.update({"field_a": "mapping"})
         self.settings.get_metadata_mapping.return_value = {"field_a": {"Wert A": "value a"}}
 
         # do it
@@ -253,6 +264,7 @@ class TestContentTranslator(TestCase):
 
     def test_translate__skips_a_mapped_field_that_is_empty_in_the_source(self):
         # setup — nothing to map: the translation keeps the values it has
+        self.modes.update({"field_a": "mapping", "field_b": "mapping"})
         self.settings.get_metadata_mapping.return_value = {"field_a": {"Wert A": "value a"}, "field_b": {}}
         content = Content(title="Titel", field_a=(), field_b="")
 
@@ -265,7 +277,7 @@ class TestContentTranslator(TestCase):
 
     def test_translate__carries_copy_fields_over_unchanged(self):
         # setup
-        self.settings.copy_fields = ["field_a", "field_b", "field_c"]
+        self.modes.update({"field_a": "copy", "field_b": "copy", "field_c": "copy"})
         content = Content(title="Titel", field_a=("Wert A", "Wert B"), field_b="Wert C", field_c=42)
         translator = self._translator()
 
@@ -282,7 +294,7 @@ class TestContentTranslator(TestCase):
 
     def test_translate__copies_a_list_instead_of_sharing_it(self):
         # setup
-        self.settings.copy_fields = ["field_a"]
+        self.modes.update({"field_a": "copy"})
         content = Content(title="Titel", field_a=["Wert A"])
 
         # do it
@@ -294,7 +306,7 @@ class TestContentTranslator(TestCase):
 
     def test_translate__copies_a_file_instead_of_sharing_it(self):
         # setup
-        self.settings.copy_fields = ["field_a", "field_b"]
+        self.modes.update({"field_a": "copy", "field_b": "copy"})
         content = Content(
             title="Titel",
             field_a=NamedFile(data=b"Inhalt A", contentType="text/plain", filename="datei-a.txt"),
@@ -317,7 +329,7 @@ class TestContentTranslator(TestCase):
 
     def test_translate__skips_copy_fields_that_are_missing_or_empty(self):
         # setup — nothing to take over: the translation keeps what it has
-        self.settings.copy_fields = ["field_a", "field_b", "field_c"]
+        self.modes.update({"field_a": "copy", "field_b": "copy", "field_c": "copy"})
         content = Content(title="Titel", field_a=(), field_b=None)
         translator = self._translator()
 
@@ -332,7 +344,7 @@ class TestContentTranslator(TestCase):
 
     def test_translate__skips_copy_fields_that_hold_no_plain_value(self):
         # setup — a reference must not travel as it is
-        self.settings.copy_fields = ["field_a", "field_b"]
+        self.modes.update({"field_a": "copy", "field_b": "copy"})
         content = Content(title="Titel", field_a=object(), field_b=[object()])
 
         # do it
@@ -342,17 +354,17 @@ class TestContentTranslator(TestCase):
         self.assertNotIn("field_a", result)
         self.assertNotIn("field_b", result)
 
-    def test_translate__a_mapping_beats_a_copy_of_the_same_field(self):
-        # setup — named in both lists: the mapping runs last
-        self.settings.copy_fields = ["field_a"]
+    def test_translate__a_field_to_copy_is_not_mapped(self):
+        # setup — the mapping knows the value, but the field is taken over
+        self.modes.update({"field_a": "copy"})
         self.settings.get_metadata_mapping.return_value = {"field_a": {"Wert A": "value a"}}
         content = Content(title="Titel", field_a=("Wert A",))
 
         # do it
         result = self._translator().translate(content, "EN")
 
-        # postcondition
-        self.assertEqual(result["field_a"], ("value a",))
+        # postcondition — the content type decides how a field goes along
+        self.assertEqual(result["field_a"], ("Wert A",))
 
     def test_translate__asks_for_the_mapping_of_the_resolved_direction(self):
         # do it — no source given: the configured default counts
