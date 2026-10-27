@@ -20,6 +20,9 @@
   translated (`always_fields`) and taken over unchanged (`copied_fields`),
   for every content type, with the add-on's lists as defaults. The offered
   target languages moved back to the translation service tab.
+- Added vocabulary `interaktiv.translation.ContentTypes`
+  for choice of not translated content types
+- Fix: target language choice vocabulary when unknown value is stored
 - Machine translations of content without a workflow get the status
   `machine_without_review`.
 - Breaking: an existing working copy is never overwritten, not even with

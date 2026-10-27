@@ -6,6 +6,7 @@ from plone.registry.interfaces import IRegistry
 from plone.schema import JSONField
 from zope.component import getUtility
 
+from interaktiv.translation.registry.translation import ITranslationSettings
 from interaktiv.translation.testing import INTERAKTIV_TRANSLATION_INTEGRATION_TESTING, TestCase
 from interaktiv.translation.upgrades import v1000_to_v1001
 from interaktiv.translation.upgrades.v1000_to_v1001 import (
@@ -16,6 +17,8 @@ from interaktiv.translation.upgrades.v1000_to_v1001 import (
     csv_to_mapping,
 )
 
+
+EXCLUDED_TYPES_RECORD = f"{ITranslationSettings.__identifier__}.excluded_types"
 
 class TestUpgradeV1000ToV1001(TestCase):
     layer = INTERAKTIV_TRANSLATION_INTEGRATION_TESTING
@@ -93,6 +96,20 @@ class TestUpgradeV1000ToV1001(TestCase):
         # not the whole list emptied (which would offer every site language)
         self.assertIsInstance(self.registry.records[TARGET_LANGUAGES_RECORD].field.value_type, field.Choice)
         self.assertEqual(self.registry[TARGET_LANGUAGES_RECORD], ["fr"])
+
+    def test_upgrade__keeps_the_excluded_types(self):
+        # setup — 1.0.0a1 took any name; "type_unknown" is no type of the site
+        self.registry.records[EXCLUDED_TYPES_RECORD] = Record(
+            field.List(value_type=field.TextLine()), ["Image", "type_unknown"]
+        )
+
+        # do it
+        v1000_to_v1001.upgrade(None)
+
+        # postcondition — a choice of the site's types now; Plone's vocabulary of
+        # them takes any name, so nothing is lost on the import
+        self.assertIsInstance(self.registry.records[EXCLUDED_TYPES_RECORD].field.value_type, field.Choice)
+        self.assertEqual(self.registry[EXCLUDED_TYPES_RECORD], ["Image", "type_unknown"])
 
     def test_upgrade__removes_the_source_language_setting(self):
         # setup

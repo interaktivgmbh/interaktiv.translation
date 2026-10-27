@@ -12,4 +12,16 @@
             name="interaktiv.translation.TargetLanguages"
     />
 
+    <utility
+            factory=".translation.ContentTypesVocabularyFactory"
+            provides="zope.schema.interfaces.IVocabularyFactory"
+            name="interaktiv.translation.ContentTypes"
+    />
+
+    <utility
+            factory=".translation.SiteLanguagesVocabularyFactory"
+            provides="zope.schema.interfaces.IVocabularyFactory"
+            name="interaktiv.translation.SiteLanguages"
+    />
+
 </configure>

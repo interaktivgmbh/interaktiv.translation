@@ -72,7 +72,7 @@ class ITranslationSettings(Interface):
             "The site languages an editor may translate into. A language left out does not "
             "show in the translation menu. Empty offers every site language."
         ),
-        value_type=schema.Choice(vocabulary="plone.app.vocabularies.SupportedContentLanguages"),
+        value_type=schema.Choice(vocabulary="interaktiv.translation.SiteLanguages"),
         default=[],
         missing_value=[],
         required=False,
@@ -222,7 +222,7 @@ class ITranslationSettings(Interface):
         description=_(
             "Content of these types is never offered for machine translation."
         ),
-        value_type=schema.TextLine(),
+        value_type=schema.Choice(vocabulary="interaktiv.translation.ContentTypes"),
         default=DEFAULT_EXCLUDED_TYPES,
         missing_value=[],
         required=False,

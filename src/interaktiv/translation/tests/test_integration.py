@@ -1077,6 +1077,43 @@ class TestControlPanels(TestCase):
                 transaction.begin()
                 self.assertFalse(_records().metadata_selection)
 
+    def test_get__shows_a_type_the_site_no_longer_has(self):
+        # setup — stored while the type was there; it went away since
+        records = getUtility(IRegistry).records
+        records._values[f"{ITranslationSettings.__identifier__}.excluded_types"] = ["Image", "type_unknown"]
+        transaction.commit()
+
+        # do it
+        response = self.api_session.get("/@controlpanels/translation")
+
+        # postcondition — kept and shown, so saving the form loses nothing
+        self.assertEqual(response.status_code, 200)
+        tokens = [entry["token"] for entry in response.json()["data"]["excluded_types"]]
+        self.assertEqual(tokens, ["Image", "type_unknown"])
+
+    def test_get__shows_a_target_language_the_site_no_longer_has(self):
+        # setup — offered while the site had it; the language went away since
+        records = getUtility(IRegistry).records
+        records._values[f"{ITranslationSettings.__identifier__}.target_languages"] = ["language_unknown"]
+        transaction.commit()
+
+        # do it
+        response = self.api_session.get("/@controlpanels/translation")
+
+        # postcondition — kept and shown, to be chosen off
+        self.assertEqual(response.status_code, 200)
+        tokens = [entry["token"] for entry in response.json()["data"]["target_languages"]]
+        self.assertEqual(tokens, ["language_unknown"])
+
+    def test_patch__accepts_a_type_the_site_has(self):
+        # do it
+        response = self.api_session.patch("/@controlpanels/translation", json={"excluded_types": ["Image"]})
+
+        # postcondition
+        self.assertEqual(response.status_code, 204)
+        transaction.begin()
+        self.assertEqual(_records().excluded_types, ["Image"])
+
     def test_configlet__is_installed_for_classic(self):
         action_ids = [action.getId() for action in api.portal.get_tool("portal_controlpanel").listActions()]
 
@@ -1107,9 +1144,21 @@ class TestControlPanels(TestCase):
 
         # postcondition — the front end fills its selection from the site languages
         field = response.json()["schema"]["properties"]["target_languages"]
-        self.assertTrue(
-            field["items"]["vocabulary"]["@id"].endswith("@vocabularies/plone.app.vocabularies.SupportedContentLanguages")
-        )
+        self.assertTrue(field["items"]["vocabulary"]["@id"].endswith("@vocabularies/interaktiv.translation.SiteLanguages"))
+        languages = self.api_session.get("/@vocabularies/interaktiv.translation.SiteLanguages")
+        self.assertEqual(languages.status_code, 200)
+        self.assertTrue(languages.json()["items"])
+
+    def test_volto_panel__offers_the_content_types_to_leave_out(self):
+        # do it
+        response = self.api_session.get("/@controlpanels/translation")
+
+        # postcondition
+        field = response.json()["schema"]["properties"]["excluded_types"]
+        self.assertTrue(field["items"]["vocabulary"]["@id"].endswith("@vocabularies/interaktiv.translation.ContentTypes"))
+        types = self.api_session.get("/@vocabularies/interaktiv.translation.ContentTypes")
+        self.assertEqual(types.status_code, 200)
+        self.assertIn("Document", [item["token"] for item in types.json()["items"]])
 
     def test_volto_panel__has_no_source_language_setting(self):
         # do it

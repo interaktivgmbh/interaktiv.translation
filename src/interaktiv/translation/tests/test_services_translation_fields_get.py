@@ -192,6 +192,15 @@ class TestTranslationFieldsGetMultilingual(TranslationFieldsTestCase):
         self.assertFalse(set(EXCLUDED_TYPES) & set(types))
         self.assertIn("Document", types)
 
+    def test_vocabulary__leaves_out_the_language_folders(self):
+        # do it
+        response = self.api_session.get("/@vocabularies/interaktiv.translation.ContentTypes")
+
+        # postcondition
+        tokens = [item["token"] for item in response.json()["items"]]
+        self.assertFalse(set(EXCLUDED_TYPES) & set(tokens))
+        self.assertIn("Document", tokens)
+
     def test_get__copies_what_plone_app_multilingual_keeps_language_independent(self):
         # do it
         start = self._fields("Event")["start"]
