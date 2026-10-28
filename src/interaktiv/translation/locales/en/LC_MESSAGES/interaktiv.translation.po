@@ -138,9 +138,6 @@ msgstr ""
 msgid "Which keys of a block hold text to translate. Only the key tells a sentence apart from a token the front end reads, so a block type of your own needs its own keys named here, or its text stays in the source language."
 msgstr ""
 
-#: ../registry/translation.py
-msgid "Metadata Field Selection"
-msgstr ""
 
 #: ../registry/translation.py
 msgid "Metadata Mapping"

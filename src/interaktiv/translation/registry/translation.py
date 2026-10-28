@@ -82,7 +82,7 @@ class ITranslationSettings(Interface):
 
     model.fieldset(
         "translation_metadata_field_selection",
-        label=_("Metadata Field Selection"),
+        label=_("Fields per content type"),
         fields=[
             "metadata_selection",
         ],

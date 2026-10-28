@@ -77,7 +77,7 @@ the provider *Mock*: it writes the text in capitals instead of translating it.
   API URL (only for a proxy) and the API key, with a button that tests the
   connection and tells the account's usage. Content without a language of
   its own is taken to be in the site's default language.
-- **Metadata Field Selection:** per content type the fields that go into a
+- **Fields per content type:** per content type the fields that go into a
   translation. Title, description and page content always go along, and so
   does the type's main field (the image of an image); the others are chosen.
   Whether a field is translated or taken over follows from its kind.
