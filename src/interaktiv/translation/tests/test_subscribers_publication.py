@@ -108,8 +108,7 @@ class TestPublicationSubscriber(TestCase):
 
         # postcondition
         expected_comment = f"Passt so — Machine translation into en with DeepL, reviewed by {SITE_OWNER_NAME}"
-        self.assertEqual(
-            self._last_workflow_comment(), expected_comment)
+        self.assertEqual(self._last_workflow_comment(), expected_comment)
 
     def test_submit__gets_no_review_note(self):
         # setup

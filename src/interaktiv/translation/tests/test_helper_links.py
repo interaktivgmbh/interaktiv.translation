@@ -18,19 +18,13 @@ class TestTranslatedObjectPath(TestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.source = api.content.create(
-            container=self.portal["de"], type="Document", id="quelle", title="Quelle"
-        )
-        self.target = api.content.create(
-            container=self.portal["de"], type="Document", id="ziel", title="Ziel"
-        )
+        self.source = api.content.create(container=self.portal["de"], type="Document", id="quelle", title="Quelle")
+        self.target = api.content.create(container=self.portal["de"], type="Document", id="ziel", title="Ziel")
         manager = ITranslationManager(self.target)
         manager.add_translation("en")
         api.content.rename(obj=manager.get_translation("en"), new_id="target")
 
-        self.lonely = api.content.create(
-            container=self.portal["de"], type="Document", id="allein", title="Allein"
-        )
+        self.lonely = api.content.create(container=self.portal["de"], type="Document", id="allein", title="Allein")
 
     def _translated(self, path, **kw):
         return _get_translated_object_path(path, "en", **kw)
@@ -68,9 +62,7 @@ class TestTranslatedObjectPath(TestCase):
         self.assertResolves(self._translated("/de/ziel/view"), suffix="/view")
 
     def test_query_and_fragment__survive_untouched(self):
-        self.assertResolves(
-            self._translated("/de/ziel?a=1#kapitel"), suffix="?a=1#kapitel"
-        )
+        self.assertResolves(self._translated("/de/ziel?a=1#kapitel"), suffix="?a=1#kapitel")
 
     def test_the_answer_names_the_translation__not_the_original(self):
         # The translation was renamed on purpose: an answer built by patching
@@ -110,13 +102,9 @@ class TestLinkReport(TestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.target = api.content.create(
-            container=self.portal["de"], type="Document", id="ziel", title="Ziel"
-        )
+        self.target = api.content.create(container=self.portal["de"], type="Document", id="ziel", title="Ziel")
         ITranslationManager(self.target).add_translation("en")
-        self.lonely = api.content.create(
-            container=self.portal["de"], type="Document", id="allein", title="Allein"
-        )
+        self.lonely = api.content.create(container=self.portal["de"], type="Document", id="allein", title="Allein")
 
     def _report_for(self, url, text="Ziele 2035"):
         """Run the postprocessing over one slate link and hand back the report."""
@@ -133,9 +121,7 @@ class TestLinkReport(TestCase):
             }
         }
         report = []
-        postprocess_links(
-            self.portal["de"], "blocks", blocks, "en", report=report
-        )
+        postprocess_links(self.portal["de"], "blocks", blocks, "en", report=report)
 
         return blocks, report
 
@@ -245,9 +231,7 @@ class TestObjectBrowserLinks(TestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.target = api.content.create(
-            container=self.portal["de"], type="Document", id="ziel", title="Ziel"
-        )
+        self.target = api.content.create(container=self.portal["de"], type="Document", id="ziel", title="Ziel")
         ITranslationManager(self.target).add_translation("en")
 
     def _teaser(self, key="href", path="/de/ziel"):
@@ -304,13 +288,9 @@ class TestContentTypeLinkFields(TestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.target = api.content.create(
-            container=self.portal["de"], type="Document", id="ziel", title="Ziel"
-        )
+        self.target = api.content.create(container=self.portal["de"], type="Document", id="ziel", title="Ziel")
         ITranslationManager(self.target).add_translation("en")
-        self.records = getUtility(IRegistry).forInterface(
-            ITranslationSettings, check=False
-        )
+        self.records = getUtility(IRegistry).forInterface(ITranslationSettings, check=False)
 
     def test_a_named_field__is_rewritten_and_reported(self):
         # setup
@@ -318,9 +298,7 @@ class TestContentTypeLinkFields(TestCase):
 
         # do it
         report = []
-        value = postprocess_links(
-            self.portal["de"], "website_link", "/de/ziel", "en", report=report
-        )
+        value = postprocess_links(self.portal["de"], "website_link", "/de/ziel", "en", report=report)
 
         # postcondition
         uid = ITranslationManager(self.target).get_translation("en").UID()
@@ -334,9 +312,7 @@ class TestContentTypeLinkFields(TestCase):
 
         # do it
         report = []
-        value = postprocess_links(
-            self.portal["de"], "website_link", "/de/ziel", "en", report=report
-        )
+        value = postprocess_links(self.portal["de"], "website_link", "/de/ziel", "en", report=report)
 
         # postcondition
         self.assertEqual(value, "/de/ziel")

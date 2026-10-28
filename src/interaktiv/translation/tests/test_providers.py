@@ -212,9 +212,7 @@ class TestDeepLProvider(TestCase):
 
         # do it
         with mock.patch("requests.post", return_value=_response(payload=answers)) as post:
-            result = provider.translate_texts_by_key(
-                {"field_a": ["title"], "field_b": ["text a", "text b"]}, "EN"
-            )
+            result = provider.translate_texts_by_key({"field_a": ["title"], "field_b": ["text a", "text b"]}, "EN")
 
         # postcondition — one request, the answers sliced back per field
         self.assertEqual(post.call_count, 1)

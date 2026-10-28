@@ -812,9 +812,7 @@ class TestWorkingCopyStorage(TestCase):
 
         # do it — preview and save alike, no overwrite makes this valid; the
         # revoked pam permission answers before our own guard does
-        preview = self.api_session.post(
-            f"{working_copy_path}/@translate", json={"target_language": "de"}
-        )
+        preview = self.api_session.post(f"{working_copy_path}/@translate", json={"target_language": "de"})
         save = self.api_session.post(
             f"{working_copy_path}/@translate",
             json={"target_language": "de", "save": True, "overwrite": True},
@@ -892,12 +890,8 @@ class TestWorkingCopyStorage(TestCase):
         working_copy_path = self._working_copy_path()
 
         # do it
-        refused = self.api_session.get(
-            f"{working_copy_path}/@translation-locator", params={"target_language": "de"}
-        )
-        allowed = self.api_session.get(
-            "/en/page/@translation-locator", params={"target_language": "de"}
-        )
+        refused = self.api_session.get(f"{working_copy_path}/@translation-locator", params={"target_language": "de"})
+        allowed = self.api_session.get("/en/page/@translation-locator", params={"target_language": "de"})
 
         # postcondition — the original keeps the stock behaviour
         self.assertEqual(refused.status_code, 401)
@@ -1070,9 +1064,7 @@ class TestControlPanels(TestCase):
         for selection in ({"type_a": "field_a"}, {"type_a": ["field_a", "field_a"]}, {"type_a": [""]}):
             with self.subTest(selection=selection):
                 # do it
-                response = self.api_session.patch(
-                    "/@controlpanels/translation", json={"metadata_selection": selection}
-                )
+                response = self.api_session.patch("/@controlpanels/translation", json={"metadata_selection": selection})
 
                 # postcondition
                 self.assertEqual(response.status_code, 400)
@@ -1218,7 +1210,9 @@ class TestControlPanels(TestCase):
 
         # postcondition — the front end fills its selection from the site languages
         field = response.json()["schema"]["properties"]["target_languages"]
-        self.assertTrue(field["items"]["vocabulary"]["@id"].endswith("@vocabularies/interaktiv.translation.SiteLanguages"))
+        self.assertTrue(
+            field["items"]["vocabulary"]["@id"].endswith("@vocabularies/interaktiv.translation.SiteLanguages")
+        )
         languages = self.api_session.get("/@vocabularies/interaktiv.translation.SiteLanguages")
         self.assertEqual(languages.status_code, 200)
         self.assertTrue(languages.json()["items"])
@@ -1229,7 +1223,9 @@ class TestControlPanels(TestCase):
 
         # postcondition
         field = response.json()["schema"]["properties"]["excluded_types"]
-        self.assertTrue(field["items"]["vocabulary"]["@id"].endswith("@vocabularies/interaktiv.translation.ContentTypes"))
+        self.assertTrue(
+            field["items"]["vocabulary"]["@id"].endswith("@vocabularies/interaktiv.translation.ContentTypes")
+        )
         types = self.api_session.get("/@vocabularies/interaktiv.translation.ContentTypes")
         self.assertEqual(types.status_code, 200)
         self.assertIn("Document", [item["token"] for item in types.json()["items"]])

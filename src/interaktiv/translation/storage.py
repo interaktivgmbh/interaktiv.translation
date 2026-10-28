@@ -37,10 +37,7 @@ STATUS_MACHINE_WITHOUT_REVIEW = "machine_without_review"
 
 
 def review_note(marker: Dict[str, Any], reviewer: str) -> str:
-    return (
-        f"Machine translation into {marker['target_language']} with {marker['provider']}, "
-        f"reviewed by {reviewer}"
-    )
+    return f"Machine translation into {marker['target_language']} with {marker['provider']}, reviewed by {reviewer}"
 
 
 def get_translation_marker(content: Any) -> Optional[Dict[str, Any]]:
@@ -173,8 +170,7 @@ class TranslationStorage:
 
         if self.locked(translation):
             return (
-                f"The {target_language} translation is being edited by someone right now. "
-                "Try again once it is saved."
+                f"The {target_language} translation is being edited by someone right now. Try again once it is saved."
             )
         if not getSecurityManager().checkPermission(CheckoutPermission, translation):
             return f"You are not allowed to check out the {target_language} translation."

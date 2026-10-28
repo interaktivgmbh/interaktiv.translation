@@ -37,11 +37,10 @@ DEFAULT_EXCLUDED_TYPES = []
 
 
 class ITranslationSettings(Interface):
-
     model.fieldset(
-        'provider_options',
+        "provider_options",
         label=_("Translation Service"),
-        fields=['target_languages', 'provider', 'api_url', 'api_key']
+        fields=["target_languages", "provider", "api_url", "api_key"],
     )
 
     target_languages = schema.List(
@@ -82,11 +81,11 @@ class ITranslationSettings(Interface):
     )
 
     model.fieldset(
-        'translation_metadata_field_selection',
+        "translation_metadata_field_selection",
         label=_("Metadata Field Selection"),
         fields=[
-            'metadata_selection',
-        ]
+            "metadata_selection",
+        ],
     )
 
     metadata_selection = JSONField(
@@ -105,11 +104,11 @@ class ITranslationSettings(Interface):
     )
 
     model.fieldset(
-        'translation_metadata_mapping',
+        "translation_metadata_mapping",
         label=_("Metadata Mapping"),
         fields=[
-            'metadata_mapping_table',
-        ]
+            "metadata_mapping_table",
+        ],
     )
 
     metadata_mapping_table = JSONField(
@@ -128,17 +127,17 @@ class ITranslationSettings(Interface):
     )
 
     model.fieldset(
-        'translation_advanced_settings',
+        "translation_advanced_settings",
         label=_("Advanced Settings"),
         fields=[
-            'excluded_fields',
-            'always_fields',
-            'copied_fields',
-            'link_fields',
-            'block_link_fields',
-            'block_text_keys',
-            'excluded_types',
-        ]
+            "excluded_fields",
+            "always_fields",
+            "copied_fields",
+            "link_fields",
+            "block_link_fields",
+            "block_text_keys",
+            "excluded_types",
+        ],
     )
 
     excluded_fields = schema.List(
@@ -222,12 +221,9 @@ class ITranslationSettings(Interface):
 
     excluded_types = schema.List(
         title=_("Content types not translated by machine"),
-        description=_(
-            "Content of these types is never offered for machine translation."
-        ),
+        description=_("Content of these types is never offered for machine translation."),
         value_type=schema.Choice(vocabulary="interaktiv.translation.ContentTypes"),
         default=DEFAULT_EXCLUDED_TYPES,
         missing_value=[],
         required=False,
     )
-

@@ -103,10 +103,7 @@ class TestDefaultBlockHandler(TestCase):
     def test_rebuild__writes_along_the_paths_texts_named(self):
         # setup
         handler = DefaultBlockHandler(["field_a", "field_b"])
-        block = {
-            "@type": "someblocktype",
-            "value": [{"children": [{"field_a": "Haus"}]}], "field_b": "Maus"
-        }
+        block = {"@type": "someblocktype", "value": [{"children": [{"field_a": "Haus"}]}], "field_b": "Maus"}
 
         # do it
         rebuilt = handler.rebuild(block, ["House", "Mouse"])
@@ -151,15 +148,9 @@ class TestDefaultBlockHandlerSlateValue(TestCase):
         self.block = {
             "@type": "slate",
             "value": [
-                {
-                    "type": "p",
-                    "children": [
-                        {"text": "some "},
-                        {"type": "strong", "children": [{"text": "text"}]}
-                    ]
-                }
+                {"type": "p", "children": [{"text": "some "}, {"type": "strong", "children": [{"text": "text"}]}]}
             ],
-            "plaintext": "some text"
+            "plaintext": "some text",
         }
 
     def test_texts__serializes_the_whole_value_into_one_pair(self):
@@ -223,7 +214,7 @@ class TestDefaultBlockHandlerSlateValue(TestCase):
         block = {
             "@type": "slate",
             "value": [{"type": "unknown_type", "children": [{"text": "Value A"}]}],
-            "plaintext": "Value A"
+            "plaintext": "Value A",
         }
 
         # do it
@@ -261,13 +252,7 @@ class TestDefaultBlockHandlerSlateValue(TestCase):
 
         # postcondition
         expected_value = [
-            {
-                "type": "p",
-                "children": [
-                    {"text": "etwas "},
-                    {"type": "strong", "children": [{"text": "Text"}]}
-                ]
-            }
+            {"type": "p", "children": [{"text": "etwas "}, {"type": "strong", "children": [{"text": "Text"}]}]}
         ]
         self.assertEqual(rebuilt["value"], expected_value)
         self.assertEqual(rebuilt["plaintext"], "etwas Text")
@@ -286,7 +271,7 @@ class TestDefaultBlockHandlerSlateValue(TestCase):
         block = {
             "@type": "slate",
             "value": [{"type": "unknown_type", "children": [{"text": "Value A"}]}],
-            "plaintext": "Value A"
+            "plaintext": "Value A",
         }
 
         # do it
@@ -313,14 +298,8 @@ class TestBlocksExtractorDispatch(TestCase):
     def test_texts__sends_a_block_to_the_handler_registered_for_its_type(self):
         # setup
         page = {
-            "b1": {
-                "@type": "test_block",
-                "some_block_key": "Test Block Value",
-                "other_key": "Other Value"},
-            "b2": {
-                "@type": "default_block_type",
-                "title": "Title Value"
-            },
+            "b1": {"@type": "test_block", "some_block_key": "Test Block Value", "other_key": "Other Value"},
+            "b2": {"@type": "default_block_type", "title": "Title Value"},
         }
 
         # do it
@@ -354,7 +333,7 @@ class TestBlocksExtractorDispatch(TestCase):
         # setup
         page = {
             "b1": {"@type": "default_block_type", "untranslated_key": "somevalue"},
-            "b2": {"@type": "default_block_type", "title": "Title Value b1"}
+            "b2": {"@type": "default_block_type", "title": "Title Value b1"},
         }
         extractor = BlocksExtractor()
 
@@ -396,7 +375,6 @@ class TestBlocksExtractorDispatch(TestCase):
 
 
 class TestDefaultBlockHandlerSlateTrees(TestCase):
-
     def setUp(self):
         super().setUp()
 
@@ -566,7 +544,6 @@ class TestDefaultBlockHandlerSlateTrees(TestCase):
 
 
 class TestDefaultBlockHandlerRichText(TestCase):
-
     def setUp(self):
         super().setUp()
 

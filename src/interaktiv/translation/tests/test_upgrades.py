@@ -23,6 +23,7 @@ from interaktiv.translation.upgrades.v1000_to_v1001 import (
 EXCLUDED_TYPES_RECORD = f"{ITranslationSettings.__identifier__}.excluded_types"
 API_KEY_RECORD = f"{ITranslationSettings.__identifier__}.api_key"
 
+
 class TestUpgradeV1000ToV1001(TestCase):
     layer = INTERAKTIV_TRANSLATION_INTEGRATION_TESTING
 
@@ -88,9 +89,7 @@ class TestUpgradeV1000ToV1001(TestCase):
     def test_upgrade__keeps_the_target_languages_the_site_has(self):
         # setup — 1.0.0a1 took any code; Italian is no site language
         api.portal.get_tool("portal_languages").addSupportedLanguage("fr")
-        self.registry.records[TARGET_LANGUAGES_RECORD] = Record(
-            field.List(value_type=field.TextLine()), ["fr", "it"]
-        )
+        self.registry.records[TARGET_LANGUAGES_RECORD] = Record(field.List(value_type=field.TextLine()), ["fr", "it"])
 
         # do it
         v1000_to_v1001.upgrade(None)

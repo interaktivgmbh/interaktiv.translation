@@ -42,10 +42,7 @@ def is_slate_tree(nodes: Any) -> bool:
     if not isinstance(nodes, list) or not nodes:
         return False
 
-    return all(
-        isinstance(node, dict) and "type" in node and isinstance(node.get("children"), list)
-        for node in nodes
-    )
+    return all(isinstance(node, dict) and "type" in node and isinstance(node.get("children"), list) for node in nodes)
 
 
 def has_prose(nodes: Any) -> bool:
@@ -118,8 +115,7 @@ class DefaultBlockHandler(BlockHandler):
     def texts(self, block: Dict) -> List[Pair]:
         # HTML is escaped already, by the serializer or by the widget.
         return [
-            (path, html.escape(text, quote=False) if kind == PLAIN else text)
-            for path, text, kind in self._walk(block)
+            (path, html.escape(text, quote=False) if kind == PLAIN else text) for path, text, kind in self._walk(block)
         ]
 
     def rebuild(self, block: Dict, translated: List[str]) -> Dict:

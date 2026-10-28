@@ -108,7 +108,7 @@ class BlocksExtractor(FieldExtractor):
             handler = share["handler"]
             pairs_count = len(share["pairs"])
 
-            translated_share = translated[consumed: consumed + pairs_count]
+            translated_share = translated[consumed : consumed + pairs_count]
             consumed += pairs_count
 
             if not translated_share:

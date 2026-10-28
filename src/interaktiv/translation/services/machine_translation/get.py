@@ -14,15 +14,12 @@ from interaktiv.translation.storage import MACHINE_TRANSLATION_KEY, translation_
 @implementer(IExpandableElement)
 @adapter(Interface, IInteraktivTranslationBrowserLayer)
 class MachineTranslationInfo:
-
     def __init__(self, context: Any, request: Any) -> None:
         self.context = context
         self.request = request
 
     def __call__(self, expand: bool = False) -> Dict[str, Any]:
-        result: Dict[str, Any] = {
-            "machine_translation": {"@id": f"{self.context.absolute_url()}/@machine-translation"}
-        }
+        result: Dict[str, Any] = {"machine_translation": {"@id": f"{self.context.absolute_url()}/@machine-translation"}}
         if not expand:
             return result
 

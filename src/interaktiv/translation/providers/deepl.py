@@ -149,7 +149,7 @@ class DeepLProvider(TranslationProvider):
         result: Dict[str, List[str]] = {}
         consumed = 0
         for key, count in counts.items():
-            result[key] = translated[consumed: consumed + count]
+            result[key] = translated[consumed : consumed + count]
             consumed += count
 
         return result

@@ -80,9 +80,7 @@ class ContentTranslator:
         current = settings()
         portal_type = getattr(aq_base(content), "portal_type", None)
 
-        return get_handled_fields(
-            portal_type, current.metadata_selection, current.mapped_fields, current.field_rules
-        )
+        return get_handled_fields(portal_type, current.metadata_selection, current.mapped_fields, current.field_rules)
 
     def _handled_fields_in_mode(self, content: Any, mode: str) -> List[str]:
         return [name for name, field_mode in self.get_handled_fields(content).items() if field_mode == mode]
@@ -120,9 +118,7 @@ class ContentTranslator:
     def postprocessed_value(self, content: Any, field_id: str, value: Any, target_language: str) -> Any:
 
         # process link values
-        value = postprocess_links(
-            content, field_id, value, target_language, report=self.link_report
-        )
+        value = postprocess_links(content, field_id, value, target_language, report=self.link_report)
 
         return value
 
@@ -204,11 +200,7 @@ class ContentTranslator:
                 continue
 
         # translate queued values
-        texts_by_field = {
-            field_id: entry["texts"]
-            for field_id, entry in queue.items()
-            if entry["texts"]
-        }
+        texts_by_field = {field_id: entry["texts"] for field_id, entry in queue.items() if entry["texts"]}
         translated_texts = self.provider.translate_texts_by_key(texts_by_field, target_language, source)
 
         # rebuild and postprocess translated values
@@ -216,16 +208,11 @@ class ContentTranslator:
             translated = entry["value"]
 
             if entry["extractor"] is not None and field_id in translated_texts:
-                translated = entry["extractor"].rebuild(
-                    entry["value"], translated_texts[field_id], entry["shares"]
-                )
+                translated = entry["extractor"].rebuild(entry["value"], translated_texts[field_id], entry["shares"])
 
             try:
                 translated = self.postprocessed_value(
-                    content=content,
-                    field_id=field_id,
-                    value=translated,
-                    target_language=target_language
+                    content=content, field_id=field_id, value=translated, target_language=target_language
                 )
             except Exception as error:  # noqa: BLE001
                 # The translation is already made and paid for; a failed link

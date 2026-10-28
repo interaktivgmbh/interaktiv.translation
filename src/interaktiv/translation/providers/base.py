@@ -46,10 +46,7 @@ class TranslationProvider(ABC):
         self, texts_by_key: Dict[str, List[str]], target_language: str, source_language: Optional[str] = None
     ) -> Dict[str, List[str]]:
         # place for provider specific chunking
-        return {
-            key: self.translate(texts, target_language, source_language)
-            for key, texts in texts_by_key.items()
-        }
+        return {key: self.translate(texts, target_language, source_language) for key, texts in texts_by_key.items()}
 
 
 class ProviderRegistry:

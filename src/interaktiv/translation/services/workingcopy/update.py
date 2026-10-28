@@ -11,7 +11,7 @@ from interaktiv.translation.storage import get_translation_marker
 
 
 class UpdateWorkingCopy(StockUpdateWorkingCopy):
-    """ override to set a custom message """
+    """override to set a custom message"""
 
     def reply(self) -> Any:
         alsoProvides(self.request, IDisableCSRFProtection)

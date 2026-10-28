@@ -96,7 +96,7 @@ def decrypt(value: str) -> str:
 
 
 def stored_value(value: Any) -> Optional[str]:
-    """ returns encrypted value if not yet encrypted """
+    """returns encrypted value if not yet encrypted"""
     if not value:
         return None
     if not is_encrypted(value):

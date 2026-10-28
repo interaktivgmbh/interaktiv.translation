@@ -156,7 +156,7 @@ def _provides(field: Any, interfaces: Iterable[Any]) -> bool:
 
 
 def mode_by_field_type(field: Any) -> Optional[str]:
-    """ get mode how to handle field by field type -> ``translate``, ``copy`` or ``None`` """
+    """get mode how to handle field by field type -> ``translate``, ``copy`` or ``None``"""
     # the order matters: an URI is a text line too, a relation a choice
     if IRelation.providedBy(field):
         return None
@@ -257,9 +257,9 @@ def get_listed_fields(
     mapped_fields: Iterable[str] = (),
     rules: FieldRules = DEFAULT_RULES,
 ) -> List[Dict[str, Any]]:
-    """ get all fields of type that are not excluded
-        mode: how the field should be handled
-        mapped: is there a metadata mapping for the field
+    """get all fields of type that are not excluded
+    mode: how the field should be handled
+    mapped: is there a metadata mapping for the field
     """
     fti = queryUtility(IDexterityFTI, name=portal_type)
     if fti is None:
@@ -308,7 +308,7 @@ def get_handled_fields(
     mapped_fields: Iterable[str] = (),
     rules: FieldRules = DEFAULT_RULES,
 ) -> Dict[str, str]:
-    """ {field_id: mode} of fields that are handled by translation """
+    """{field_id: mode} of fields that are handled by translation"""
     fti = queryUtility(IDexterityFTI, name=portal_type) if portal_type else None
     if fti is None:
         return {name: MODE_TRANSLATE for name in rules.always}

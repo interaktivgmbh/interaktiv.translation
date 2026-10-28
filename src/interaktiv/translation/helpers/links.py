@@ -34,9 +34,7 @@ def _get_translated_resolveuid_path(path: str, target_language: str) -> Optional
     return path.replace(uid, translated_uid)
 
 
-def _get_translated_object_path(
-    path: str, target_language: str, content: Optional[Any] = None
-) -> Optional[str]:
+def _get_translated_object_path(path: str, target_language: str, content: Optional[Any] = None) -> Optional[str]:
     portal = api.portal.get()
     portal_path = "/".join(portal.getPhysicalPath())
 
@@ -52,7 +50,7 @@ def _get_translated_object_path(
     # remove api prefix
     for prefix in ("/++api++", "/api"):
         if locator == prefix or locator.startswith(f"{prefix}/"):
-            locator = locator[len(prefix):] or "/"
+            locator = locator[len(prefix) :] or "/"
             break
 
     # handle relative path like "../"
@@ -106,9 +104,7 @@ def _is_link(path: str) -> bool:
     return stripped.startswith(LINK_PREFIXES) or RESOLVEUID_MARKER in stripped
 
 
-def _resolve_internal_link(
-    path: str, target_language: str, content: Optional[Any] = None
-) -> LinkOutcome:
+def _resolve_internal_link(path: str, target_language: str, content: Optional[Any] = None) -> LinkOutcome:
     if not isinstance(path, str) or not path.strip():
         return LinkOutcome(None, False)
 
@@ -178,12 +174,12 @@ def _resolve_internal_link_recursive(
 
 
 def postprocess_links(
-        content: Any,
-        field_id: str,
-        value: Any,
-        target_language: str,
-        report: Optional[List[Dict[str, Any]]] = None,
-    ) -> Any:
+    content: Any,
+    field_id: str,
+    value: Any,
+    target_language: str,
+    report: Optional[List[Dict[str, Any]]] = None,
+) -> Any:
 
     # process string
     if isinstance(value, str):

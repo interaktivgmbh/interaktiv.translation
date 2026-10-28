@@ -172,4 +172,3 @@ class TestConnectionPost(TestCase):
         # postcondition
         self.assertEqual(response.json()["code"], "key_unreadable")
         post.assert_not_called()
-

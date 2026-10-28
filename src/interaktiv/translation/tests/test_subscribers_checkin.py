@@ -94,7 +94,6 @@ class TestCheckin(TestCase):
         expected_comment = f"Machine translation into en with DeepL, reviewed by {SITE_OWNER_NAME}"
         self.assertEqual(history[0].comment, expected_comment)
 
-
     def test_checkin__records_the_review_on_the_new_baseline(self):
         # setup
         self._translate_into_working_copy()
@@ -148,9 +147,7 @@ class TestCheckin(TestCase):
         # postcondition — the denial did not travel along
         with api.env.adopt_user(SITE_OWNER_NAME):
             security = getSecurityManager()
-            self.assertTrue(
-                security.checkPermission(MANAGE_TRANSLATIONS_PERMISSION, self.portal["en"]["page"])
-            )
+            self.assertTrue(security.checkPermission(MANAGE_TRANSLATIONS_PERMISSION, self.portal["en"]["page"]))
 
     def test_checkin__after_the_review_tells_the_story_only_once(self):
         # setup
