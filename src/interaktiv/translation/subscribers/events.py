@@ -7,6 +7,8 @@ from zope.annotation.interfaces import IAnnotations
 from zope.container.interfaces import IContainerModifiedEvent
 from zope.globalrequest import getRequest
 
+from interaktiv.translation.helpers.encryption import stored_value
+from interaktiv.translation.registry.translation import ITranslationSettings
 from interaktiv.translation.storage import (
     CHANGE_NOTE_KEY,
     MACHINE_TRANSLATION_KEY,
@@ -18,6 +20,8 @@ from interaktiv.translation.storage import (
 )
 
 PUBLISHED_STATES = ("published",)
+
+API_KEY_RECORD = f"{ITranslationSettings.__identifier__}.api_key"
 
 
 def restrict_translations_on_checkout(event: Any) -> None:
@@ -98,3 +102,18 @@ def _set_translation_marker_to_reviewed(content: Any, marker: Any, reviewer: str
     marker["reviewed_by"] = reviewer
     marker["reviewed"] = datetime.now(timezone.utc).isoformat()
     IAnnotations(content)[MACHINE_TRANSLATION_KEY] = marker
+
+
+def encrypt_api_key(event: Any) -> None:
+    """The API key goes into the registry encrypted, whichever way it comes: the
+    control panels, the registry's own view, a profile. Saving the settings also
+    moves a key to the environment's secret once that is set."""
+    record = event.record
+    if getattr(record, "__name__", None) != API_KEY_RECORD:
+        return
+
+    # plain text, or encrypted with the site's secret while the environment has one
+    value = stored_value(record.value)
+    if value is not None:
+        # sets the record again; the value stored as it should be passes unchanged
+        record.value = value

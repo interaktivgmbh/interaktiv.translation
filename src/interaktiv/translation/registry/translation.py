@@ -75,7 +75,9 @@ class ITranslationSettings(Interface):
     directives.widget("api_key", frontendOptions={"widget": "translation_api_key"})
     api_key = schema.Password(
         title=_("DeepL API key"),
-        description=_("Found in the DeepL account under “Account → API keys”. Only used on the server."),
+        description=_(
+            "Found in the DeepL account under “Account → API keys”. Stored encrypted and only used on the server."
+        ),
         required=False,
     )
 

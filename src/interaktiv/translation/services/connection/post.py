@@ -33,6 +33,9 @@ class TranslationConnectionPost(Service):
         name = _token(data.get("provider")) or current.provider
         api_key = data.get("api_key")
         if api_key in (None, API_KEY_PLACEHOLDER):
+            if not current.api_key_status["readable"] and current.api_key_status["stored"]:
+                message = "The stored API key cannot be decrypted; enter it again."
+                return {"ok": False, "provider": name, "code": "key_unreadable", "message": message}
             api_key = current.api_key
         api_url = data["api_url"] if "api_url" in data else current.api_url
 

@@ -5,6 +5,7 @@ import plone.api as api
 import transaction
 from Acquisition import aq_base
 from interaktiv.translation.controlpanels.api_key import API_KEY_PLACEHOLDER
+from interaktiv.translation.helpers.encryption import is_encrypted
 from interaktiv.translation.helpers.field_selection import ALWAYS_FIELDS, COPIED_FIELDS, EXCLUDED_FIELDS
 from interaktiv.translation.testing import TestCase
 from plone.app.testing import SITE_OWNER_NAME, SITE_OWNER_PASSWORD, TEST_USER_ID
@@ -1152,7 +1153,8 @@ class TestControlPanels(TestCase):
         # postcondition
         self.assertEqual(response.status_code, 204)
         transaction.begin()
-        self.assertEqual(_records().api_key, "key-value-a")
+        self.assertEqual(Settings().api_key, "key-value-a")
+        self.assertTrue(is_encrypted(_records().api_key))
 
     def test_patch__takes_a_new_api_key(self):
         # setup
@@ -1165,7 +1167,8 @@ class TestControlPanels(TestCase):
         # postcondition
         self.assertEqual(response.status_code, 204)
         transaction.begin()
-        self.assertEqual(_records().api_key, "key-value-b")
+        self.assertEqual(Settings().api_key, "key-value-b")
+        self.assertTrue(is_encrypted(_records().api_key))
 
     def test_patch__removes_the_api_key_for_an_empty_value(self):
         # setup
@@ -1267,7 +1270,8 @@ class TestControlPanels(TestCase):
         # postcondition
         self.assertEqual(response.status_code, 204)
         transaction.begin()
-        self.assertEqual(_records().api_key, "abc:fx")
+        self.assertEqual(Settings().api_key, "abc:fx")
+        self.assertTrue(is_encrypted(_records().api_key))
 
     def test_classic_form__is_reachable_for_a_manager(self):
         view = self.get_view("translation-controlpanel", self.portal)

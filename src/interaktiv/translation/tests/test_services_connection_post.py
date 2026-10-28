@@ -1,3 +1,4 @@
+import os
 from unittest import mock
 
 import requests
@@ -5,6 +6,8 @@ import transaction
 from plone.app.testing import SITE_OWNER_NAME, SITE_OWNER_PASSWORD
 
 from interaktiv.translation.controlpanels.api_key import API_KEY_PLACEHOLDER
+from interaktiv.translation.helpers.encryption import SECRET_VARIABLE, is_encrypted
+from interaktiv.translation.settings import Settings
 from interaktiv.translation.testing import (
     INTERAKTIV_TRANSLATION_FUNCTIONAL_TESTING,
     RelativeSession,
@@ -77,7 +80,8 @@ class TestConnectionPost(TestCase):
         self.assertEqual(response.json()["plan"], "free")
         self.assertEqual(post.call_args.kwargs["headers"]["Authorization"], "DeepL-Auth-Key key-value-b:fx")
         transaction.begin()
-        self.assertEqual(_records().api_key, "key-value-a")
+        self.assertEqual(Settings().api_key, "key-value-a")
+        self.assertTrue(is_encrypted(_records().api_key))
 
     def test_post__tests_the_stored_key_for_the_placeholder(self):
         # do it
@@ -135,3 +139,37 @@ class TestConnectionPost(TestCase):
 
         # postcondition
         self.assertEqual(response.json()["code"], "unknown_provider")
+
+    def test_get__tells_how_the_stored_key_is_kept_never_the_key(self):
+        # do it
+        response = self.api_session.get("/@translation-connection")
+
+        # postcondition
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"api_key": {"stored": True, "encryption": "site", "readable": True}})
+        self.assertNotIn("key-value-a", response.text)
+
+    def test_get__is_for_site_managers_only(self):
+        # setup
+        self.api_session.auth = None
+
+        # do it
+        response = self.api_session.get("/@translation-connection")
+
+        # postcondition
+        self.assertEqual(response.status_code, 401)
+
+    def test_post__tells_a_stored_key_that_cannot_be_decrypted(self):
+        # setup — encrypted with a secret of the environment that changed since
+        with mock.patch.dict(os.environ, {SECRET_VARIABLE: "secret-a"}):
+            _records().api_key = "key-value-b"
+            transaction.commit()
+
+        # do it
+        with mock.patch.dict(os.environ, {SECRET_VARIABLE: "secret-b"}), mock.patch("requests.post") as post:
+            response = self._test()
+
+        # postcondition
+        self.assertEqual(response.json()["code"], "key_unreadable")
+        post.assert_not_called()
+

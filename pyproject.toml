@@ -31,6 +31,7 @@ classifiers = [
 ]
 dependencies = [
     "Plone",
+    "cryptography",
     "plone.api",
     "plone.app.iterate",
     "plone.app.multilingual",

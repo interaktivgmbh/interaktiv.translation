@@ -8,10 +8,12 @@ from Products.GenericSetup.tool import SetupTool
 from zope.component import getUtility
 
 from interaktiv.translation import logger
+from interaktiv.translation.helpers.encryption import stored_value
 from interaktiv.translation.registry.translation import ITranslationSettings
 
 MAPPING_RECORD = f"{ITranslationSettings.__identifier__}.metadata_mapping_table"
 TARGET_LANGUAGES_RECORD = f"{ITranslationSettings.__identifier__}.target_languages"
+API_KEY_RECORD = f"{ITranslationSettings.__identifier__}.api_key"
 SOURCE_LANGUAGE_RECORD = f"{ITranslationSettings.__identifier__}.default_source_language"
 # which fields go along is chosen per content type now (metadata_selection)
 REMOVED_RECORDS = (
@@ -39,12 +41,20 @@ def upgrade(site_setup: Optional[SetupTool] = None) -> None:
 
     _upgrade_mapping(registry, old_mapping)
     _upgrade_target_languages(registry, old_target_languages)
+    _encrypt_api_key(registry)
 
     # the source language is the site's default language now; the fields of a
     # translation are chosen per content type
     for record_name in REMOVED_RECORDS:
         if record_name in registry.records:
             del registry.records[record_name]
+
+
+def _encrypt_api_key(registry: IRegistry) -> None:
+    # a key stored before encryption came
+    value = stored_value(_value(registry, API_KEY_RECORD))
+    if value is not None:
+        registry[API_KEY_RECORD] = value
 
 
 def _value(registry: IRegistry, record_name: str) -> Any:

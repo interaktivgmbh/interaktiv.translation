@@ -71,27 +71,48 @@ the provider *Mock*: it writes the text in capitals instead of translating it.
 
 ## Configuration
 
-**Site Setup → Translation** has three tabs:
+**Site Setup → Translation** has four tabs:
 
-- **Translation Service:** provider, API key, API URL.
-- **Translation Options:** source and target languages, translated fields,
-  which keys of a block hold text or links, and the content types that are
-  never translated by machine (by default none). The source language is
-  taken from the content first; the setting is the fallback.
-- **Metadata Mapping:** fields carried over unchanged (named as the object
-  stores them, e.g. `subject`; by default `image` and `file`, so images,
-  files and lead images come along as a copy), and value tables per
-  metadata field. A line
-  `[field_id]` starts a table, followed by a header with language codes and
-  one line per term:
+- **Translation Service:** the provider, the offered target languages, the
+  API URL (only for a proxy) and the API key, with a button that tests the
+  connection and tells the account's usage. Content without a language of
+  its own is taken to be in the site's default language.
+- **Metadata Field Selection:** per content type the fields that go into a
+  translation. Title, description and page content always go along, and so
+  does the type's main field (the image of an image); the others are chosen.
+  Whether a field is translated or taken over follows from its kind.
+- **Metadata Mapping:** fixed translations for the values of metadata
+  fields (as `subjects`), per field one row per value with one entry per
+  language; with import and export as Excel file.
+- **Advanced Settings:** the fields never translated, always translated and
+  taken over unchanged, for every content type; which keys of a block hold
+  text or links; link fields; the content types never translated by machine.
 
-  ```
-  [subject]
-  de, en, fr
-  Forschung, Research, Recherche
-  ```
+### The API key
 
-  Values without a matching line are carried over unchanged.
+The control panel never hands the API key to the browser, and the key is
+stored encrypted. The secret to encrypt with comes from the environment
+variable `INTERAKTIV_TRANSLATION_SECRET`; without it the add-on keeps a secret
+of its own in the site's keyring. Then the key cannot be read in the
+registry, but a backup of the database holds what decrypts it — set the
+variable in production:
+
+```shell
+# once: any long random string will do
+python -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+```yaml
+# instance.yaml (cookiecutter-zope-instance)
+default_context:
+  environment:
+    INTERAKTIV_TRANSLATION_SECRET: "<the string>"
+```
+
+or `INTERAKTIV_TRANSLATION_SECRET=<the string>` in the container's
+environment. A key stored under another secret, or before the variable was
+set and then removed, cannot be read any more: the control panel says so, and
+the key is entered again.
 
 ## REST API
 
@@ -104,7 +125,18 @@ POST /++api++/a-page/@translate
      {"target_language": "en", "save": true}                     translate and store
      {"target_language": "en", "save": true, "overwrite": true}  replace an existing translation
      {"target_language": "en", "text": "Hallo"}                  translate a single text
+
+GET  /++api++/@translation-fields
+     per content type its fields and how the translation treats them
+
+GET  /++api++/@translation-connection
+     how the stored API key is kept: stored, encryption, readable — never the key
+
+POST /++api++/@translation-connection
+     {"provider": "deepl", "api_key": "…"}                       test the service, tell the account
 ```
+
+The three site endpoints need *Manage portal*.
 
 `POST` needs the permission *Manage Translations*, `GET` needs *Modify portal
 content*. Refusals come before DeepL is called: `400` on a working copy,

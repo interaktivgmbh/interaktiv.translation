@@ -1,5 +1,11 @@
 <configure xmlns="http://namespaces.zope.org/zope">
 
+    <!-- the API key is stored encrypted, whichever way it is set -->
+    <subscriber
+        for="plone.registry.interfaces.IRecordModifiedEvent"
+        handler=".events.encrypt_api_key"
+        />
+
     <subscriber
         for="plone.app.iterate.interfaces.ICheckoutEvent"
         handler=".events.restrict_translations_on_checkout"

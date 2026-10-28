@@ -6,7 +6,9 @@ from plone.registry.interfaces import IRegistry
 from plone.schema import JSONField
 from zope.component import getUtility
 
+from interaktiv.translation.helpers.encryption import is_encrypted
 from interaktiv.translation.registry.translation import ITranslationSettings
+from interaktiv.translation.settings import Settings
 from interaktiv.translation.testing import INTERAKTIV_TRANSLATION_INTEGRATION_TESTING, TestCase
 from interaktiv.translation.upgrades import v1000_to_v1001
 from interaktiv.translation.upgrades.v1000_to_v1001 import (
@@ -19,6 +21,7 @@ from interaktiv.translation.upgrades.v1000_to_v1001 import (
 
 
 EXCLUDED_TYPES_RECORD = f"{ITranslationSettings.__identifier__}.excluded_types"
+API_KEY_RECORD = f"{ITranslationSettings.__identifier__}.api_key"
 
 class TestUpgradeV1000ToV1001(TestCase):
     layer = INTERAKTIV_TRANSLATION_INTEGRATION_TESTING
@@ -110,6 +113,17 @@ class TestUpgradeV1000ToV1001(TestCase):
         # them takes any name, so nothing is lost on the import
         self.assertIsInstance(self.registry.records[EXCLUDED_TYPES_RECORD].field.value_type, field.Choice)
         self.assertEqual(self.registry[EXCLUDED_TYPES_RECORD], ["Image", "type_unknown"])
+
+    def test_upgrade__encrypts_a_key_stored_in_plain_text(self):
+        # setup — 1.0.0a1 kept the key as it came, past the subscriber of today
+        self.registry.records._values[API_KEY_RECORD] = "key-value-a"
+
+        # do it
+        v1000_to_v1001.upgrade(None)
+
+        # postcondition
+        self.assertTrue(is_encrypted(self.registry[API_KEY_RECORD]))
+        self.assertEqual(Settings().api_key, "key-value-a")
 
     def test_upgrade__removes_the_source_language_setting(self):
         # setup

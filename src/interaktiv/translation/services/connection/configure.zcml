@@ -14,4 +14,13 @@
             layer="interaktiv.translation.interfaces.IInteraktivTranslationBrowserLayer"
     />
 
+    <plone:service
+            method="GET"
+            factory=".get.TranslationConnectionGet"
+            for="Products.CMFPlone.interfaces.IPloneSiteRoot"
+            permission="cmf.ManagePortal"
+            name="@translation-connection"
+            layer="interaktiv.translation.interfaces.IInteraktivTranslationBrowserLayer"
+    />
+
 </configure>

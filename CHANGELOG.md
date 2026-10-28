@@ -27,6 +27,7 @@
 - Added service @translation-connection to test connection and retrieve account information
 - The translation service tab lists the offered target languages before the
   API URL and the key.
+- Added encryption for API key based on cryptography.fernet
 - Machine translations of content without a workflow get the status
   `machine_without_review`.
 - Breaking: an existing working copy is never overwritten, not even with

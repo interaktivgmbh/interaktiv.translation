@@ -5,6 +5,8 @@ from plone.registry.interfaces import IRegistry
 from zope.component import getUtility
 from zope.interface.interfaces import ComponentLookupError
 
+from interaktiv.translation import logger
+from interaktiv.translation.helpers.encryption import UnreadableSecret, decrypt, encryption_status
 from interaktiv.translation.helpers.field_selection import (
     ALWAYS_FIELDS,
     COPIED_FIELDS,
@@ -40,7 +42,17 @@ class Settings:
 
     @property
     def api_key(self) -> str:
-        return self._get("api_key", "")
+        # stored encrypted, see helpers/encryption.py
+        try:
+            return decrypt(self._get("api_key", ""))
+        except UnreadableSecret as error:
+            logger.error("The stored API key cannot be read: %s Enter it again.", error)
+            return ""
+
+    @property
+    def api_key_status(self) -> Dict[str, Any]:
+        # how the stored key is kept, never the key: stored, encryption, readable
+        return encryption_status(self._get("api_key", ""))
 
     @property
     def api_url(self) -> str:
