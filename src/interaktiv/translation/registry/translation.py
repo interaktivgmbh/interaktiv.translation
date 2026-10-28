@@ -41,15 +41,7 @@ class ITranslationSettings(Interface):
     model.fieldset(
         'provider_options',
         label=_("Translation Service"),
-        fields=['provider', 'target_languages', 'api_url', 'api_key']
-    )
-
-    provider = schema.Choice(
-        title=_("Translation service"),
-        description=_("Which service translates. Only DeepL ships with this add-on."),
-        vocabulary="interaktiv.translation.Providers",
-        default="deepl",
-        required=False,
+        fields=['target_languages', 'provider', 'api_url', 'api_key']
     )
 
     target_languages = schema.List(
@@ -61,6 +53,14 @@ class ITranslationSettings(Interface):
         value_type=schema.Choice(vocabulary="interaktiv.translation.SiteLanguages"),
         default=[],
         missing_value=[],
+        required=False,
+    )
+
+    provider = schema.Choice(
+        title=_("Translation service"),
+        description=_("Which service translates. Only DeepL ships with this add-on."),
+        vocabulary="interaktiv.translation.Providers",
+        default="deepl",
         required=False,
     )
 

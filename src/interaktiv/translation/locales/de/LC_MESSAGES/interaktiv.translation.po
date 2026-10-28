@@ -81,9 +81,6 @@ msgstr "Für diese Website ist kein Übersetzungsdienst konfiguriert. Richten Si
 msgid "Translate into"
 msgstr "Übersetzen nach"
 
-#: ../views/translate.py
-msgid "There is already a translation into this language. Tick 'Overwrite' to replace it."
-msgstr "Es existiert bereits eine Übersetzung in diese Sprache. Aktivieren Sie 'Überschreiben', um sie zu ersetzen."
 
 #: ../views/templates/translate.pt
 msgid "A translation already exists for: ${languages}"
@@ -114,8 +111,8 @@ msgid "Translation Service"
 msgstr "Übersetzungsdienst"
 
 #: ../registry/translation.py
-msgid "Translation Options"
-msgstr "Übersetzungsoptionen"
+msgid "Advanced Settings"
+msgstr "Erweiterte Einstellungen"
 
 #: ../registry/translation.py
 msgid "Link fields of the content type"

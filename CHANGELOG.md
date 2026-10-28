@@ -3,31 +3,26 @@
 ## Unreleased
 
 - Added `GET @translation-fields` service to be used for type specific metadata selection
-- Breaking: which fields are handled by translation is configured in metadata_selection
 - Breaking: which fields go into a translation is decided per content type:
   title, description and page content always, the fields the metadata
   mapping has values for, and the fields chosen in `metadata_selection`;
   translated or taken over by the kind of field. Fields are read and written
   by their schema name (`subjects`, not `subject`), also in the metadata
   mapping and the report.
-- Breaking: removed `translate_fields` and `copy_fields` from settings
+- Breaking: removed `translate_fields` and `copy_fields` from settings; the
+  upgrade step to profile version 1001 removes the records.
 - Added `excluded_fields` -> fields that are skipped
 - Added `always_fields` -> fields that are always handled by translation
 - Added `copied_fields` -> fields that are copied untranslated when handled
-- Breaking: the settings `translate_fields` and `copy_fields` are gone; the
-  upgrade step to profile version 1001 removes them. The advanced settings
-  name instead the fields never translated (`excluded_fields`), always
-  translated (`always_fields`) and taken over unchanged (`copied_fields`),
-  for every content type, with the add-on's lists as defaults. The offered
-  target languages moved back to the translation service tab.
 - Added vocabulary `interaktiv.translation.ContentTypes`
   for choice of not translated content types
 - Fix: target language choice vocabulary when unknown value is stored
 - Fixed do not show a stored API key in the browser
 - Added service @translation-connection to test connection and retrieve account information
-- The translation service tab lists the offered target languages before the
-  API URL and the key.
+- The offered target languages come first in the translation service tab.
 - Added encryption for API key based on cryptography.fernet
+- Fix: saving the classic control panel no longer removes the API key; its
+  password field shows no value, so an empty field keeps the stored key.
 - Machine translations of content without a workflow get the status
   `machine_without_review`.
 - Breaking: an existing working copy is never overwritten, not even with

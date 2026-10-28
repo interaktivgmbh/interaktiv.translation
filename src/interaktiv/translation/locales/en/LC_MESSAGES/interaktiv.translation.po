@@ -81,9 +81,6 @@ msgstr ""
 msgid "Translate into"
 msgstr ""
 
-#: ../views/translate.py
-msgid "There is already a translation into this language. Tick 'Overwrite' to replace it."
-msgstr "There is already a translation into this language. Tick 'Overwrite' to replace it."
 
 #: ../views/templates/translate.pt
 msgid "A translation already exists for: ${languages}"
@@ -114,7 +111,7 @@ msgid "Translation Service"
 msgstr ""
 
 #: ../registry/translation.py
-msgid "Translation Options"
+msgid "Advanced Settings"
 msgstr ""
 
 #: ../registry/translation.py
