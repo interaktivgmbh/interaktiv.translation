@@ -1,3 +1,5 @@
+import json
+
 from plone.autoform import directives
 from plone.schema import JSONField
 from plone.supermodel import model
@@ -35,12 +37,21 @@ DEFAULT_BLOCK_TEXT_KEYS = [
 DEFAULT_BLOCK_LINK_FIELDS = ["url", "href", "preview_image", "@id"]
 DEFAULT_EXCLUDED_TYPES = []
 
+# {target_language: glossary_id}: the glossary of the direction from the site's default language
+GLOSSARY_IDS_JSON_SCHEMA = json.dumps(
+    {
+        "type": "object",
+        "propertyNames": {"pattern": "^[A-Za-z]{2,3}([-_][A-Za-z0-9]{2,8})?$"},
+        "additionalProperties": {"type": "string", "minLength": 1},
+    }
+)
+
 
 class ITranslationSettings(Interface):
     model.fieldset(
         "provider_options",
         label=_("Translation Service"),
-        fields=["target_languages", "provider", "api_url", "api_key"],
+        fields=["target_languages", "provider", "api_url", "api_key", "glossary_ids"],
     )
 
     target_languages = schema.List(
@@ -77,6 +88,22 @@ class ITranslationSettings(Interface):
         description=_(
             "Found in the DeepL account under “Account → API keys”. Stored encrypted and only used on the server."
         ),
+        required=False,
+    )
+
+    glossary_ids = JSONField(
+        title=_("DeepL glossary IDs"),
+        description=_(
+            "Optional, one ID per direction: a DeepL glossary is always for one language pair. It sets how "
+            "terms are translated, as proper names, the names of institutes or fixed titles. The glossaries "
+            "are kept in the DeepL account; here only their IDs are named (e.g. "
+            "4b1b0f1c-9d7a-4b6e-9a0a-3f2c8f0e51d7). For the keywords the metadata mapping counts instead."
+        ),
+        # {target_language: glossary_id}, from the site's default language
+        schema=GLOSSARY_IDS_JSON_SCHEMA,
+        widget="translation_glossary_ids",
+        default={},
+        missing_value={},
         required=False,
     )
 

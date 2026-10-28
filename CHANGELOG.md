@@ -23,6 +23,11 @@
 - Added encryption for API key based on cryptography.fernet
 - Fix: saving the classic control panel no longer removes the API key; its
   password field shows no value, so an empty field keeps the stored key.
+- DeepL glossary IDs per direction, from the site's default language to each
+  offered target language (`glossary_ids`); the translation sends the
+  direction's glossary along, and goes on without it when DeepL refuses it.
+- Added service `POST @translation-glossaries`: the glossaries of the account
+  (DeepL API v2), with the settings as the form holds them.
 - Machine translations of content without a workflow get the status
   `machine_without_review`.
 - Breaking: an existing working copy is never overwritten, not even with

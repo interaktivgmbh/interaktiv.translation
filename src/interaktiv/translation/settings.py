@@ -119,6 +119,22 @@ class Settings:
             copied=tuple(self.copied_fields),
         )
 
+    def glossary_id(self, source_language: Optional[str], target_language: str) -> Optional[str]:
+        """The glossary of a direction: only from the site's default language, as the control panel offers it."""
+        default = self.default_source_language
+        if not source_language or not default or source_language.lower() != default.lower():
+            return None
+
+        glossaries = self._get("glossary_ids", {})
+        if not isinstance(glossaries, dict):
+            return None
+        target = target_language.lower()
+        for language, glossary in glossaries.items():
+            if language.lower() == target and isinstance(glossary, str) and glossary.strip():
+                return glossary.strip()
+
+        return None
+
     @property
     def metadata_selection(self) -> Dict[str, List[str]]:
         # {portal_type: [field_id, ...]}: the fields chosen per content type

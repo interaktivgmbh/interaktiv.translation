@@ -46,7 +46,13 @@ class DeepLProvider(TranslationProvider):
     def configured(self) -> bool:
         return bool(self._api_key)
 
-    def _post(self, path: str, payload: Dict) -> Dict:
+    def _post(self, path: str, payload: Dict) -> Any:
+        return self._request("post", path, payload)
+
+    def _get(self, path: str) -> Any:
+        return self._request("get", path)
+
+    def _request(self, method: str, path: str, payload: Optional[Dict] = None) -> Any:
         if not self.configured():
             raise TranslationError("No DeepL API key is configured for this site.", status=503, code="not_configured")
 
@@ -57,13 +63,14 @@ class DeepLProvider(TranslationProvider):
                 logger.info("DeepL is rate-limiting; retry %s/%s in %.1fs.", attempt, RETRY_ATTEMPTS - 1, delay)
                 time.sleep(delay)
 
+            arguments: Dict[str, Any] = {
+                "headers": {"Authorization": f"DeepL-Auth-Key {self._api_key}"},
+                "timeout": REQUEST_TIMEOUT,
+            }
+            if method == "post":
+                arguments["json"] = payload
             try:
-                response = requests.post(
-                    f"{self.api_url}{path}",
-                    headers={"Authorization": f"DeepL-Auth-Key {self._api_key}"},
-                    json=payload,
-                    timeout=REQUEST_TIMEOUT,
-                )
+                response = getattr(requests, method)(f"{self.api_url}{path}", **arguments)
             except requests.RequestException as error:
                 logger.warning("DeepL is not reachable: %s", error)
                 raise TranslationError("DeepL is not reachable.", code="unreachable") from error
@@ -93,6 +100,9 @@ class DeepLProvider(TranslationProvider):
         if source == self.normalise_language(target_language, source=True):
             source = ""
 
+        # a glossary needs the source language named
+        glossary = settings().glossary_id(source_language, target_language) if source else None
+
         result = list(texts)
         for chunk in self._chunked(sendable):
             payload = {
@@ -102,8 +112,20 @@ class DeepLProvider(TranslationProvider):
             }
             if source:
                 payload["source_lang"] = source
+            if glossary:
+                payload["glossary_id"] = glossary
 
-            data = self._post("/translate", payload)
+            try:
+                data = self._post("/translate", payload)
+            except TranslationError as error:
+                if not glossary or error.code != "error":
+                    raise
+                # a glossary DeepL does not know, or of another language pair: the
+                # translation goes on without it rather than fail
+                logger.warning("DeepL refused the glossary %s (%s); translating without it.", glossary, error)
+                glossary = None
+                payload = {key: value for key, value in payload.items() if key != "glossary_id"}
+                data = self._post("/translate", payload)
             translated = [entry.get("text", "") for entry in data.get("translations", [])]
             if len(translated) != len(chunk):
                 raise TranslationError("DeepL answered with a different number of texts.")
@@ -166,6 +188,22 @@ class DeepLProvider(TranslationProvider):
             "character_count": data.get("character_count"),
             "character_limit": data.get("character_limit"),
         }
+
+    def glossaries(self) -> List[Dict[str, Any]]:
+        # the glossaries of the key's account (API v2: one language pair each); costs no characters
+        data = self._get("/glossaries")
+
+        return [
+            {
+                "id": entry.get("glossary_id"),
+                "name": entry.get("name", ""),
+                "source": (entry.get("source_lang") or "").lower(),
+                "target": (entry.get("target_lang") or "").lower(),
+                "entries": entry.get("entry_count"),
+            }
+            for entry in data.get("glossaries", [])
+            if entry.get("glossary_id")
+        ]
 
     def languages(self) -> List[Dict[str, str]]:
         if not self.configured():

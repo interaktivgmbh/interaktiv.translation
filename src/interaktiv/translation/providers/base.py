@@ -42,6 +42,11 @@ class TranslationProvider(ABC):
 
         return {}
 
+    def glossaries(self) -> List[Dict[str, Any]]:
+        """The glossaries the service offers: ``id``, ``name``, ``source``, ``target``, ``entries``.
+        A service without glossaries offers none."""
+        return []
+
     def translate_texts_by_key(
         self, texts_by_key: Dict[str, List[str]], target_language: str, source_language: Optional[str] = None
     ) -> Dict[str, List[str]]:

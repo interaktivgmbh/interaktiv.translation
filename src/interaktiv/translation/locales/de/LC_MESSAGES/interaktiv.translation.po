@@ -200,3 +200,11 @@ msgstr "Unverändert übernommene Felder"
 #: ../registry/translation.py
 msgid "Fields taken over as they are where their kind would have them translated: text that is no prose, as an address or a project number. Named as in the schema, one per line, for every content type. A field still only goes along when it is chosen for the content type."
 msgstr "Felder, die unverändert übernommen werden, wo sie ihrer Art nach übersetzt würden: Text, der keine Sprache ist, etwa eine Adresse oder eine Projektnummer. Benannt wie im Schema, eines pro Zeile, für alle Inhaltstypen. Ein Feld geht trotzdem nur mit, wenn es für den Inhaltstyp ausgewählt ist."
+
+#: ../registry/translation.py
+msgid "DeepL glossary IDs"
+msgstr "DeepL-Glossar-IDs"
+
+#: ../registry/translation.py
+msgid "Optional, one ID per direction: a DeepL glossary is always for one language pair. It sets how terms are translated, as proper names, the names of institutes or fixed titles. The glossaries are kept in the DeepL account; here only their IDs are named (e.g. 4b1b0f1c-9d7a-4b6e-9a0a-3f2c8f0e51d7). For the keywords the metadata mapping counts instead."
+msgstr "Optional, je Sprachrichtung eine eigene ID – ein DeepL-Glossar gilt immer für genau ein Sprachpaar. Es legt fest, wie Fachbegriffe übersetzt werden, etwa Eigennamen, Institutsbezeichnungen oder feststehende Programmtitel. Die Glossare selbst werden im DeepL-Konto gepflegt; hier wird nur die jeweilige ID hinterlegt (Format z. B. 4b1b0f1c-9d7a-4b6e-9a0a-3f2c8f0e51d7). Für das Metadatenfeld „Schlagwörter“ gelten stattdessen die Schlagwort-Mappings."

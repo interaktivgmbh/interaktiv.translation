@@ -23,4 +23,14 @@
             layer="interaktiv.translation.interfaces.IInteraktivTranslationBrowserLayer"
     />
 
+    <!-- the glossaries of the account, with the settings in the form -->
+    <plone:service
+            method="POST"
+            factory=".post.TranslationGlossariesPost"
+            for="Products.CMFPlone.interfaces.IPloneSiteRoot"
+            permission="cmf.ManagePortal"
+            name="@translation-glossaries"
+            layer="interaktiv.translation.interfaces.IInteraktivTranslationBrowserLayer"
+    />
+
 </configure>
