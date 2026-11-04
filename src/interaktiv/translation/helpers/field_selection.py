@@ -8,12 +8,15 @@ Every listed field has a role and a mode:
 * role ``always``: goes along whatever the site decides — title, description,
   the page content and the type's primary field (the image of an image).
 * role ``default``: goes along unless the site leaves it out.
-* role ``impossible``: cannot go along — a reference would still point at the
-  source language's content.
+* role ``impossible``: cannot go along — a structure the add-on cannot take apart.
 * mode ``translate``, ``copy`` (taken over as it is) or ``mapping`` (through the
   metadata mapping); ``None`` for a field that cannot go along.
 
 ``reason`` names the rule that decided the mode, for the control panel to tell.
+
+A reference (a relation, or a list of them) is taken over pointing at the target's
+translation where there is one, else at the target itself — as an editor may
+choose content of another language too. It is never mapped.
 
 The listing (``get_listed_fields``) leaves the mapping out of the mode and tells it
 apart as ``mapped``: the control panel shows the mapping it is editing, not the
@@ -32,7 +35,7 @@ from plone.rfc822.interfaces import IPrimaryField
 from plone.schema.jsonfield import IJSONField
 from plone.supermodel.utils import mergedTaggedValueList
 from z3c.form.interfaces import HIDDEN_MODE
-from z3c.relationfield.interfaces import IRelation
+from z3c.relationfield.interfaces import IRelation, IRelationList
 from zope import schema
 from zope.component import queryUtility
 from zope.i18n import translate
@@ -74,6 +77,7 @@ REASON_MAPPING = "mapping"
 REASON_FIELD_NAME = "field_name"
 REASON_LANGUAGE_INDEPENDENT = "language_independent"
 REASON_FIELD_TYPE = "field_type"
+REASON_REFERENCE = "reference"
 
 # The three lists below are the defaults of the settings `excluded_fields`,
 # `always_fields` and `copied_fields`; a site changes them in the advanced settings.
@@ -155,11 +159,22 @@ def _provides(field: Any, interfaces: Iterable[Any]) -> bool:
     return any(interface.providedBy(field) for interface in interfaces)
 
 
+def is_reference(field: Any) -> bool:
+    """a relation, or a list of relations"""
+    if IRelation.providedBy(field):
+        return True
+
+    return IRelationList.providedBy(field) or (
+        schema.interfaces.ICollection.providedBy(field) and IRelation.providedBy(getattr(field, "value_type", None))
+    )
+
+
 def mode_by_field_type(field: Any) -> Optional[str]:
     """get mode how to handle field by field type -> ``translate``, ``copy`` or ``None``"""
     # the order matters: an URI is a text line too, a relation a choice
-    if IRelation.providedBy(field):
-        return None
+    if is_reference(field):
+        # taken over, pointing at the translation of its target
+        return MODE_COPY
     if INamedField.providedBy(field):
         return MODE_COPY
     if IRichText.providedBy(field):
@@ -206,6 +221,8 @@ def classify_field(
     else:
         role, role_reason = ROLE_DEFAULT, REASON_FIELD_TYPE
 
+    if is_reference(field):
+        return role, MODE_COPY, REASON_REFERENCE
     if name in mapped_fields:
         return role, MODE_MAPPING, REASON_MAPPING
     if name in rules.copied:
@@ -295,7 +312,7 @@ def get_listed_fields(
                     "role": role,
                     "mode": mode,
                     "reason": reason,
-                    "mapped": name in mapped and role != ROLE_IMPOSSIBLE,
+                    "mapped": name in mapped and role != ROLE_IMPOSSIBLE and reason != REASON_REFERENCE,
                 }
             )
 

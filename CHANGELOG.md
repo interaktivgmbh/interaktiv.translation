@@ -28,6 +28,9 @@
   direction's glossary along, and goes on without it when DeepL refuses it.
 - Added service `POST @translation-glossaries`: the glossaries of the account
   (DeepL API v2), with the settings as the form holds them.
+- References (`preview_image_link`, `relatedItems`, any relation field) can go
+  along when chosen for the content type: each points at the translation of its
+  target, else at the target itself, and the report lists them with the links.
 - Machine translations of content without a workflow get the status
   `machine_without_review`.
 - Breaking: an existing working copy is never overwritten, not even with

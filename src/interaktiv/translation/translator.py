@@ -8,19 +8,20 @@ from plone.namedfile.interfaces import INamedFile
 from interaktiv.translation import logger
 from interaktiv.translation.extractors import ExtractorRegistry, FieldExtractor, Share, default_extractors
 from interaktiv.translation.providers.base import PROVIDERS, TranslationError, TranslationProvider
-from interaktiv.translation.helpers.field_access import MISSING, field_value
+from interaktiv.translation.helpers.field_access import MISSING, field_value, schema_field
 from interaktiv.translation.helpers.field_selection import (
     MODE_COPY,
     MODE_MAPPING,
     MODE_TRANSLATE,
     get_handled_fields,
+    is_reference,
 )
-from interaktiv.translation.helpers.links import postprocess_links
+from interaktiv.translation.helpers.links import postprocess_links, translated_targets
 from interaktiv.translation.settings import settings
 
 
 # What may travel unchanged: values that mean the same in every language. A
-# reference would still point at the source language's content — left out.
+# reference travels too, pointed at the translation of its target.
 COPYABLE_TYPES = (str, int, float, bool, date)
 COLLECTION_TYPES = (list, tuple, set, frozenset)
 
@@ -131,11 +132,17 @@ class ContentTranslator:
             name: copy.deepcopy(getattr(content, name)) for name in extractor.COMPANION_FIELDS if hasattr(content, name)
         }
 
-    def copied_fields(self, content: Any) -> Dict[str, Any]:
+    def copied_fields(self, content: Any, target_language: str) -> Dict[str, Any]:
         result: Dict[str, Any] = {}
         for field_id in self._handled_fields_in_mode(content, MODE_COPY):
             value = field_value(content, field_id)
             if is_empty(value):
+                continue
+            if is_reference(schema_field(content, field_id)):
+                targets = translated_targets(field_id, value, target_language, report=self.link_report)
+                if not is_empty(targets):
+                    result[field_id] = targets
+                    self.copied_report.append(field_id)
                 continue
             if not is_copyable(value):
                 logger.warning("Not carrying over the field %s: %s is no plain value", field_id, type(value).__name__)
@@ -225,7 +232,7 @@ class ContentTranslator:
             result.update(self.companions_of(content, entry["value"]))
 
         # metadata
-        result.update(self.copied_fields(content))
+        result.update(self.copied_fields(content, target_language))
         result.update(self.mapped_metadata(content, target_language, source))
 
         return result

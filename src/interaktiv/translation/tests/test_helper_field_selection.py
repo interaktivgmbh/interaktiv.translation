@@ -17,10 +17,10 @@ from interaktiv.translation.helpers.field_selection import (
     REASON_FIELD_TYPE,
     REASON_LANGUAGE_INDEPENDENT,
     REASON_MAPPING,
+    REASON_REFERENCE,
     REASON_PRIMARY,
     ROLE_ALWAYS,
     ROLE_DEFAULT,
-    ROLE_IMPOSSIBLE,
     always_first,
     classify_field,
     mode_by_field_type,
@@ -64,10 +64,17 @@ class TestModeByFieldType(TestCase):
             with self.subTest(field=type(field).__name__):
                 self.assertEqual(mode_by_field_type(field), MODE_COPY)
 
-    def test_mode__cannot_take_a_reference_or_a_structure_along(self):
+    def test_mode__takes_a_reference_over(self):
         fields = (
             RelationChoice(vocabulary="plone.app.vocabularies.Catalog"),
             RelationList(value_type=RelationChoice(vocabulary="plone.app.vocabularies.Catalog")),
+        )
+        for field in fields:
+            with self.subTest(field=type(field).__name__):
+                self.assertEqual(mode_by_field_type(field), MODE_COPY)
+
+    def test_mode__cannot_take_a_structure_along(self):
+        fields = (
             JSONField(),
             schema.Dict(),
             schema.Object(schema=schema.interfaces.IField),
@@ -109,12 +116,16 @@ class TestClassifyField(TestCase):
             (ROLE_ALWAYS, MODE_COPY, REASON_PRIMARY),
         )
 
-    def test_classify__a_primary_reference_still_cannot_go_along(self):
-        role, mode, _reason = classify_field(
-            _named(RelationChoice(vocabulary="plone.app.vocabularies.Catalog")), primary=True
+    def test_classify__a_reference_is_taken_over(self):
+        self.assertEqual(
+            classify_field(_named(RelationChoice(vocabulary="plone.app.vocabularies.Catalog"))),
+            (ROLE_DEFAULT, MODE_COPY, REASON_REFERENCE),
         )
 
-        self.assertEqual((role, mode), (ROLE_IMPOSSIBLE, None))
+    def test_classify__a_reference_is_taken_over_whatever_else_names_it(self):
+        field = _named(RelationChoice(vocabulary="plone.app.vocabularies.Catalog"), COPIED_FIELDS[0])
+
+        self.assertEqual(classify_field(field, language_independent=True), (ROLE_DEFAULT, MODE_COPY, REASON_REFERENCE))
 
     def test_classify__a_mapped_field_goes_through_the_mapping(self):
         self.assertEqual(
@@ -125,7 +136,7 @@ class TestClassifyField(TestCase):
     def test_classify__a_reference_is_not_mapped(self):
         field = _named(RelationList(value_type=RelationChoice(vocabulary="plone.app.vocabularies.Catalog")))
 
-        self.assertEqual(classify_field(field, mapped_fields=["field_a"])[:2], (ROLE_IMPOSSIBLE, None))
+        self.assertEqual(classify_field(field, mapped_fields=["field_a"]), (ROLE_DEFAULT, MODE_COPY, REASON_REFERENCE))
 
     def test_classify__a_known_field_name_is_copied_though_its_type_is_text(self):
         self.assertEqual(

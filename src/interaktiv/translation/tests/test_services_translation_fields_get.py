@@ -9,8 +9,9 @@ from interaktiv.translation.helpers.field_selection import (
     MODE_MAPPING,
     MODE_TRANSLATE,
     REASON_PRIMARY,
+    REASON_REFERENCE,
+    ROLE_DEFAULT,
     ROLE_ALWAYS,
-    ROLE_IMPOSSIBLE,
     get_handled_fields,
 )
 from interaktiv.translation.testing import (
@@ -111,12 +112,14 @@ class TestTranslationFieldsGet(TranslationFieldsTestCase):
         # postcondition
         self.assertEqual((title["role"], title["mode"]), (ROLE_ALWAYS, MODE_TRANSLATE))
 
-    def test_get__a_reference_cannot_go_along(self):
+    def test_get__a_reference_is_taken_over(self):
         # do it
         related = self._fields("Document")["relatedItems"]
 
         # postcondition
-        self.assertEqual((related["role"], related["mode"]), (ROLE_IMPOSSIBLE, None))
+        self.assertEqual(
+            (related["role"], related["mode"], related["reason"]), (ROLE_DEFAULT, MODE_COPY, REASON_REFERENCE)
+        )
 
     def test_get__the_image_of_an_image_always_goes_along(self):
         # do it
@@ -235,13 +238,13 @@ class TestHandledFields(TestCase):
         # postcondition
         self.assertEqual(modes["subjects"], MODE_MAPPING)
 
-    def test_handled_fields__never_takes_an_excluded_field_or_a_reference(self):
+    def test_handled_fields__never_takes_an_excluded_field(self):
         # do it
         modes = get_handled_fields("Document", {"Document": ["id", "relatedItems"]})
 
         # postcondition
         self.assertNotIn("id", modes)
-        self.assertNotIn("relatedItems", modes)
+        self.assertEqual(modes["relatedItems"], MODE_COPY)
 
     def test_handled_fields__ignores_the_choice_of_another_type(self):
         # do it

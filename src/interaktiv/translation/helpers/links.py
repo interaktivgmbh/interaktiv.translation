@@ -1,10 +1,11 @@
 import posixpath
-from typing import Any, Dict, List, NamedTuple, Optional
+from typing import Any, Dict, List, NamedTuple, Optional, Union
 from urllib.parse import urlparse
 
 import plone.api as api
 from plone.app.uuid.utils import uuidToObject
 from plone.app.multilingual.interfaces import ITranslationManager
+from plone.dexterity.content import DexterityContent
 from plone.restapi.deserializer.utils import path2uid
 from plone.restapi.serializer.utils import uid_to_url
 
@@ -201,3 +202,41 @@ def postprocess_links(
         value = _resolve_internal_link_recursive(value, target_language, report, content)
 
     return value
+
+
+def _translated_target(
+    target: DexterityContent, field_id: str, target_language: str, report: Optional[List[Dict[str, Any]]]
+) -> DexterityContent:
+    try:
+        translated = ITranslationManager(target).get_translation(target_language)
+    except TypeError:  # the target is not translatable
+        translated = None
+
+    if report is not None:
+        report.append(
+            {
+                "text": field_id,
+                "before": target.absolute_url(),
+                "after": translated.absolute_url() if translated is not None else None,
+            }
+        )
+
+    return translated if translated is not None else target
+
+
+def translated_targets(
+    field_id: str,
+    value: Union[DexterityContent, List[Optional[DexterityContent]], None],
+    target_language: str,
+    report: Optional[List[Dict[str, Any]]] = None,
+) -> Union[DexterityContent, List[DexterityContent], None]:
+    """The targets of a reference field as its data manager reads them — one object
+    (RelationChoice) or a list of them (RelationList) — each replaced by its
+    translation where there is one, else kept: an editor may choose content of
+    another language too. A broken reference (read as None) is left out."""
+    if value is None:
+        return None
+    if not isinstance(value, list):
+        return _translated_target(value, field_id, target_language, report)
+
+    return [_translated_target(item, field_id, target_language, report) for item in value if item is not None]
