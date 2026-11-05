@@ -115,8 +115,6 @@ COPIED_FIELDS = (
     "contact_phone",
     "recurrence",
     "attendees",
-    # TODO: path criteria still point at the source language, as in a listing block
-    "query",
     # the name of a catalog index
     "sort_on",
 )
@@ -128,6 +126,8 @@ LINK_FIELDS = (
     "remoteUrl",
     # the web address of an event
     "event_url",
+    # the search of a collection: a path from the portal root is a link to a folder
+    "query",
 )
 
 

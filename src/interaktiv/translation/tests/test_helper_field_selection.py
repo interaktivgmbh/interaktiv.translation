@@ -160,11 +160,11 @@ class TestClassifyField(TestCase):
             (ROLE_DEFAULT, MODE_COPY, REASON_FIELD_NAME),
         )
 
-    def test_classify__a_known_field_name_is_copied_though_its_type_could_not_go_along(self):
+    def test_classify__a_link_field_goes_along_though_its_type_could_not(self):
         # the search of a collection is a list of structures
         field = _named(schema.List(value_type=schema.Dict()), "query")
 
-        self.assertEqual(classify_field(field), (ROLE_DEFAULT, MODE_COPY, REASON_FIELD_NAME))
+        self.assertEqual(classify_field(field), (ROLE_DEFAULT, MODE_COPY, REASON_LINK))
 
     def test_classify__a_language_independent_field_is_copied(self):
         self.assertEqual(

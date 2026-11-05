@@ -7,6 +7,7 @@ from plone.schema import JSONField
 from zope.component import getUtility
 
 from interaktiv.translation.helpers.encryption import is_encrypted
+from interaktiv.translation.helpers.field_selection import LINK_FIELDS
 from interaktiv.translation.registry.translation import ITranslationSettings
 from interaktiv.translation.settings import Settings
 from interaktiv.translation.testing import INTERAKTIV_TRANSLATION_INTEGRATION_TESTING, TestCase
@@ -134,11 +135,11 @@ class TestUpgradeV1000ToV1001(TestCase):
         v1000_to_v1001.upgrade(None)
 
         # postcondition
-        self.assertEqual(self.registry[LINK_FIELDS_RECORD], ["field_a", "remoteUrl", "event_url"])
+        self.assertEqual(self.registry[LINK_FIELDS_RECORD], ["field_a", *LINK_FIELDS])
 
     def test_upgrade__takes_the_link_fields_out_of_the_copied_ones(self):
         # setup
-        self.registry[COPIED_FIELDS_RECORD] = ["field_a", "remoteUrl", "event_url"]
+        self.registry[COPIED_FIELDS_RECORD] = ["field_a", *LINK_FIELDS]
 
         # do it
         v1000_to_v1001.upgrade(None)

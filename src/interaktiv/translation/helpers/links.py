@@ -1,5 +1,5 @@
 import posixpath
-from typing import Any, Dict, List, NamedTuple, Optional, Union
+from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union
 from urllib.parse import urlparse
 
 import plone.api as api
@@ -13,6 +13,7 @@ from interaktiv.translation.settings import settings
 
 LINK_PREFIXES = ("/", "./", "../", "http://", "https://")
 RESOLVEUID_MARKER = "resolveuid/"
+ABSOLUTE_PATH_OPERATION = "plone.app.querystring.operation.string.absolutePath"
 
 
 def _get_translated_resolveuid_path(path: str, target_language: str) -> Optional[str]:
@@ -99,6 +100,62 @@ def _slate_text(node: Dict) -> str:
     return "".join(parts).strip()
 
 
+def _translated_path_criterion(value: str, target_language: str) -> Tuple[Optional[str], Optional[Any], Optional[Any]]:
+    """The value of an absolute path criterion pointed at the translation of its
+    folder, in the form it came in (UID or path, with its depth); the folder and its
+    translation for the report. ``(None, None, None)`` if the folder is not found."""
+    target, separator, depth = value.partition("::")
+    suffix = f"{separator}{depth}"
+    portal = api.portal.get()
+    portal_path = "/".join(portal.getPhysicalPath())
+
+    if "/" not in target:
+        folder = uuidToObject(target)
+    else:
+        path = target if target == portal_path or target.startswith(f"{portal_path}/") else f"{portal_path}{target}"
+        folder = portal.unrestrictedTraverse(path.rstrip("/"), None)
+    if folder is None or folder is portal:
+        return None, None, None
+
+    try:
+        translated = ITranslationManager(folder).get_translation(target_language)
+    except TypeError:  # the folder is not translatable
+        translated = None
+    if translated is None:
+        return value, folder, None
+
+    if "/" not in target:
+        return f"{translated.UID()}{suffix}", folder, translated
+
+    translated_path = "/".join(translated.getPhysicalPath())
+    if not target.startswith(portal_path):
+        # as it came: from the portal root, without the portal's own path
+        translated_path = translated_path[len(portal_path) :]
+    return f"{translated_path}{suffix}", folder, translated
+
+
+def _resolve_path_criterion(
+    criterion: Dict[str, Any], target_language: str, report: Optional[List[Dict[str, Any]]], text: Optional[str]
+) -> None:
+    value = criterion.get("v")
+    if not isinstance(value, str) or not value.strip():
+        return
+
+    translated_value, folder, translated = _translated_path_criterion(value.strip(), target_language)
+    if folder is None:
+        return
+
+    if report is not None:
+        report.append(
+            {
+                "text": text or "query",
+                "before": folder.absolute_url(),
+                "after": translated.absolute_url() if translated is not None else None,
+            }
+        )
+    criterion["v"] = translated_value
+
+
 def _is_link(path: str) -> bool:
     stripped = path.strip()
 
@@ -146,6 +203,10 @@ def _resolve_internal_link_recursive(
 
     # handle dict
     elif isinstance(branch, dict):
+        if branch.get("i") == "path" and branch.get("o") == ABSOLUTE_PATH_OPERATION:
+            _resolve_path_criterion(branch, target_language, report, text)
+            return branch
+
         link_text = text
         if branch.get("type") in ("link", "a"):
             link_text = _slate_text(branch) or link_text

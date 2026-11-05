@@ -36,6 +36,7 @@
   of its target where there is one. Before, the setting only acted on fields
   that were translated. The upgrade step to profile version 1001 adds the
   defaults to a site's own list and takes them out of `copied_fields`.
+- Add handling for path criterion in query searches
 - Machine translations of content without a workflow get the status
   `machine_without_review`.
 - Breaking: an existing working copy is never overwritten, not even with
