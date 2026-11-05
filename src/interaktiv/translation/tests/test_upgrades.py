@@ -22,6 +22,8 @@ from interaktiv.translation.upgrades.v1000_to_v1001 import (
 
 EXCLUDED_TYPES_RECORD = f"{ITranslationSettings.__identifier__}.excluded_types"
 API_KEY_RECORD = f"{ITranslationSettings.__identifier__}.api_key"
+LINK_FIELDS_RECORD = f"{ITranslationSettings.__identifier__}.link_fields"
+COPIED_FIELDS_RECORD = f"{ITranslationSettings.__identifier__}.copied_fields"
 
 
 class TestUpgradeV1000ToV1001(TestCase):
@@ -123,6 +125,26 @@ class TestUpgradeV1000ToV1001(TestCase):
         # postcondition
         self.assertTrue(is_encrypted(self.registry[API_KEY_RECORD]))
         self.assertEqual(Settings().api_key, "key-value-a")
+
+    def test_upgrade__adds_the_link_fields_to_the_sites_own(self):
+        # setup — 1.0.0a1 had no defaults; a site named its own
+        self.registry[LINK_FIELDS_RECORD] = ["field_a"]
+
+        # do it
+        v1000_to_v1001.upgrade(None)
+
+        # postcondition
+        self.assertEqual(self.registry[LINK_FIELDS_RECORD], ["field_a", "remoteUrl", "event_url"])
+
+    def test_upgrade__takes_the_link_fields_out_of_the_copied_ones(self):
+        # setup
+        self.registry[COPIED_FIELDS_RECORD] = ["field_a", "remoteUrl", "event_url"]
+
+        # do it
+        v1000_to_v1001.upgrade(None)
+
+        # postcondition
+        self.assertEqual(self.registry[COPIED_FIELDS_RECORD], ["field_a"])
 
     def test_upgrade__removes_the_source_language_setting(self):
         # setup

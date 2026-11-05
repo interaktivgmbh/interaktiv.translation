@@ -148,7 +148,12 @@ class ContentTranslator:
                 logger.warning("Not carrying over the field %s: %s is no plain value", field_id, type(value).__name__)
                 continue
 
-            result[field_id] = copied_value(value)
+            value = copied_value(value)
+            if field_id in settings().link_fields:
+                # an internal link points at the translation of its target
+                value = postprocess_links(content, field_id, value, target_language, report=self.link_report)
+
+            result[field_id] = value
             self.copied_report.append(field_id)
 
         return result

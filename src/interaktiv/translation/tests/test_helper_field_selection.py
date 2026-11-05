@@ -9,12 +9,15 @@ from zope import schema
 from interaktiv.translation.helpers.field_selection import (
     ALWAYS_FIELDS,
     COPIED_FIELDS,
+    LINK_FIELDS,
+    FieldRules,
     MODE_COPY,
     MODE_MAPPING,
     MODE_TRANSLATE,
     REASON_ALWAYS,
     REASON_FIELD_NAME,
     REASON_FIELD_TYPE,
+    REASON_LINK,
     REASON_LANGUAGE_INDEPENDENT,
     REASON_MAPPING,
     REASON_REFERENCE,
@@ -137,6 +140,19 @@ class TestClassifyField(TestCase):
         field = _named(RelationList(value_type=RelationChoice(vocabulary="plone.app.vocabularies.Catalog")))
 
         self.assertEqual(classify_field(field, mapped_fields=["field_a"]), (ROLE_DEFAULT, MODE_COPY, REASON_REFERENCE))
+
+    def test_classify__a_link_field_is_taken_over_as_a_link(self):
+        for name in LINK_FIELDS:
+            with self.subTest(name=name):
+                self.assertEqual(
+                    classify_field(_named(schema.TextLine(), name), mapped_fields=[name]),
+                    (ROLE_DEFAULT, MODE_COPY, REASON_LINK),
+                )
+
+    def test_classify__goes_by_the_link_fields_of_the_site(self):
+        rules = FieldRules(links=("field_a",))
+
+        self.assertEqual(classify_field(_named(schema.TextLine()), rules=rules), (ROLE_DEFAULT, MODE_COPY, REASON_LINK))
 
     def test_classify__a_known_field_name_is_copied_though_its_type_is_text(self):
         self.assertEqual(

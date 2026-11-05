@@ -11,6 +11,7 @@ from interaktiv.translation.helpers.field_selection import (
     ALWAYS_FIELDS,
     COPIED_FIELDS,
     EXCLUDED_FIELDS,
+    LINK_FIELDS,
     FieldRules,
 )
 from interaktiv.translation.helpers.metadata import parse_metadata_mapping
@@ -72,7 +73,7 @@ class Settings:
 
     @property
     def link_fields(self) -> List[str]:
-        return list(self._get("link_fields", []))
+        return self._field_list("link_fields", LINK_FIELDS)
 
     @property
     def block_link_fields(self) -> List[str]:
@@ -117,6 +118,7 @@ class Settings:
             excluded=tuple(self.excluded_fields),
             always=tuple(self.always_fields),
             copied=tuple(self.copied_fields),
+            links=tuple(self.link_fields),
         )
 
     def glossary_id(self, source_language: Optional[str], target_language: str) -> Optional[str]:

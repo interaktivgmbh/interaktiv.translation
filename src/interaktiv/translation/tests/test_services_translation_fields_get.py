@@ -8,6 +8,7 @@ from interaktiv.translation.helpers.field_selection import (
     MODE_COPY,
     MODE_MAPPING,
     MODE_TRANSLATE,
+    REASON_LINK,
     REASON_PRIMARY,
     REASON_REFERENCE,
     ROLE_DEFAULT,
@@ -120,6 +121,15 @@ class TestTranslationFieldsGet(TranslationFieldsTestCase):
         self.assertEqual(
             (related["role"], related["mode"], related["reason"]), (ROLE_DEFAULT, MODE_COPY, REASON_REFERENCE)
         )
+
+    def test_get__the_address_of_a_link_is_a_link(self):
+        # do it
+        fields = {"Link": self._fields("Link")["remoteUrl"], "Event": self._fields("Event")["event_url"]}
+
+        # postcondition
+        for portal_type, field in fields.items():
+            with self.subTest(portal_type=portal_type):
+                self.assertEqual((field["mode"], field["reason"]), (MODE_COPY, REASON_LINK))
 
     def test_get__the_image_of_an_image_always_goes_along(self):
         # do it

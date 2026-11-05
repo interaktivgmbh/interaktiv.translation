@@ -16,7 +16,9 @@ Every listed field has a role and a mode:
 
 A reference (a relation, or a list of them) is taken over pointing at the target's
 translation where there is one, else at the target itself — as an editor may
-choose content of another language too. It is never mapped.
+choose content of another language too. A link field (``link_fields``) is taken
+over the same way: an internal link points at the translation of its target.
+Neither is ever mapped.
 
 The listing (``get_listed_fields``) leaves the mapping out of the mode and tells it
 apart as ``mapped``: the control panel shows the mapping it is editing, not the
@@ -78,9 +80,11 @@ REASON_FIELD_NAME = "field_name"
 REASON_LANGUAGE_INDEPENDENT = "language_independent"
 REASON_FIELD_TYPE = "field_type"
 REASON_REFERENCE = "reference"
+REASON_LINK = "link"
 
-# The three lists below are the defaults of the settings `excluded_fields`,
-# `always_fields` and `copied_fields`; a site changes them in the advanced settings.
+# The lists below are the defaults of the settings `excluded_fields`,
+# `always_fields`, `copied_fields` and `link_fields`; a site changes them in the
+# advanced settings.
 
 # fields that never go along and are not listed: they belong to the object, not to its language
 EXCLUDED_FIELDS = (
@@ -109,15 +113,21 @@ FIELD_TITLES = {"blocks": _("Page content")}
 COPIED_FIELDS = (
     "contact_email",
     "contact_phone",
-    "event_url",
     "recurrence",
     "attendees",
     # TODO: path criteria still point at the source language, as in a listing block
     "query",
     # the name of a catalog index
     "sort_on",
-    # the address of a link; TODO: an internal one still points at the source language
+)
+
+# fields of Plone's own types that hold a link: taken over, an internal link
+# pointed at the translation of its target
+LINK_FIELDS = (
+    # the address of a link
     "remoteUrl",
+    # the web address of an event
+    "event_url",
 )
 
 
@@ -127,6 +137,7 @@ class FieldRules(NamedTuple):
     excluded: Tuple[str, ...] = EXCLUDED_FIELDS
     always: Tuple[str, ...] = ALWAYS_FIELDS
     copied: Tuple[str, ...] = COPIED_FIELDS
+    links: Tuple[str, ...] = LINK_FIELDS
 
 
 DEFAULT_RULES = FieldRules()
@@ -209,8 +220,8 @@ def classify_field(
 ) -> Tuple[str, Optional[str], str]:
     """The role, the mode and the reason for the mode of one field."""
     name = field.getName()
-    # a field named to be copied goes along, whatever its type
-    by_type = MODE_COPY if name in rules.copied else mode_by_field_type(field)
+    # a field named to be copied, or to hold a link, goes along whatever its type
+    by_type = MODE_COPY if name in rules.copied or name in rules.links else mode_by_field_type(field)
 
     if name in rules.always:
         role, role_reason = ROLE_ALWAYS, REASON_ALWAYS
@@ -223,6 +234,8 @@ def classify_field(
 
     if is_reference(field):
         return role, MODE_COPY, REASON_REFERENCE
+    if name in rules.links:
+        return role, MODE_COPY, REASON_LINK
     if name in mapped_fields:
         return role, MODE_MAPPING, REASON_MAPPING
     if name in rules.copied:
@@ -287,6 +300,9 @@ def get_listed_fields(
     independent = _language_independent_names((base,) + additional)
     mapped = set(mapped_fields)
 
+    # a reference or a link is never mapped, whatever the mapping holds
+    unmappable = (REASON_REFERENCE, REASON_LINK)
+
     fields: List[Dict[str, Any]] = []
     for fieldset in get_fieldsets(context, request, base, additional):
         for form_field in fieldset["fields"]:
@@ -312,7 +328,7 @@ def get_listed_fields(
                     "role": role,
                     "mode": mode,
                     "reason": reason,
-                    "mapped": name in mapped and role != ROLE_IMPOSSIBLE and reason != REASON_REFERENCE,
+                    "mapped": name in mapped and role != ROLE_IMPOSSIBLE and reason not in unmappable,
                 }
             )
 

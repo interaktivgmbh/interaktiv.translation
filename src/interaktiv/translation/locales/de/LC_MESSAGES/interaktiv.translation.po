@@ -119,8 +119,8 @@ msgid "Link fields of the content type"
 msgstr "Link-Felder der Inhaltstypen"
 
 #: ../registry/translation.py
-msgid "Fields of your content types that hold a link, one per line — a project link, a partner link. Links inside blocks are found on their own; these are the ones that sit on the object itself."
-msgstr "Felder Ihrer Inhaltstypen, die einen Link enthalten, eines pro Zeile, etwa ein Projekt- oder Partnerlink. Links in Blöcken werden von selbst gefunden; hier geht es um die, die direkt am Objekt sitzen."
+msgid "Fields of your content types that hold a link, one per line, as the address of a link. Taken over, not translated; an internal link points at the translation of its target where there is one. Links inside blocks are found on their own."
+msgstr "Felder Ihrer Inhaltstypen, die einen Link enthalten, eines pro Zeile, etwa die Adresse eines Links. Sie werden übernommen, nicht übersetzt; ein interner Link zeigt auf die Übersetzung seines Ziels, sofern es eine gibt. Links in Blöcken werden von selbst gefunden."
 
 #: ../registry/translation.py
 msgid "Link keys inside blocks"

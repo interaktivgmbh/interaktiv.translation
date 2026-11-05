@@ -11,6 +11,7 @@ from interaktiv.translation.helpers.field_selection import (
     ALWAYS_FIELDS,
     COPIED_FIELDS,
     EXCLUDED_FIELDS,
+    LINK_FIELDS,
     METADATA_SELECTION_JSON_SCHEMA,
 )
 from interaktiv.translation.helpers.metadata import METADATA_MAPPING_JSON_SCHEMA, validate_metadata_mapping
@@ -210,12 +211,13 @@ class ITranslationSettings(Interface):
     link_fields = schema.List(
         title=_("Link fields of the content type"),
         description=_(
-            "Fields of your content types that hold a link, one per line — a project "
-            "link, a partner link. Links inside blocks are found on their own; these "
-            "are the ones that sit on the object itself."
+            "Fields of your content types that hold a link, one per line, as the address "
+            "of a link. Taken over, not translated; an internal link points at the "
+            "translation of its target where there is one. Links inside blocks are found "
+            "on their own."
         ),
         value_type=schema.TextLine(),
-        default=[],
+        default=list(LINK_FIELDS),
         missing_value=[],
         required=False,
     )

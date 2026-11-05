@@ -185,10 +185,10 @@ class TestSettingsCopyFields(TestCase):
 
     def test_field_lists__keep_an_emptied_list(self):
         # setup — nothing taken over unchanged: no fallback to the default
-        records = mock.Mock(excluded_fields=["field_a"], always_fields=["field_b"], copied_fields=[])
+        records = mock.Mock(excluded_fields=["field_a"], always_fields=["field_b"], copied_fields=[], link_fields=[])
 
         # do it
         rules = Settings(records=records).field_rules
 
         # postcondition
-        self.assertEqual(rules, FieldRules(excluded=("field_a",), always=("field_b",), copied=()))
+        self.assertEqual(rules, FieldRules(excluded=("field_a",), always=("field_b",), copied=(), links=()))

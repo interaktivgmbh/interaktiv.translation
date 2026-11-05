@@ -44,6 +44,7 @@ class TestContentTranslator(TestCase):
         self.settings = mock.Mock(
             block_text_keys=None,
             default_source_language="de",
+            link_fields=[],
         )
         self.settings.get_metadata_mapping.return_value = {}
         patcher = mock.patch(

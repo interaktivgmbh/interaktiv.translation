@@ -31,6 +31,11 @@
 - References (`preview_image_link`, `relatedItems`, any relation field) can go
   along when chosen for the content type: each points at the translation of its
   target, else at the target itself, and the report lists them with the links.
+- Link fields (`link_fields`, by default `remoteUrl` and `event_url`) are taken
+  over, never sent to the service; an internal link points at the translation
+  of its target where there is one. Before, the setting only acted on fields
+  that were translated. The upgrade step to profile version 1001 adds the
+  defaults to a site's own list and takes them out of `copied_fields`.
 - Machine translations of content without a workflow get the status
   `machine_without_review`.
 - Breaking: an existing working copy is never overwritten, not even with

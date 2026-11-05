@@ -118,7 +118,7 @@ msgid "Link fields of the content type"
 msgstr ""
 
 #: ../registry/translation.py
-msgid "Fields of your content types that hold a link, one per line — a project link, a partner link. Links inside blocks are found on their own; these are the ones that sit on the object itself."
+msgid "Fields of your content types that hold a link, one per line, as the address of a link. Taken over, not translated; an internal link points at the translation of its target where there is one. Links inside blocks are found on their own."
 msgstr ""
 
 #: ../registry/translation.py
