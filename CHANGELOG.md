@@ -57,6 +57,13 @@
   the record.
 - The offered target languages are a choice of the site languages. The
   upgrade step keeps the codes the site has and drops the others.
+- Breaking: `POST @translate` refuses a target language that is not offered
+  for machine translation (409), for a preview as for a save, before the
+  provider is called; the Classic form refuses it the same way. Before, only
+  the front ends left such languages out.
+- Fix: content without a language of its own no longer takes the language of
+  a folder above as the source language for the provider; like the stored
+  marker, it is taken to be in the site's default language.
 
 ## 1.0.0a1 (2026-10-14)
 

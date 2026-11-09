@@ -14,11 +14,12 @@ from plone.app.iterate.permissions import CheckoutPermission
 from plone.app.multilingual.interfaces import ITranslationManager
 from plone.locking.interfaces import ILockable
 from zope.annotation.interfaces import IAnnotations
-from zope.component import getMultiAdapter
+from zope.component import getMultiAdapter, getUtility
 from zope.event import notify
 from zope.globalrequest import getRequest
 from zope.lifecycleevent import ObjectModifiedEvent
 from zope.publisher.interfaces.browser import IBrowserRequest
+from zope.schema.interfaces import IVocabularyFactory
 
 CHANGE_NOTE_KEY = "plone.app.versioningbehavior-changeNote"
 MACHINE_TRANSLATION_KEY = "interaktiv.translation.machine_translation"
@@ -28,12 +29,23 @@ MANAGE_TRANSLATIONS_PERMISSION = "plone.app.multilingual: Manage Translations"
 
 WORKING_COPY_REFUSAL = "This is a working copy. Translate the original instead."
 EXCLUDED_TYPE_REFUSAL = "This content type is not translated by machine."
+TARGET_LANGUAGES_VOCABULARY = "interaktiv.translation.TargetLanguages"
 
 STATUS_MANUAL = "manual"
 STATUS_MACHINE_UNREVIEWED = "machine_unreviewed"
 STATUS_MACHINE_EDITED = "machine_edited"
 STATUS_MACHINE_REVIEWED = "machine_reviewed"
 STATUS_MACHINE_WITHOUT_REVIEW = "machine_without_review"
+
+
+def content_language(content: Any) -> Optional[str]:
+    # own language only, never one acquired from a parent
+    return getattr(aq_base(content), "language", None) or None
+
+
+def source_language_of(content: Any, given: Optional[str] = None) -> Optional[str]:
+    # content without a language of its own is in the site's default language
+    return given or content_language(content) or settings().default_source_language
 
 
 def review_note(marker: Dict[str, Any], reviewer: str) -> str:
@@ -177,6 +189,21 @@ class TranslationStorage:
 
         return f"The {target_language} translation cannot be checked out."
 
+    def is_offered(self, target_language: str) -> bool:
+        factory = getUtility(IVocabularyFactory, name=TARGET_LANGUAGES_VOCABULARY)
+
+        return target_language in factory(self.content)
+
+    def target_refusal(self, target_language: str) -> Optional[str]:
+        # check if target is its own language (without multilingual it is stored in place)
+        if self.multilingual and target_language == content_language(self.content):
+            return f"The content is already in {target_language}. Translate it into another language."
+
+        if not self.is_offered(target_language):
+            return f"{target_language} is not offered for machine translation."
+
+        return None
+
     def refusal(self, target_language: str, overwrite: bool) -> Optional[str]:
         # The one place that decides whether a save would be refused, so the
         # service can turn DeepL away before it is paid and `store` can raise
@@ -187,14 +214,13 @@ class TranslationStorage:
         if self.is_working_copy:
             return WORKING_COPY_REFUSAL
 
+        refusal = self.target_refusal(target_language)
+        if refusal is not None:
+            return refusal
+
         existing = self.existing_translation(target_language)
         if existing is None:
             return None
-
-        if aq_base(existing) is aq_base(self.content):
-            # Asked for its own language, pam answers the object itself:
-            # "translating" would check out or overwrite the original.
-            return f"The content is already in {target_language}. Translate it into another language."
 
         if self.uses_working_copies(existing):
             # A translation exists but iterate is on: a working copy is made
@@ -224,9 +250,7 @@ class TranslationStorage:
         source_language: Optional[str] = None,
     ) -> Any:
         # the same fallback as the translator's
-        self.source_language = (
-            source_language or getattr(aq_base(self.content), "language", None) or settings().default_source_language
-        )
+        self.source_language = source_language_of(self.content, source_language)
         # mark request annotations for machine created content
         request = getRequest()
         annotations = IAnnotations(request) if request is not None else None

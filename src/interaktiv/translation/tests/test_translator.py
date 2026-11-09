@@ -1,5 +1,7 @@
 from unittest import TestCase, mock
 
+from Acquisition import Implicit
+
 from plone.namedfile.file import NamedFile, NamedImage
 
 from interaktiv.translation.extractors import ExtractorRegistry, FieldExtractor, TextExtractor
@@ -38,6 +40,16 @@ class Content:
             setattr(self, name, value)
 
 
+class Folder(Implicit):
+    def __init__(self, **fields):
+        for name, value in fields.items():
+            setattr(self, name, value)
+
+
+class AcquiringContent(Folder):
+    """Content that acquires what it lacks from the folder it is in."""
+
+
 class TestContentTranslator(TestCase):
     def setUp(self):
         self.provider = Upper()
@@ -47,12 +59,14 @@ class TestContentTranslator(TestCase):
             link_fields=[],
         )
         self.settings.get_metadata_mapping.return_value = {}
-        patcher = mock.patch(
-            "interaktiv.translation.translator.settings",
-            return_value=self.settings,
-        )
-        patcher.start()
-        self.addCleanup(patcher.stop)
+        # storage: the fallback to the default language
+        for module in ("translator", "storage"):
+            patcher = mock.patch(
+                f"interaktiv.translation.{module}.settings",
+                return_value=self.settings,
+            )
+            patcher.start()
+            self.addCleanup(patcher.stop)
         # which fields go along, and how: what the content type and the
         # control panel decide, here decided by the test
         self.modes = {"title": "translate", "description": "translate", "blocks": "translate"}
@@ -90,6 +104,17 @@ class TestContentTranslator(TestCase):
         self._translator().translate(content, "EN")
 
         # postcondition
+        self.assertEqual(self.provider.calls[0][2], "de")
+
+    def test_translate__never_takes_the_language_of_a_folder_above(self):
+        # setup — content without a language of its own, in a folder that has one
+        folder = Folder(language="fr")
+        content = AcquiringContent(title="Titel").__of__(folder)
+
+        # do it
+        self._translator().translate(content, "EN")
+
+        # postcondition — the site's default language, not the folder's
         self.assertEqual(self.provider.calls[0][2], "de")
 
     def test_translate__lets_the_caller_override_the_source_language(self):

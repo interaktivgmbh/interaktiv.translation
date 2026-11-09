@@ -52,6 +52,11 @@ class TranslatePost(Service):
         if storage.is_working_copy:
             raise TranslationError(WORKING_COPY_REFUSAL, status=400)
 
+        # a preview costs the provider too
+        target_refusal = storage.target_refusal(target)
+        if target_refusal is not None:
+            raise TranslationError(target_refusal, status=409)
+
         if body.get("save"):
             # Refused is refused — but before the provider was paid, not after.
             refusal = storage.refusal(target, overwrite)

@@ -18,6 +18,7 @@ from interaktiv.translation.helpers.field_selection import (
 )
 from interaktiv.translation.helpers.links import postprocess_links, translated_targets
 from interaktiv.translation.settings import settings
+from interaktiv.translation.storage import source_language_of
 
 
 # What may travel unchanged: values that mean the same in every language. A
@@ -191,7 +192,7 @@ class ContentTranslator:
         return value if mapped is None else mapped
 
     def translate(self, content: Any, target_language: str, source_language: Optional[str] = None) -> Dict[str, Any]:
-        source = source_language or getattr(content, "language", None) or settings().default_source_language
+        source = source_language_of(content, source_language)
 
         self.link_report = []
         self.metadata_report = []

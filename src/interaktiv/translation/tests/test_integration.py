@@ -664,6 +664,89 @@ class TestTranslateServiceOnAMultilingualSite(TestCase):
         self.assertEqual(response.json()["report"]["metadata"], [])
 
 
+class TestTargetLanguageRefusal(TestCase):
+    """Only a language offered for machine translation is translated into,
+    whatever a request names: the front ends merely leave the others out."""
+
+    layer = INTERAKTIV_TRANSLATION_MULTILINGUAL_FUNCTIONAL_TESTING
+
+    def setUp(self) -> None:
+        super().setUp()
+        # a site language, but not offered for machine translation
+        api.portal.get_tool("portal_languages").addSupportedLanguage("fr")
+        self.page = api.content.create(container=self.portal["de"], type="Document", id="page-a", title="Titel A")
+        _records().api_key = "test-key"
+        _records().target_languages = ["en"]
+        self.api_session = RelativeSession(self.portal.absolute_url(), test=self)
+        self.api_session.headers.update({"Accept": "application/json"})
+        self.api_session.auth = (SITE_OWNER_NAME, SITE_OWNER_PASSWORD)
+        transaction.commit()
+
+    def tearDown(self) -> None:
+        self.api_session.close()
+        super().tearDown()
+
+    def _translate(self, **body):
+        with mock.patch("requests.post", return_value=_deepl("Title A")) as post:
+            return self.api_session.post("/de/page-a/@translate", json=body), post
+
+    def test_post__refuses_to_save_into_a_language_not_offered(self):
+        # do it
+        response, post = self._translate(target_language="fr", save=True, overwrite=True)
+
+        # postcondition — refused before the provider was called
+        self.assertEqual(response.status_code, 409)
+        self.assertIn("fr is not offered for machine translation", response.json()["message"])
+        post.assert_not_called()
+        transaction.begin()
+        self.assertIsNone(TranslationStorage(self.page).existing_translation("fr"))
+
+    def test_post__refuses_a_preview_as_well(self):
+        # do it — a preview costs the provider all the same
+        response, post = self._translate(target_language="fr")
+
+        # postcondition
+        self.assertEqual(response.status_code, 409)
+        post.assert_not_called()
+
+    def test_post__translates_into_an_offered_language(self):
+        # do it
+        response, post = self._translate(target_language="en")
+
+        # postcondition
+        self.assertEqual(response.status_code, 200)
+        post.assert_called_once()
+
+    def test_post__offers_every_site_language_for_an_emptied_setting(self):
+        # setup — an empty choice offers every site language
+        _records().target_languages = []
+        transaction.commit()
+
+        # do it
+        response, post = self._translate(target_language="fr")
+
+        # postcondition
+        self.assertEqual(response.status_code, 200)
+        post.assert_called_once()
+
+    def test_classic_view__refuses_a_language_not_offered(self):
+        # setup — a hand-made request: the form itself only lists offered languages
+        transaction.begin()
+        request = self.portal.REQUEST
+        request.form = {"target_language": "fr"}
+        view = TranslateContentView(self.portal["de"]["page-a"], request)
+        view.template = mock.Mock(return_value="")
+
+        # do it
+        with mock.patch("requests.post", return_value=_deepl("Title A")) as post:
+            view.translate()
+
+        # postcondition
+        post.assert_not_called()
+        messages = IStatusMessage(request).show()
+        self.assertIn("fr is not offered for machine translation", messages[-1].message)
+
+
 class TestWorkingCopyStorage(TestCase):
     """A multilingual site with plone.app.iterate installed: an existing
     translation is checked out, not overwritten."""

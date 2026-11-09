@@ -1,6 +1,5 @@
 from typing import List, Optional
 
-from Acquisition import aq_base
 from plone import api
 from zope.component import queryUtility
 from zope.interface import implementer
@@ -10,7 +9,7 @@ from zope.schema.vocabulary import SimpleTerm, SimpleVocabulary
 from interaktiv.translation.helpers.field_selection import EXCLUDED_TYPES
 from interaktiv.translation.providers.base import PROVIDERS
 from interaktiv.translation.settings import settings
-from interaktiv.translation.storage import TranslationStorage
+from interaktiv.translation.storage import TranslationStorage, content_language
 
 
 @implementer(IVocabularyFactory)
@@ -90,4 +89,4 @@ class TargetLanguagesVocabularyFactory:
         if context is None or not TranslationStorage(context).multilingual:
             return None
 
-        return getattr(aq_base(context), "language", None)
+        return content_language(context)

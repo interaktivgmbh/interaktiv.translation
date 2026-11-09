@@ -2,7 +2,7 @@ from typing import Any, Dict
 
 from Acquisition import aq_base
 from interaktiv.translation.providers.base import TranslationError
-from interaktiv.translation.storage import TranslationStorage
+from interaktiv.translation.storage import TranslationStorage, content_language
 from interaktiv.translation.storage import translation_status
 from interaktiv.translation.translator import provider
 from interaktiv.translation.vocabularies.translation import site_languages
@@ -22,7 +22,7 @@ class TranslateGet(Service):
         machine_languages = [term.value for term in factory(self.context)]
 
         storage = TranslationStorage(self.context, self.request)
-        own_language = getattr(aq_base(self.context), "language", None)
+        own_language = content_language(self.context)
         if storage.multilingual:
             # every language of the site can be translated into, by hand at least
             codes = [code for code in site_languages() if code != own_language]
