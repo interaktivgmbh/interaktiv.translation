@@ -41,6 +41,7 @@ class TranslateGet(Service):
             translations[own_language] = self._language_entry(self.context, storage)
 
         baseline = storage.baseline()
+        working_copy = storage.open_working_copy
 
         return {
             "configured": bool(current and current.configured()),
@@ -51,6 +52,7 @@ class TranslateGet(Service):
             "is_working_copy": baseline is not None,
             "translatable": not storage.is_excluded_type,
             "baseline_url": baseline.absolute_url() if baseline is not None else None,
+            "working_copy_url": working_copy.absolute_url() if working_copy is not None else None,
         }
 
     @staticmethod

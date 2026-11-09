@@ -28,6 +28,7 @@ STORING_KEY = "interaktiv.translation.storing"
 MANAGE_TRANSLATIONS_PERMISSION = "plone.app.multilingual: Manage Translations"
 
 WORKING_COPY_REFUSAL = "This is a working copy. Translate the original instead."
+SOURCE_WORKING_COPY_REFUSAL = "This content has an open working copy. Check it in or discard it, then translate."
 EXCLUDED_TYPE_REFUSAL = "This content type is not translated by machine."
 TARGET_LANGUAGES_VOCABULARY = "interaktiv.translation.TargetLanguages"
 
@@ -148,6 +149,18 @@ class TranslationStorage:
         return self.baseline() is not None
 
     @property
+    def open_working_copy(self) -> Optional[Any]:
+        # iterate answers a working copy itself as its own working copy
+        if self.is_working_copy:
+            return None
+
+        return self.working_copy_of(self.content)
+
+    @property
+    def has_open_working_copy(self) -> bool:
+        return self.open_working_copy is not None
+
+    @property
     def is_excluded_type(self) -> bool:
         return getattr(self.content, "portal_type", None) in settings().excluded_types
 
@@ -213,6 +226,9 @@ class TranslationStorage:
 
         if self.is_working_copy:
             return WORKING_COPY_REFUSAL
+
+        if self.has_open_working_copy:
+            return SOURCE_WORKING_COPY_REFUSAL
 
         refusal = self.target_refusal(target_language)
         if refusal is not None:

@@ -64,6 +64,10 @@
 - Fix: content without a language of its own no longer takes the language of
   a folder above as the source language for the provider; like the stored
   marker, it is taken to be in the site's default language.
+- Breaking: content with an open working copy is not translated by machine
+  (409), with or without `save`, before the provider is called: its live
+  content would be translated, not the newer one in the working copy.
+  `GET @translate` names that working copy as `working_copy_url`.
 
 ## 1.0.0a1 (2026-10-14)
 

@@ -4,6 +4,7 @@ from interaktiv.translation import logger
 from interaktiv.translation.providers.base import TranslationError
 from interaktiv.translation.storage import (
     EXCLUDED_TYPE_REFUSAL,
+    SOURCE_WORKING_COPY_REFUSAL,
     WORKING_COPY_REFUSAL,
     TranslationStorage,
 )
@@ -51,6 +52,9 @@ class TranslatePost(Service):
 
         if storage.is_working_copy:
             raise TranslationError(WORKING_COPY_REFUSAL, status=400)
+
+        if storage.has_open_working_copy:
+            raise TranslationError(SOURCE_WORKING_COPY_REFUSAL, status=409)
 
         # a preview costs the provider too
         target_refusal = storage.target_refusal(target)

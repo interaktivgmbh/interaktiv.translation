@@ -1077,6 +1077,75 @@ class TestWorkingCopyStorage(TestCase):
         second = self.api_session.get("/de/page/@translate").json()
         self.assertIsNotNone(second["translations"]["en"]["working_copy"])
 
+    def _translate_back(self, **body):
+        # from the English translation back into German
+        payload = {"target_language": "de"}
+        payload.update(body)
+        with mock.patch("requests.post", return_value=_deepl("Guten Tag", "Eine Seite")) as post:
+            return self.api_session.post("/en/page/@translate", json=payload), post
+
+    def test_source_with_an_open_working_copy__is_refused(self):
+        # setup — the English translation has an open working copy
+        self._translate()
+        self._translate()
+
+        # do it — its live content would be translated, not the newer copy
+        response, post = self._translate_back(save=True)
+
+        # postcondition — refused before the provider was called, the
+        # German page is not checked out
+        self.assertEqual(response.status_code, 409)
+        self.assertIn("open working copy", response.json()["message"])
+        post.assert_not_called()
+        transaction.begin()
+        self.assertIsNone(self._working_copy_of(self.portal["de"]["page"]))
+
+    def test_source_with_an_open_working_copy__is_refused_without_save_too(self):
+        # setup
+        self._translate()
+        self._translate()
+
+        # do it
+        response, post = self._translate_back()
+
+        # postcondition
+        self.assertEqual(response.status_code, 409)
+        post.assert_not_called()
+
+    def test_source__translates_again_once_its_working_copy_is_discarded(self):
+        # setup — the working copy is discarded
+        from plone.app.iterate.interfaces import ICheckinCheckoutPolicy
+
+        self._translate()
+        self._translate()
+        transaction.begin()
+        working_copy = self._working_copy_of(self.portal["en"]["page"])
+        ICheckinCheckoutPolicy(working_copy).cancelCheckout()
+        transaction.commit()
+
+        # do it
+        response, post = self._translate_back()
+
+        # postcondition
+        self.assertEqual(response.status_code, 200)
+        post.assert_called_once()
+
+    def test_get__names_the_open_working_copy_of_the_content(self):
+        # setup
+        self._translate()
+        self._translate()
+        working_copy_path = self._working_copy_path()
+
+        # do it
+        source = self.api_session.get("/en/page/@translate").json()
+        working_copy = self.api_session.get(f"{working_copy_path}/@translate").json()
+        original = self.api_session.get("/de/page/@translate").json()
+
+        # postcondition — the copy is not its own working copy
+        self.assertTrue(source["working_copy_url"].endswith(working_copy_path))
+        self.assertIsNone(working_copy["working_copy_url"])
+        self.assertIsNone(original["working_copy_url"])
+
 
 class TestControlPanels(TestCase):
     layer = INTERAKTIV_TRANSLATION_FUNCTIONAL_TESTING
