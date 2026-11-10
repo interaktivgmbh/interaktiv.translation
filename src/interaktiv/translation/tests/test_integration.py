@@ -751,6 +751,82 @@ class TestTargetLanguageRefusal(TestCase):
         self.assertIn("fr is not offered for machine translation", messages[-1].message)
 
 
+class TestContentWithoutLanguage(TestCase):
+    """Content without a language of its own is language independent, as
+    plone.app.multilingual has it: not translated, by machine or by hand."""
+
+    layer = INTERAKTIV_TRANSLATION_MULTILINGUAL_FUNCTIONAL_TESTING
+
+    def setUp(self) -> None:
+        super().setUp()
+        # outside the language root folders
+        self.page = api.content.create(container=self.portal, type="Document", id="page-a", title="Titel A")
+        self.page.language = ""
+        _records().api_key = "test-key"
+        self.api_session = RelativeSession(self.portal.absolute_url(), test=self)
+        self.api_session.headers.update({"Accept": "application/json"})
+        self.api_session.auth = (SITE_OWNER_NAME, SITE_OWNER_PASSWORD)
+        transaction.commit()
+
+    def tearDown(self) -> None:
+        self.api_session.close()
+        super().tearDown()
+
+    def _translate(self, **body):
+        payload = {"target_language": "en"}
+        payload.update(body)
+        with mock.patch("requests.post", return_value=_deepl("Title A")) as post:
+            return self.api_session.post("/page-a/@translate", json=payload), post
+
+    def test_post__refuses_to_save_before_the_provider_is_called(self):
+        # setup
+        before = set(self.portal.objectIds())
+
+        # do it
+        response, post = self._translate(save=True)
+
+        # postcondition — nothing made, nothing paid
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.json()["code"], "no_language")
+        post.assert_not_called()
+        transaction.begin()
+        self.assertEqual(set(self.portal.objectIds()), before)
+
+    def test_post__refuses_without_save_too(self):
+        response, post = self._translate()
+
+        self.assertEqual(response.status_code, 409)
+        post.assert_not_called()
+
+    def test_get__reports_it_as_not_translatable_by_machine_or_by_hand(self):
+        # do it
+        body = self.api_session.get("/page-a/@translate").json()
+
+        # postcondition
+        self.assertFalse(body["translatable"])
+        self.assertFalse(body["manual_translatable"])
+        self.assertEqual(body["refusal"]["code"], "no_language")
+        self.assertTrue(body["refusal"]["message"])
+
+    def test_get__content_with_a_language_is_translatable(self):
+        # setup
+        api.content.create(container=self.portal["de"], type="Document", id="page-b", title="Titel B")
+        transaction.commit()
+
+        # do it
+        body = self.api_session.get("/de/page-b/@translate").json()
+
+        # postcondition
+        self.assertTrue(body["translatable"])
+        self.assertTrue(body["manual_translatable"])
+        self.assertIsNone(body["refusal"])
+
+    def test_available_view__hides_the_classic_action(self):
+        transaction.begin()
+
+        self.assertFalse(TranslationAvailableView(self.portal["page-a"], self.portal.REQUEST)())
+
+
 class TestWorkingCopyStorage(TestCase):
     """A multilingual site with plone.app.iterate installed: an existing
     translation is checked out, not overwritten."""
@@ -1630,6 +1706,9 @@ class TestExcludedTypes(TestCase):
         response = self.api_session.get("/de/image/@translate")
 
         self.assertFalse(response.json()["translatable"])
+        self.assertEqual(response.json()["refusal"]["code"], "excluded_type")
+        # by hand, as Plone's own form does it, it still is
+        self.assertTrue(response.json()["manual_translatable"])
 
     def test_available_view__hides_the_action_for_an_image(self):
         transaction.begin()

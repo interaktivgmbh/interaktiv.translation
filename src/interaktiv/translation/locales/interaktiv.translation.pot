@@ -295,3 +295,7 @@ msgstr ""
 #: ../providers/deepl.py
 msgid "One text alone is more than DeepL takes in one request."
 msgstr ""
+
+#: ../storage.py
+msgid "This content has no language of its own. Give it a language, then translate."
+msgstr ""

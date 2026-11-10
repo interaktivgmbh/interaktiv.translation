@@ -296,3 +296,7 @@ msgstr "DeepL hat eine andere Anzahl Texte zurückgegeben."
 #: ../providers/deepl.py
 msgid "One text alone is more than DeepL takes in one request."
 msgstr "Ein einzelner Text ist länger, als DeepL in einer Anfrage annimmt."
+
+#: ../storage.py
+msgid "This content has no language of its own. Give it a language, then translate."
+msgstr "Dieser Inhalt hat keine eigene Sprache. Erst eine Sprache zuweisen, dann übersetzen."

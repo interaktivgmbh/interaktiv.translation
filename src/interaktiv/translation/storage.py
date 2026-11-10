@@ -4,6 +4,7 @@ from typing import Any, Dict, Optional
 import plone.api as api
 from AccessControl import getSecurityManager
 from Acquisition import aq_base, aq_inner, aq_parent
+from Products.CMFPlone.interfaces import IPloneSiteRoot
 from Products.GenericSetup.tool import UNKNOWN
 from interaktiv.translation import _, logger
 from interaktiv.translation.helpers.field_access import set_field_value
@@ -59,6 +60,9 @@ SOURCE_WORKING_COPY_REFUSAL = Refusal(
     "source_working_copy", _("This content has an open working copy. Check it in or discard it, then translate.")
 )
 EXCLUDED_TYPE_REFUSAL = Refusal("excluded_type", _("This content type is not translated by machine."))
+NO_LANGUAGE_REFUSAL = Refusal(
+    "no_language", _("This content has no language of its own. Give it a language, then translate.")
+)
 TARGET_LANGUAGES_VOCABULARY = "interaktiv.translation.TargetLanguages"
 
 STATUS_MANUAL = "manual"
@@ -190,8 +194,26 @@ class TranslationStorage:
         return self.open_working_copy is not None
 
     @property
+    def has_no_language(self) -> bool:
+        if not self.multilingual or IPloneSiteRoot.providedBy(self.content):
+            return False
+
+        return content_language(self.content) is None
+
+    @property
     def is_excluded_type(self) -> bool:
         return getattr(self.content, "portal_type", None) in settings().excluded_types
+
+    @property
+    def content_refusal(self) -> Optional[Refusal]:
+        # why the content itself is not translated by machine, whatever the target
+        if self.is_excluded_type:
+            return EXCLUDED_TYPE_REFUSAL
+
+        if self.has_no_language:
+            return NO_LANGUAGE_REFUSAL
+
+        return None
 
     def working_copy_of(self, translation: Any) -> Optional[Any]:
         # The working copy of a checked-out translation, or None. Answers None
@@ -270,8 +292,8 @@ class TranslationStorage:
         # The one place that decides whether a save would be refused, so the
         # service can turn DeepL away before it is paid and `store` can raise
         # the same way. None means "go ahead".
-        if self.is_excluded_type:
-            return EXCLUDED_TYPE_REFUSAL
+        if self.content_refusal is not None:
+            return self.content_refusal
 
         if self.is_working_copy:
             return WORKING_COPY_REFUSAL

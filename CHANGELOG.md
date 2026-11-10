@@ -79,6 +79,14 @@
   takes the first relation it finds, a broken one left by such a deletion
   among them, and then answers no working copy; the translation looks for
   the intact relation itself.
+- Breaking: on a multilingual site, content without a language of its own
+  (e.g. outside the language root folders) is not translated (409,
+  `code: no_language`), as plone.app.multilingual treats it as language
+  independent. Before, its translations were made next to it, linked to
+  nothing, and even into the site's default language.
+- `GET @translate` answers `manual_translatable` (whether Plone's own form
+  may translate the content by hand) and, when `translatable` is false, a
+  `refusal` with its `code` and `message` in the language of the request.
 
 ## 1.0.0a1 (2026-10-14)
 

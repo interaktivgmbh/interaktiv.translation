@@ -16,7 +16,7 @@ from interaktiv.translation.translator import ContentTranslator, provider
 class TranslationAvailableView(BrowserView):
     def __call__(self) -> bool:
         storage = TranslationStorage(self.context, self.request)
-        if storage.is_working_copy or storage.is_excluded_type:
+        if storage.is_working_copy or storage.is_excluded_type or storage.has_no_language:
             return False
 
         try:

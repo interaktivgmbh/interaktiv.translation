@@ -3,7 +3,6 @@ from typing import Any, Dict, Optional
 from interaktiv.translation import logger
 from interaktiv.translation.providers.base import TranslationError
 from interaktiv.translation.storage import (
-    EXCLUDED_TYPE_REFUSAL,
     SOURCE_WORKING_COPY_REFUSAL,
     WORKING_COPY_REFUSAL,
     TranslationStorage,
@@ -52,9 +51,9 @@ class TranslatePost(Service):
         overwrite = bool(body.get("overwrite"))
 
         storage = TranslationStorage(self.context, self.request)
-        if storage.is_excluded_type:
+        if storage.content_refusal is not None:
             # Refused for a preview too: it would cost the provider all the same.
-            raise EXCLUDED_TYPE_REFUSAL.error(409)
+            raise storage.content_refusal.error(409)
 
         if storage.is_working_copy:
             raise WORKING_COPY_REFUSAL.error(400)

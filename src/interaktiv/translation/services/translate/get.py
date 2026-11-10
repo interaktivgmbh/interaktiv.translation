@@ -8,6 +8,7 @@ from interaktiv.translation.translator import provider
 from interaktiv.translation.vocabularies.translation import site_languages
 from plone.restapi.services import Service
 from zope.component import getUtility
+from zope.i18n import translate
 from zope.schema.interfaces import IVocabularyFactory
 
 
@@ -42,6 +43,7 @@ class TranslateGet(Service):
 
         baseline = storage.baseline()
         working_copy = storage.open_working_copy
+        refusal = storage.content_refusal
 
         return {
             "configured": bool(current and current.configured()),
@@ -50,7 +52,11 @@ class TranslateGet(Service):
             "working_copies_enabled": storage.uses_working_copies(self.context),
             "translations": translations,
             "is_working_copy": baseline is not None,
-            "translatable": not storage.is_excluded_type,
+            "translatable": refusal is None,
+            "manual_translatable": not storage.has_no_language,
+            "refusal": {"code": refusal.code, "message": translate(refusal.message, context=self.request)}
+            if refusal is not None
+            else None,
             "baseline_url": baseline.absolute_url() if baseline is not None else None,
             "working_copy_url": working_copy.absolute_url() if working_copy is not None else None,
         }
