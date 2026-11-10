@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional, TypedDict
 from Acquisition import aq_base
 from plone.namedfile.interfaces import INamedFile
 
-from interaktiv.translation import logger
+from interaktiv.translation import _, logger
 from interaktiv.translation.extractors import ExtractorRegistry, FieldExtractor, Share, default_extractors
 from interaktiv.translation.providers.base import PROVIDERS, TranslationError, TranslationProvider
 from interaktiv.translation.helpers.field_access import MISSING, field_value, schema_field
@@ -62,7 +62,9 @@ def provider() -> TranslationProvider:
     name = settings().provider
     factory = PROVIDERS.get(name)
     if factory is None:
-        raise TranslationError(f"No translation provider named '{name}'.", status=503)
+        raise TranslationError(
+            _("No translation provider named '${name}'."), status=503, code="unknown_provider", values={"name": name}
+        )
 
     return factory()
 

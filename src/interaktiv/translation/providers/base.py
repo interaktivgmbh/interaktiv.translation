@@ -1,15 +1,34 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, List, Optional, Type, Union
 
-from interaktiv.translation import logger
+from zope.i18n import translate
+from zope.i18nmessageid import Message
+
+from interaktiv.translation import _, logger
 
 
 class TranslationError(Exception):
-    def __init__(self, message: str, status: int = 502, code: str = "error") -> None:
-        super().__init__(message)
+    def __init__(
+        self,
+        message: Union[str, Message],
+        status: int = 502,
+        code: str = "error",
+        values: Optional[Dict[str, str]] = None,
+    ) -> None:
+        # what the message names, e.g. the language
+        self.values = values or {}
+        if isinstance(message, Message) and self.values:
+            message = Message(message, mapping=self.values)
+        # in English, for logs and tests
+        super().__init__(translate(message))
+        self.message = message
         self.status = status
-        # what went wrong, for a front end to say in its own language
+        # what went wrong, for a front end to react to
         self.code = code
+
+    def translated(self, request: Any) -> str:
+        # in the language of the request
+        return translate(self.message, context=request)
 
 
 class TranslationProvider(ABC):
@@ -38,7 +57,7 @@ class TranslationProvider(ABC):
         Answers what it knows of the account: ``plan``, ``character_count``, ``character_limit``.
         """
         if not self.configured():
-            raise TranslationError("The translation service is not configured.", status=503, code="not_configured")
+            raise TranslationError(_("The translation service is not configured."), status=503, code="not_configured")
 
         return {}
 

@@ -208,3 +208,91 @@ msgstr "DeepL glossary IDs"
 #: ../registry/translation.py
 msgid "Optional, one ID per direction: a DeepL glossary is always for one language pair. It sets how terms are translated, as proper names, the names of institutes or fixed titles. The glossaries are kept in the DeepL account; here only their IDs are named (e.g. 4b1b0f1c-9d7a-4b6e-9a0a-3f2c8f0e51d7). For the keywords the metadata mapping counts instead."
 msgstr "Optional, one ID per direction: a DeepL glossary is always for one language pair. It sets how terms are translated, as proper names, the names of institutes or fixed titles. The glossaries are kept in the DeepL account; here only their IDs are named (e.g. 4b1b0f1c-9d7a-4b6e-9a0a-3f2c8f0e51d7). For the keywords the metadata mapping counts instead."
+
+#: ../storage.py
+msgid "This is a working copy. Translate the original instead."
+msgstr "This is a working copy. Translate the original instead."
+
+#: ../storage.py
+msgid "This content has an open working copy. Check it in or discard it, then translate."
+msgstr "This content has an open working copy. Check it in or discard it, then translate."
+
+#: ../storage.py
+msgid "This content type is not translated by machine."
+msgstr "This content type is not translated by machine."
+
+#: ../storage.py
+msgid "The ${language} translation is being edited by someone right now. Try again once it is saved."
+msgstr "The ${language} translation is being edited by someone right now. Try again once it is saved."
+
+#: ../storage.py
+msgid "You are not allowed to check out the ${language} translation."
+msgstr "You are not allowed to check out the ${language} translation."
+
+#: ../storage.py
+msgid "The ${language} translation cannot be checked out."
+msgstr "The ${language} translation cannot be checked out."
+
+#: ../storage.py
+msgid "The content is already in ${language}. Translate it into another language."
+msgstr "The content is already in ${language}. Translate it into another language."
+
+#: ../storage.py
+msgid "${language} is not offered for machine translation."
+msgstr "${language} is not offered for machine translation."
+
+#: ../storage.py
+msgid "There is already a working copy of the ${language} translation. Check it in or discard it first."
+msgstr "There is already a working copy of the ${language} translation. Check it in or discard it first."
+
+#: ../storage.py
+msgid "There is already a ${language} translation. Ask for overwrite to replace it."
+msgstr "There is already a ${language} translation. Ask for overwrite to replace it."
+
+#: ../storage.py
+msgid "Plone refused to create the ${language} translation."
+msgstr "Plone refused to create the ${language} translation."
+
+#: ../storage.py
+msgid "There is no ${language} translation to write to."
+msgstr "There is no ${language} translation to write to."
+
+#: ../translator.py
+msgid "No translation provider named '${name}'."
+msgstr "No translation provider named '${name}'."
+
+#: ../providers/base.py
+msgid "The translation service is not configured."
+msgstr "The translation service is not configured."
+
+#: ../providers/deepl.py
+msgid "No DeepL API key is configured for this site."
+msgstr "No DeepL API key is configured for this site."
+
+#: ../providers/deepl.py
+msgid "DeepL is not reachable."
+msgstr "DeepL is not reachable."
+
+#: ../providers/deepl.py
+msgid "DeepL refused the API key."
+msgstr "DeepL refused the API key."
+
+#: ../providers/deepl.py
+msgid "The DeepL quota for this key is used up."
+msgstr "The DeepL quota for this key is used up."
+
+#: ../providers/deepl.py
+msgid "DeepL is rate-limiting this site."
+msgstr "DeepL is rate-limiting this site."
+
+#: ../providers/deepl.py
+msgid "DeepL answered ${status}."
+msgstr "DeepL answered ${status}."
+
+#: ../providers/deepl.py
+msgid "DeepL answered with a different number of texts."
+msgstr "DeepL answered with a different number of texts."
+
+#: ../providers/deepl.py
+msgid "One text alone is more than DeepL takes in one request."
+msgstr "One text alone is more than DeepL takes in one request."

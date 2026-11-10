@@ -34,7 +34,13 @@ class TranslatePost(Service):
         except TranslationError as error:
             self.request.response.setStatus(error.status)
 
-            return {"type": "TranslationError", "message": str(error)}
+            # the code and its values let a front end say it in its own language
+            return {
+                "type": "TranslationError",
+                "message": error.translated(self.request),
+                "code": error.code,
+                "values": error.values,
+            }
 
     def _reply_text(self, translator, texts, target: str, source) -> Dict[str, Any]:
         one = isinstance(texts, str)
@@ -48,24 +54,24 @@ class TranslatePost(Service):
         storage = TranslationStorage(self.context, self.request)
         if storage.is_excluded_type:
             # Refused for a preview too: it would cost the provider all the same.
-            raise TranslationError(EXCLUDED_TYPE_REFUSAL, status=409)
+            raise EXCLUDED_TYPE_REFUSAL.error(409)
 
         if storage.is_working_copy:
-            raise TranslationError(WORKING_COPY_REFUSAL, status=400)
+            raise WORKING_COPY_REFUSAL.error(400)
 
         if storage.has_open_working_copy:
-            raise TranslationError(SOURCE_WORKING_COPY_REFUSAL, status=409)
+            raise SOURCE_WORKING_COPY_REFUSAL.error(409)
 
         # a preview costs the provider too
         target_refusal = storage.target_refusal(target)
         if target_refusal is not None:
-            raise TranslationError(target_refusal, status=409)
+            raise target_refusal.error(409)
 
         if body.get("save"):
             # Refused is refused — but before the provider was paid, not after.
             refusal = storage.refusal(target, overwrite)
             if refusal is not None:
-                raise TranslationError(refusal, status=409)
+                raise refusal.error(409)
 
         fields = translator.translate(self.context, target, source)
         result: Dict[str, Any] = {

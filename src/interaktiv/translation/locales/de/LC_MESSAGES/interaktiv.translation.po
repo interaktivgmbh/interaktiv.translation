@@ -208,3 +208,91 @@ msgstr "DeepL-Glossar-IDs"
 #: ../registry/translation.py
 msgid "Optional, one ID per direction: a DeepL glossary is always for one language pair. It sets how terms are translated, as proper names, the names of institutes or fixed titles. The glossaries are kept in the DeepL account; here only their IDs are named (e.g. 4b1b0f1c-9d7a-4b6e-9a0a-3f2c8f0e51d7). For the keywords the metadata mapping counts instead."
 msgstr "Optional, je Sprachrichtung eine eigene ID – ein DeepL-Glossar gilt immer für genau ein Sprachpaar. Es legt fest, wie Fachbegriffe übersetzt werden, etwa Eigennamen, Institutsbezeichnungen oder feststehende Programmtitel. Die Glossare selbst werden im DeepL-Konto gepflegt; hier wird nur die jeweilige ID hinterlegt (Format z. B. 4b1b0f1c-9d7a-4b6e-9a0a-3f2c8f0e51d7). Für das Metadatenfeld „Schlagwörter“ gelten stattdessen die Schlagwort-Mappings."
+
+#: ../storage.py
+msgid "This is a working copy. Translate the original instead."
+msgstr "Dies ist eine Arbeitskopie. Übersetzt wird über das Original."
+
+#: ../storage.py
+msgid "This content has an open working copy. Check it in or discard it, then translate."
+msgstr "Dieser Inhalt hat eine offene Arbeitskopie. Erst einchecken oder verwerfen, dann übersetzen."
+
+#: ../storage.py
+msgid "This content type is not translated by machine."
+msgstr "Dieser Inhaltstyp wird nicht automatisch übersetzt."
+
+#: ../storage.py
+msgid "The ${language} translation is being edited by someone right now. Try again once it is saved."
+msgstr "Die Übersetzung für „${language}“ wird gerade bearbeitet. Bitte erneut versuchen, sobald sie gespeichert ist."
+
+#: ../storage.py
+msgid "You are not allowed to check out the ${language} translation."
+msgstr "Sie dürfen die Übersetzung für „${language}“ nicht auschecken."
+
+#: ../storage.py
+msgid "The ${language} translation cannot be checked out."
+msgstr "Die Übersetzung für „${language}“ kann nicht ausgecheckt werden."
+
+#: ../storage.py
+msgid "The content is already in ${language}. Translate it into another language."
+msgstr "Der Inhalt ist bereits in der Sprache „${language}“. Bitte in eine andere Sprache übersetzen."
+
+#: ../storage.py
+msgid "${language} is not offered for machine translation."
+msgstr "Die Sprache „${language}“ ist für die automatische Übersetzung nicht freigegeben."
+
+#: ../storage.py
+msgid "There is already a working copy of the ${language} translation. Check it in or discard it first."
+msgstr "Für „${language}“ gibt es bereits eine Arbeitskopie der Übersetzung. Bitte erst einchecken oder verwerfen."
+
+#: ../storage.py
+msgid "There is already a ${language} translation. Ask for overwrite to replace it."
+msgstr "Für „${language}“ gibt es bereits eine Übersetzung. Zum Ersetzen „Bestehende Übersetzung überschreiben“ wählen."
+
+#: ../storage.py
+msgid "Plone refused to create the ${language} translation."
+msgstr "Plone konnte die Übersetzung für „${language}“ nicht anlegen."
+
+#: ../storage.py
+msgid "There is no ${language} translation to write to."
+msgstr "Für „${language}“ gibt es keine Übersetzung, in die geschrieben werden kann."
+
+#: ../translator.py
+msgid "No translation provider named '${name}'."
+msgstr "Es gibt keinen Übersetzungsdienst namens „${name}“."
+
+#: ../providers/base.py
+msgid "The translation service is not configured."
+msgstr "Der Übersetzungsdienst ist nicht eingerichtet."
+
+#: ../providers/deepl.py
+msgid "No DeepL API key is configured for this site."
+msgstr "Für diese Website ist kein DeepL-API-Key hinterlegt."
+
+#: ../providers/deepl.py
+msgid "DeepL is not reachable."
+msgstr "DeepL ist nicht erreichbar."
+
+#: ../providers/deepl.py
+msgid "DeepL refused the API key."
+msgstr "DeepL hat den API-Key abgelehnt."
+
+#: ../providers/deepl.py
+msgid "The DeepL quota for this key is used up."
+msgstr "Das DeepL-Kontingent für diesen Key ist aufgebraucht."
+
+#: ../providers/deepl.py
+msgid "DeepL is rate-limiting this site."
+msgstr "DeepL bremst gerade die Anfragen dieser Website. Bitte später erneut versuchen."
+
+#: ../providers/deepl.py
+msgid "DeepL answered ${status}."
+msgstr "DeepL hat mit ${status} geantwortet."
+
+#: ../providers/deepl.py
+msgid "DeepL answered with a different number of texts."
+msgstr "DeepL hat eine andere Anzahl Texte zurückgegeben."
+
+#: ../providers/deepl.py
+msgid "One text alone is more than DeepL takes in one request."
+msgstr "Ein einzelner Text ist länger, als DeepL in einer Anfrage annimmt."

@@ -74,7 +74,7 @@ class TranslateContentView(BrowserView):
 
         refusal = storage.refusal(target, overwrite)
         if refusal is not None:
-            self._message(refusal, "warning")
+            self._message(refusal.message, "warning")
 
             return self.template(self)
 
@@ -82,7 +82,7 @@ class TranslateContentView(BrowserView):
             fields = ContentTranslator().translate(self.context, target)
             stored = storage.store(fields, target, overwrite=overwrite)
         except TranslationError as error:
-            self._message(str(error), "error")
+            self._message(error.message, "error")
 
             return self.template(self)
 

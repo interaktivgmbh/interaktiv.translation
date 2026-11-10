@@ -68,6 +68,12 @@
   (409), with or without `save`, before the provider is called: its live
   content would be translated, not the newer one in the working copy.
   `GET @translate` names that working copy as `working_copy_url`.
+- The messages of refused or failed translations are translated (de, en):
+  `POST @translate` answers its `message` in the language of the request,
+  the Classic form shows it in the site's language. Alongside, a `code`
+  (e.g. `source_working_copy`, `not_offered`, `translation_exists`, or the
+  provider's own like `quota_exceeded`) and the `values` the message names
+  (e.g. `{"language": "en"}`), for a front end to react to.
 
 ## 1.0.0a1 (2026-10-14)
 

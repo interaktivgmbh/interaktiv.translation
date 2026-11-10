@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 
-from interaktiv.translation import logger
+from interaktiv.translation import _, logger
 from interaktiv.translation.providers.base import PROVIDERS, TranslationError, TranslationProvider
 from interaktiv.translation.settings import settings
 
@@ -54,7 +54,9 @@ class DeepLProvider(TranslationProvider):
 
     def _request(self, method: str, path: str, payload: Optional[Dict] = None) -> Any:
         if not self.configured():
-            raise TranslationError("No DeepL API key is configured for this site.", status=503, code="not_configured")
+            raise TranslationError(
+                _("No DeepL API key is configured for this site."), status=503, code="not_configured"
+            )
 
         response = None
         for attempt in range(RETRY_ATTEMPTS):
@@ -73,20 +75,20 @@ class DeepLProvider(TranslationProvider):
                 response = getattr(requests, method)(f"{self.api_url}{path}", **arguments)
             except requests.RequestException as error:
                 logger.warning("DeepL is not reachable: %s", error)
-                raise TranslationError("DeepL is not reachable.", code="unreachable") from error
+                raise TranslationError(_("DeepL is not reachable."), code="unreachable") from error
 
             if response.status_code != 429:
                 break
 
         if response.status_code == 403:
-            raise TranslationError("DeepL refused the API key.", status=403, code="key_refused")
+            raise TranslationError(_("DeepL refused the API key."), status=403, code="key_refused")
         if response.status_code == 456:
-            raise TranslationError("The DeepL quota for this key is used up.", status=429, code="quota_exceeded")
+            raise TranslationError(_("The DeepL quota for this key is used up."), status=429, code="quota_exceeded")
         if response.status_code == 429:
-            raise TranslationError("DeepL is rate-limiting this site.", status=429, code="rate_limited")
+            raise TranslationError(_("DeepL is rate-limiting this site."), status=429, code="rate_limited")
         if not response.ok:
             logger.warning("DeepL answered %s: %s", response.status_code, response.text[:200])
-            raise TranslationError(f"DeepL answered {response.status_code}.")
+            raise TranslationError(_("DeepL answered ${status}."), values={"status": str(response.status_code)})
 
         return response.json()
 
@@ -128,7 +130,7 @@ class DeepLProvider(TranslationProvider):
                 data = self._post("/translate", payload)
             translated = [entry.get("text", "") for entry in data.get("translations", [])]
             if len(translated) != len(chunk):
-                raise TranslationError("DeepL answered with a different number of texts.")
+                raise TranslationError(_("DeepL answered with a different number of texts."))
 
             for (index, _text), answer in zip(chunk, translated):
                 result[index] = answer
@@ -145,7 +147,7 @@ class DeepLProvider(TranslationProvider):
         for index, text in sendable:
             size = len(text.encode("utf-8"))
             if size > MAX_REQUEST_BYTES:
-                raise TranslationError("One text alone is more than DeepL takes in one request.", status=413)
+                raise TranslationError(_("One text alone is more than DeepL takes in one request."), status=413)
             if chunk and (len(chunk) == MAX_TEXTS_PER_REQUEST or chunk_bytes + size > MAX_REQUEST_BYTES):
                 chunks.append(chunk)
                 chunk = []

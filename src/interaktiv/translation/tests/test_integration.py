@@ -196,6 +196,7 @@ class TestTranslateService(TestCase):
         # postcondition
         self.assertEqual(response.status_code, 503)
         self.assertIn("API key", response.json()["message"])
+        self.assertEqual(response.json()["code"], "not_configured")
 
     def test_post__translates_the_content_fields_when_asked_for_the_page(self):
         # do it
@@ -444,6 +445,8 @@ class TestTranslateServiceOnAMultilingualSite(TestCase):
         # still there
         self.assertEqual(response.status_code, 409)
         self.assertIn("already", response.json()["message"])
+        self.assertEqual(response.json()["code"], "translation_exists")
+        self.assertEqual(response.json()["values"], {"language": "en"})
         transaction.begin()
         self.assertEqual(self.portal["en"]["page"].title, "Edited by hand")
 
@@ -574,6 +577,8 @@ class TestTranslateServiceOnAMultilingualSite(TestCase):
         # postcondition — refused before the original was overwritten
         self.assertEqual(response.status_code, 409)
         self.assertIn("already in de", response.json()["message"])
+        self.assertEqual(response.json()["code"], "own_language")
+        self.assertEqual(response.json()["values"], {"language": "de"})
         transaction.begin()
         self.assertEqual(self.page.title, "Guten Tag")
 
@@ -697,6 +702,8 @@ class TestTargetLanguageRefusal(TestCase):
         # postcondition — refused before the provider was called
         self.assertEqual(response.status_code, 409)
         self.assertIn("fr is not offered for machine translation", response.json()["message"])
+        self.assertEqual(response.json()["code"], "not_offered")
+        self.assertEqual(response.json()["values"], {"language": "fr"})
         post.assert_not_called()
         transaction.begin()
         self.assertIsNone(TranslationStorage(self.page).existing_translation("fr"))
@@ -843,6 +850,8 @@ class TestWorkingCopyStorage(TestCase):
         # editor's lock and thrown their unsaved work away
         self.assertEqual(response.status_code, 409)
         self.assertIn("being edited by someone", response.json()["message"])
+        self.assertEqual(response.json()["code"], "target_locked")
+        self.assertEqual(response.json()["values"], {"language": "en"})
         transaction.begin()
         self.assertIsNone(self._working_copy_of(self.portal["en"]["page"]))
 
@@ -862,6 +871,8 @@ class TestWorkingCopyStorage(TestCase):
         # postcondition — the refusal names the permission, not a lock
         self.assertEqual(response.status_code, 409)
         self.assertIn("not allowed to check out", response.json()["message"])
+        self.assertEqual(response.json()["code"], "checkout_not_allowed")
+        self.assertEqual(response.json()["values"], {"language": "en"})
         transaction.begin()
         self.assertIsNone(self._working_copy_of(self.portal["en"]["page"]))
 
@@ -1025,6 +1036,8 @@ class TestWorkingCopyStorage(TestCase):
         # postcondition
         self.assertEqual(response.status_code, 409)
         self.assertIn("working copy", response.json()["message"])
+        self.assertEqual(response.json()["code"], "target_working_copy")
+        self.assertEqual(response.json()["values"], {"language": "en"})
 
     def test_overwrite__leaves_the_standing_working_copy_alone(self):
         # setup
@@ -1044,6 +1057,8 @@ class TestWorkingCopyStorage(TestCase):
         # postcondition — refused before DeepL is asked, the working copy unchanged
         self.assertEqual(response.status_code, 409)
         self.assertIn("working copy", response.json()["message"])
+        self.assertEqual(response.json()["code"], "target_working_copy")
+        self.assertEqual(response.json()["values"], {"language": "en"})
         deepl.assert_not_called()
         transaction.begin()
         self.assertEqual(self._working_copy_of(self.portal["en"]["page"]).title, title)
@@ -1096,6 +1111,7 @@ class TestWorkingCopyStorage(TestCase):
         # German page is not checked out
         self.assertEqual(response.status_code, 409)
         self.assertIn("open working copy", response.json()["message"])
+        self.assertEqual(response.json()["code"], "source_working_copy")
         post.assert_not_called()
         transaction.begin()
         self.assertIsNone(self._working_copy_of(self.portal["de"]["page"]))
@@ -1568,6 +1584,7 @@ class TestExcludedTypes(TestCase):
         # postcondition — no call, no half-made translation without its file
         self.assertEqual(response.status_code, 409)
         self.assertIn("not translated by machine", response.json()["message"])
+        self.assertEqual(response.json()["code"], "excluded_type")
         post.assert_not_called()
         transaction.begin()
         self.assertNotIn("image", self.portal["en"].objectIds())

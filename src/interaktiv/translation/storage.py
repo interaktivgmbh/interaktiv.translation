@@ -5,7 +5,7 @@ import plone.api as api
 from AccessControl import getSecurityManager
 from Acquisition import aq_base, aq_inner, aq_parent
 from Products.GenericSetup.tool import UNKNOWN
-from interaktiv.translation import logger
+from interaktiv.translation import _, logger
 from interaktiv.translation.helpers.field_access import set_field_value
 from interaktiv.translation.providers.base import PROVIDERS, TranslationError
 from interaktiv.translation.settings import settings
@@ -17,6 +17,8 @@ from zope.annotation.interfaces import IAnnotations
 from zope.component import getMultiAdapter, getUtility
 from zope.event import notify
 from zope.globalrequest import getRequest
+from zope.i18n import translate
+from zope.i18nmessageid import Message
 from zope.lifecycleevent import ObjectModifiedEvent
 from zope.publisher.interfaces.browser import IBrowserRequest
 from zope.schema.interfaces import IVocabularyFactory
@@ -27,9 +29,34 @@ STORING_KEY = "interaktiv.translation.storing"
 
 MANAGE_TRANSLATIONS_PERMISSION = "plone.app.multilingual: Manage Translations"
 
-WORKING_COPY_REFUSAL = "This is a working copy. Translate the original instead."
-SOURCE_WORKING_COPY_REFUSAL = "This content has an open working copy. Check it in or discard it, then translate."
-EXCLUDED_TYPE_REFUSAL = "This content type is not translated by machine."
+
+class Refusal(str):
+    """Why a translation is refused: in English as a text, the translatable
+    message, and a code and the values it names for a front end to react to."""
+
+    code: str
+    values: Dict[str, str]
+    message: Message
+
+    def __new__(cls, code: str, message: Message, **values: str) -> "Refusal":
+        if values:
+            message = Message(message, mapping=values)
+        refusal = super().__new__(cls, translate(message))
+        refusal.code = code
+        refusal.values = values
+        refusal.message = message
+
+        return refusal
+
+    def error(self, status: int) -> TranslationError:
+        return TranslationError(self.message, status=status, code=self.code, values=self.values)
+
+
+WORKING_COPY_REFUSAL = Refusal("working_copy", _("This is a working copy. Translate the original instead."))
+SOURCE_WORKING_COPY_REFUSAL = Refusal(
+    "source_working_copy", _("This content has an open working copy. Check it in or discard it, then translate.")
+)
+EXCLUDED_TYPE_REFUSAL = Refusal("excluded_type", _("This content type is not translated by machine."))
 TARGET_LANGUAGES_VOCABULARY = "interaktiv.translation.TargetLanguages"
 
 STATUS_MANUAL = "manual"
@@ -189,35 +216,49 @@ class TranslationStorage:
 
         return control.checkout_allowed()
 
-    def checkout_refusal(self, translation: Any, target_language: str) -> Optional[str]:
+    def checkout_refusal(self, translation: Any, target_language: str) -> Optional[Refusal]:
         if self.checkout_allowed(translation):
             return None
 
         if self.locked(translation):
-            return (
-                f"The {target_language} translation is being edited by someone right now. Try again once it is saved."
+            return Refusal(
+                "target_locked",
+                _("The ${language} translation is being edited by someone right now. Try again once it is saved."),
+                language=target_language,
             )
         if not getSecurityManager().checkPermission(CheckoutPermission, translation):
-            return f"You are not allowed to check out the {target_language} translation."
+            return Refusal(
+                "checkout_not_allowed",
+                _("You are not allowed to check out the ${language} translation."),
+                language=target_language,
+            )
 
-        return f"The {target_language} translation cannot be checked out."
+        return Refusal(
+            "checkout_refused", _("The ${language} translation cannot be checked out."), language=target_language
+        )
 
     def is_offered(self, target_language: str) -> bool:
         factory = getUtility(IVocabularyFactory, name=TARGET_LANGUAGES_VOCABULARY)
 
         return target_language in factory(self.content)
 
-    def target_refusal(self, target_language: str) -> Optional[str]:
+    def target_refusal(self, target_language: str) -> Optional[Refusal]:
         # check if target is its own language (without multilingual it is stored in place)
         if self.multilingual and target_language == content_language(self.content):
-            return f"The content is already in {target_language}. Translate it into another language."
+            return Refusal(
+                "own_language",
+                _("The content is already in ${language}. Translate it into another language."),
+                language=target_language,
+            )
 
         if not self.is_offered(target_language):
-            return f"{target_language} is not offered for machine translation."
+            return Refusal(
+                "not_offered", _("${language} is not offered for machine translation."), language=target_language
+            )
 
         return None
 
-    def refusal(self, target_language: str, overwrite: bool) -> Optional[str]:
+    def refusal(self, target_language: str, overwrite: bool) -> Optional[Refusal]:
         # The one place that decides whether a save would be refused, so the
         # service can turn DeepL away before it is paid and `store` can raise
         # the same way. None means "go ahead".
@@ -243,9 +284,12 @@ class TranslationStorage:
             # instead of overwriting it. A working copy that is already there
             # holds somebody's work and is never replaced, not even on request.
             if self.working_copy_of(existing) is not None:
-                return (
-                    f"There is already a working copy of the {target_language} translation. "
-                    "Check it in or discard it first."
+                return Refusal(
+                    "target_working_copy",
+                    _(
+                        "There is already a working copy of the ${language} translation. Check it in or discard it first."  # noqa: E501
+                    ),
+                    language=target_language,
                 )
 
             # A fresh checkout would be made: iterate's own rules first, or
@@ -254,7 +298,11 @@ class TranslationStorage:
             return self.checkout_refusal(existing, target_language)
 
         if not overwrite:
-            return f"There is already a {target_language} translation. Ask for overwrite to replace it."
+            return Refusal(
+                "translation_exists",
+                _("There is already a ${language} translation. Ask for overwrite to replace it."),
+                language=target_language,
+            )
 
         return None
 
@@ -336,7 +384,7 @@ class TranslationStorage:
         if existing is not None:
             refusal = self.refusal(target_language, overwrite)
             if refusal is not None:
-                raise TranslationError(refusal, status=409)
+                raise refusal.error(409)
             if self.uses_working_copies(existing):
                 # Don't touch the live translation: translate into a fresh
                 # working copy the editor reviews and checks in.
@@ -356,11 +404,21 @@ class TranslationStorage:
             manager.add_translation(target_language)
         except Exception as error:  # noqa: BLE001
             logger.warning("Could not create the %s translation: %s", target_language, error)
-            raise TranslationError(f"Plone refused to create the {target_language} translation.", status=400) from error
+            raise TranslationError(
+                _("Plone refused to create the ${language} translation."),
+                status=400,
+                code="create_refused",
+                values={"language": target_language},
+            ) from error
         existing = manager.get_translation(target_language)
 
         if existing is None:
-            raise TranslationError(f"There is no {target_language} translation to write to.", status=400)
+            raise TranslationError(
+                _("There is no ${language} translation to write to."),
+                status=400,
+                code="no_translation",
+                values={"language": target_language},
+            )
 
         self.stored_as = "translation"
         self.created = True
