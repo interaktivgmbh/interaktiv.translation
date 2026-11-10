@@ -83,7 +83,7 @@ class TestWithoutVersioningWithWorkingCopies(CapabilitiesTestCase):
         # postcondition — refused like on a site without working copies, not
         # with a checkout that could never succeed
         self.assertEqual(response.status_code, 409)
-        self.assertIn("Ask for overwrite", response.json()["message"])
+        self.assertEqual(response.json()["code"], "translation_exists")
 
     def test_overwrite__replaces_the_translation_without_a_working_copy(self):
         # setup

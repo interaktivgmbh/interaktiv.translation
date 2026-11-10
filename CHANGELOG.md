@@ -74,6 +74,11 @@
   (e.g. `source_working_copy`, `not_offered`, `translation_exists`, or the
   provider's own like `quota_exceeded`) and the `values` the message names
   (e.g. `{"language": "en"}`), for a front end to react to.
+- Fix: an open working copy is found even after earlier working copies of
+  the same content were deleted instead of discarded. plone.app.iterate
+  takes the first relation it finds, a broken one left by such a deletion
+  among them, and then answers no working copy; the translation looks for
+  the intact relation itself.
 
 ## 1.0.0a1 (2026-10-14)
 

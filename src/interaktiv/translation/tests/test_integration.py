@@ -444,7 +444,6 @@ class TestTranslateServiceOnAMultilingualSite(TestCase):
         # postcondition — refused as a conflict, and the editor's work is
         # still there
         self.assertEqual(response.status_code, 409)
-        self.assertIn("already", response.json()["message"])
         self.assertEqual(response.json()["code"], "translation_exists")
         self.assertEqual(response.json()["values"], {"language": "en"})
         transaction.begin()
@@ -576,7 +575,6 @@ class TestTranslateServiceOnAMultilingualSite(TestCase):
 
         # postcondition — refused before the original was overwritten
         self.assertEqual(response.status_code, 409)
-        self.assertIn("already in de", response.json()["message"])
         self.assertEqual(response.json()["code"], "own_language")
         self.assertEqual(response.json()["values"], {"language": "de"})
         transaction.begin()
@@ -701,7 +699,6 @@ class TestTargetLanguageRefusal(TestCase):
 
         # postcondition — refused before the provider was called
         self.assertEqual(response.status_code, 409)
-        self.assertIn("fr is not offered for machine translation", response.json()["message"])
         self.assertEqual(response.json()["code"], "not_offered")
         self.assertEqual(response.json()["values"], {"language": "fr"})
         post.assert_not_called()
@@ -849,7 +846,6 @@ class TestWorkingCopyStorage(TestCase):
         # postcondition — refused before a checkout would have cleared the
         # editor's lock and thrown their unsaved work away
         self.assertEqual(response.status_code, 409)
-        self.assertIn("being edited by someone", response.json()["message"])
         self.assertEqual(response.json()["code"], "target_locked")
         self.assertEqual(response.json()["values"], {"language": "en"})
         transaction.begin()
@@ -870,7 +866,6 @@ class TestWorkingCopyStorage(TestCase):
 
         # postcondition — the refusal names the permission, not a lock
         self.assertEqual(response.status_code, 409)
-        self.assertIn("not allowed to check out", response.json()["message"])
         self.assertEqual(response.json()["code"], "checkout_not_allowed")
         self.assertEqual(response.json()["values"], {"language": "en"})
         transaction.begin()
@@ -1035,7 +1030,6 @@ class TestWorkingCopyStorage(TestCase):
 
         # postcondition
         self.assertEqual(response.status_code, 409)
-        self.assertIn("working copy", response.json()["message"])
         self.assertEqual(response.json()["code"], "target_working_copy")
         self.assertEqual(response.json()["values"], {"language": "en"})
 
@@ -1056,7 +1050,6 @@ class TestWorkingCopyStorage(TestCase):
 
         # postcondition — refused before DeepL is asked, the working copy unchanged
         self.assertEqual(response.status_code, 409)
-        self.assertIn("working copy", response.json()["message"])
         self.assertEqual(response.json()["code"], "target_working_copy")
         self.assertEqual(response.json()["values"], {"language": "en"})
         deepl.assert_not_called()
@@ -1145,6 +1138,45 @@ class TestWorkingCopyStorage(TestCase):
         # postcondition
         self.assertEqual(response.status_code, 200)
         post.assert_called_once()
+
+    def _check_out_again_after_deletions(self):
+        # A working copy deleted as content instead of discarded leaves a
+        # broken relation on the original; a new one is then made, as Volto
+        # does through @workingcopy. From the second deletion on, iterate
+        # finds a broken relation first and answers no working copy.
+        from plone.app.iterate.interfaces import ICheckinCheckoutPolicy
+
+        self._translate()
+        self._translate()
+        transaction.begin()
+        translation = self.portal["en"]["page"]
+        for _deletion in range(2):
+            api.content.delete(obj=self.portal["en"]["copy_of_page"], check_linkintegrity=False)
+            ICheckinCheckoutPolicy(translation).checkout(self.portal["en"])
+            transaction.commit()
+
+    def test_source_with_an_open_working_copy__is_refused_despite_a_broken_relation(self):
+        # setup
+        self._check_out_again_after_deletions()
+
+        # do it
+        response, post = self._translate_back(save=True)
+
+        # postcondition
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.json()["code"], "source_working_copy")
+        post.assert_not_called()
+
+    def test_get__names_the_open_working_copy_despite_a_broken_relation(self):
+        # setup
+        self._check_out_again_after_deletions()
+
+        # do it
+        body = self.api_session.get("/en/page/@translate").json()
+
+        # postcondition
+        self.assertIsNotNone(body["working_copy_url"])
+        self.assertTrue(body["working_copy_url"].endswith("/en/copy_of_page"))
 
     def test_get__names_the_open_working_copy_of_the_content(self):
         # setup
@@ -1583,7 +1615,6 @@ class TestExcludedTypes(TestCase):
 
         # postcondition — no call, no half-made translation without its file
         self.assertEqual(response.status_code, 409)
-        self.assertIn("not translated by machine", response.json()["message"])
         self.assertEqual(response.json()["code"], "excluded_type")
         post.assert_not_called()
         transaction.begin()

@@ -9,6 +9,7 @@ from interaktiv.translation import _, logger
 from interaktiv.translation.helpers.field_access import set_field_value
 from interaktiv.translation.providers.base import PROVIDERS, TranslationError
 from interaktiv.translation.settings import settings
+from plone.app.iterate.dexterity.utils import get_relations
 from plone.app.iterate.interfaces import ICheckinCheckoutPolicy, IObjectArchiver
 from plone.app.iterate.permissions import CheckoutPermission
 from plone.app.multilingual.interfaces import ITranslationManager
@@ -19,6 +20,7 @@ from zope.event import notify
 from zope.globalrequest import getRequest
 from zope.i18n import translate
 from zope.i18nmessageid import Message
+from zope.intid.interfaces import IIntIds
 from zope.lifecycleevent import ObjectModifiedEvent
 from zope.publisher.interfaces.browser import IBrowserRequest
 from zope.schema.interfaces import IVocabularyFactory
@@ -195,11 +197,17 @@ class TranslationStorage:
         # The working copy of a checked-out translation, or None. Answers None
         # where iterate is not installed on the site, so callers need not
         # guard separately.
-        policy = ICheckinCheckoutPolicy(translation, None)
-        if policy is None:
+        if ICheckinCheckoutPolicy(translation, None) is None:
             return None
 
-        return policy.getWorkingCopy()
+        # Not iterate's getWorkingCopy(): it takes the first relation, even a
+        # broken one left by a working copy deleted instead of discarded.
+        own_id = getUtility(IIntIds).queryId(aq_base(translation))
+        for relation in get_relations(translation):
+            if relation.from_id == own_id and not relation.isBroken():
+                return relation.to_object
+
+        return None
 
     @staticmethod
     def locked(translation: Any) -> bool:
