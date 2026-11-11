@@ -92,6 +92,9 @@
   of texts, or a collection of them) that goes along by its type; not one
   always translated, taken over by its name, the same in all languages, a
   reference or a link.
+- The link report of `POST @translate` tells what an entry points at:
+  `kind` is `image`, `file` or `link`. An image nothing else names is called
+  by the alternative text of its block, else by its title.
 
 ## 1.0.0a1 (2026-10-14)
 

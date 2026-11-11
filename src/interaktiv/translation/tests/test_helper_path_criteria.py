@@ -70,7 +70,10 @@ class TestPathCriteria(TestCase):
 
         # postcondition — the listing still lists the source language; the report tells
         self.assertEqual(query[0]["v"], f"{self.folder_b.UID()}::1")
-        self.assertEqual(report, [{"text": "query", "before": self.folder_b.absolute_url(), "after": None}])
+        self.assertEqual(
+            report,
+            [{"text": "query", "before": self.folder_b.absolute_url(), "after": None, "kind": "link"}],
+        )
 
     def test_translation__is_reported(self):
         # setup

@@ -43,7 +43,14 @@ class TestTranslatedTargets(TestCase):
         self.assertEqual(target, self.target_a_en)
         self.assertEqual(
             report,
-            [{"text": "field_a", "before": self.target_a.absolute_url(), "after": self.target_a_en.absolute_url()}],
+            [
+                {
+                    "text": "field_a",
+                    "before": self.target_a.absolute_url(),
+                    "after": self.target_a_en.absolute_url(),
+                    "kind": "link",
+                }
+            ],
         )
 
     def test_targets__keep_a_target_without_translation(self):
@@ -55,7 +62,24 @@ class TestTranslatedTargets(TestCase):
 
         # postcondition — as an editor may point at another language too; the report tells
         self.assertEqual(target, self.target_b)
-        self.assertEqual(report, [{"text": "field_a", "before": self.target_b.absolute_url(), "after": None}])
+        self.assertEqual(
+            report,
+            [{"text": "field_a", "before": self.target_b.absolute_url(), "after": None, "kind": "link"}],
+        )
+
+    def test_targets__tell_an_image_from_a_link(self):
+        # setup
+        image = api.content.create(container=self.portal["de"], type="Image", id="image-a", title="Image A")
+        report = []
+
+        # do it — as the preview image of a page is referenced
+        translated_targets("preview_image_link", image, "en", report)
+
+        # postcondition
+        self.assertEqual(
+            report,
+            [{"text": "preview_image_link", "before": image.absolute_url(), "after": None, "kind": "image"}],
+        )
 
     def test_targets__of_a_list_each_and_without_a_broken_one(self):
         # do it — a broken reference is read as None

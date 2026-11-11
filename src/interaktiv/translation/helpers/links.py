@@ -3,6 +3,7 @@ from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union
 from urllib.parse import urlparse
 
 import plone.api as api
+from plone.app.contenttypes.interfaces import IFile, IImage
 from plone.app.uuid.utils import uuidToObject
 from plone.app.multilingual.interfaces import ITranslationManager
 from plone.dexterity.content import DexterityContent
@@ -16,11 +17,14 @@ RESOLVEUID_MARKER = "resolveuid/"
 ABSOLUTE_PATH_OPERATION = "plone.app.querystring.operation.string.absolutePath"
 
 
-def _get_translated_resolveuid_path(path: str, target_language: str) -> Optional[str]:
-    parsed = urlparse(path)
-    parsed_path = parsed.path or ""
+def _resolveuid_uid(path: str) -> str:
+    parsed_path = urlparse(path).path or ""
 
-    uid = parsed_path.split("resolveuid/")[-1].split("/")[0].strip()
+    return parsed_path.split("resolveuid/")[-1].split("/")[0].strip()
+
+
+def _get_translated_resolveuid_path(path: str, target_language: str) -> Optional[str]:
+    uid = _resolveuid_uid(path)
     obj = uuidToObject(uid)
     if obj is None:
         return None
@@ -36,18 +40,15 @@ def _get_translated_resolveuid_path(path: str, target_language: str) -> Optional
     return path.replace(uid, translated_uid)
 
 
-def _get_translated_object_path(path: str, target_language: str, content: Optional[Any] = None) -> Optional[str]:
+def _object_path_as_uid_link(path: str, content: Optional[Any] = None) -> Optional[str]:
+    """The path of an object as resolveuid link, without query and fragment;
+    ``None`` if no object is found."""
     portal = api.portal.get()
     portal_path = "/".join(portal.getPhysicalPath())
 
-    parsed = urlparse(path)
-    locator = parsed.path or ""
+    locator = urlparse(path).path or ""
     if not locator:
         return None
-
-    # handle query and fragment
-    tail = f"?{parsed.query}" if parsed.query else ""
-    tail += f"#{parsed.fragment}" if parsed.fragment else ""
 
     # remove api prefix
     for prefix in ("/++api++", "/api"):
@@ -69,16 +70,49 @@ def _get_translated_object_path(path: str, target_language: str, content: Option
     if uid_link == locator:
         return None
 
+    return uid_link
+
+
+def _get_translated_object_path(path: str, target_language: str, content: Optional[Any] = None) -> Optional[str]:
+    uid_link = _object_path_as_uid_link(path, content)
+    if uid_link is None:
+        return None
+
     translated = _get_translated_resolveuid_path(uid_link, target_language)
     if translated is None:
         return None
 
+    # handle query and fragment
+    parsed = urlparse(path)
+    tail = f"?{parsed.query}" if parsed.query else ""
+    tail += f"#{parsed.fragment}" if parsed.fragment else ""
+
     return f"{translated}{tail}"
+
+
+def _link_target(path: str, content: Optional[Any] = None) -> Optional[Any]:
+    """The object an internal link points at; ``None`` if it is not found."""
+    uid_link = path if RESOLVEUID_MARKER in path else _object_path_as_uid_link(path, content)
+    if uid_link is None:
+        return None
+
+    return uuidToObject(_resolveuid_uid(uid_link))
 
 
 class LinkOutcome(NamedTuple):
     value: Optional[str]
     internal: bool
+    target: Optional[Any] = None
+
+
+def _kind(target: Optional[Any]) -> str:
+    """report: what a link points at — an image, a file or anything else"""
+    if IImage.providedBy(target):
+        return "image"
+    if IFile.providedBy(target):
+        return "file"
+
+    return "link"
 
 
 def _readable(value: Optional[str]) -> Optional[str]:
@@ -151,6 +185,7 @@ def _resolve_path_criterion(
                 "text": text or "query",
                 "before": folder.absolute_url(),
                 "after": translated.absolute_url() if translated is not None else None,
+                "kind": "link",
             }
         )
     criterion["v"] = translated_value
@@ -179,10 +214,21 @@ def _resolve_internal_link(path: str, target_language: str, content: Optional[An
     if path.startswith("http") and not path.startswith(portal_url):
         return LinkOutcome(None, False)
 
+    target = _link_target(path, content)
     if RESOLVEUID_MARKER in path:
-        return LinkOutcome(_get_translated_resolveuid_path(path, target_language), True)
+        return LinkOutcome(_get_translated_resolveuid_path(path, target_language), True, target)
 
-    return LinkOutcome(_get_translated_object_path(path, target_language, content), True)
+    return LinkOutcome(_get_translated_object_path(path, target_language, content), True, target)
+
+
+def _image_text(branch: Dict[str, Any], image: Any) -> Optional[str]:
+    """report: what to call an image nothing else names — its alternative
+    text in the block, else its title"""
+    alt = branch.get("alt")
+    if isinstance(alt, str) and alt.strip():
+        return alt
+
+    return image.Title() or None
 
 
 def _resolve_internal_link_recursive(
@@ -221,11 +267,16 @@ def _resolve_internal_link_recursive(
                 if not outcome.internal:
                     continue
                 if report is not None:
+                    kind = _kind(outcome.target)
+                    entry_text = link_text
+                    if kind == "image" and not entry_text:
+                        entry_text = _image_text(branch, outcome.target)
                     report.append(
                         {
-                            "text": link_text,
+                            "text": entry_text,
                             "before": _readable(value),
                             "after": _readable(outcome.value),
+                            "kind": kind,
                         }
                     )
                 # update value if translated content was found
@@ -253,6 +304,7 @@ def postprocess_links(
                         "text": field_id,
                         "before": _readable(value),
                         "after": _readable(outcome.value),
+                        "kind": _kind(outcome.target),
                     }
                 )
             if outcome.value is not None:
@@ -279,6 +331,7 @@ def _translated_target(
                 "text": field_id,
                 "before": target.absolute_url(),
                 "after": translated.absolute_url() if translated is not None else None,
+                "kind": _kind(target),
             }
         )
 

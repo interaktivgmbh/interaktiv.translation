@@ -223,6 +223,98 @@ class TestLinkReport(TestCase):
         self.assertEqual(blocks["b1"]["url"], "mailto:info@example.org")
 
 
+class TestLinkReportKinds(TestCase):
+    """What an entry points at: images and files are reported apart from links,
+    as they usually have no translation and are not meant to have one."""
+
+    layer = INTERAKTIV_TRANSLATION_MULTILINGUAL_FUNCTIONAL_TESTING
+
+    def setUp(self) -> None:
+        super().setUp()
+        folder = self.portal["de"]
+        self.page = api.content.create(container=folder, type="Document", id="page-a", title="Title A")
+        self.image = api.content.create(container=folder, type="Image", id="image-a", title="Image A")
+        self.file = api.content.create(container=folder, type="File", id="file-a", title="File A")
+
+    def _report_for(self, block):
+        blocks = {"b1": block}
+        report = []
+        postprocess_links(self.portal["de"], "blocks", blocks, "en", report=report)
+
+        return blocks, report
+
+    def _slate_link(self, url):
+        return {
+            "@type": "slate",
+            "value": [{"type": "link", "data": {"url": url}, "children": [{"text": "Text A"}]}],
+        }
+
+    def test_image_block__is_an_image_named_by_its_alt(self):
+        _blocks, report = self._report_for({"@type": "image", "url": "/de/image-a", "alt": "Alt A"})
+
+        self.assertEqual(report, [{"text": "Alt A", "before": "/de/image-a", "after": None, "kind": "image"}])
+
+    def test_image_block_without_alt__is_named_by_the_title_of_the_image(self):
+        _blocks, report = self._report_for({"@type": "image", "url": "/de/image-a", "alt": ""})
+
+        self.assertEqual(report[0]["text"], "Image A")
+        self.assertEqual(report[0]["kind"], "image")
+
+    def test_image_as_uid_link__is_an_image_too(self):
+        url = f"../resolveuid/{self.image.UID()}/@@images/image"
+        _blocks, report = self._report_for({"@type": "image", "url": url, "alt": "Alt A"})
+
+        self.assertEqual(report[0]["kind"], "image")
+
+    def test_linked_image__keeps_the_text_of_the_link(self):
+        _blocks, report = self._report_for(self._slate_link("/de/image-a"))
+
+        self.assertEqual(report[0]["text"], "Text A")
+        self.assertEqual(report[0]["kind"], "image")
+
+    def test_translated_image__is_still_pointed_at_its_translation(self):
+        # setup
+        manager = ITranslationManager(self.image)
+        manager.add_translation("en")
+        translation = manager.get_translation("en")
+
+        # do it
+        blocks, report = self._report_for({"@type": "image", "url": "/de/image-a", "alt": "Alt A"})
+
+        # postcondition
+        self.assertEqual(report[0]["kind"], "image")
+        self.assertEqual(report[0]["after"], translation.absolute_url())
+        self.assertIn(f"resolveuid/{translation.UID()}", blocks["b1"]["url"])
+
+    def test_link_to_a_file__is_a_file(self):
+        _blocks, report = self._report_for(self._slate_link("/de/file-a"))
+
+        self.assertEqual(report[0]["text"], "Text A")
+        self.assertEqual(report[0]["kind"], "file")
+
+    def test_link_to_a_page__is_a_link(self):
+        _blocks, report = self._report_for(self._slate_link("/de/page-a"))
+
+        self.assertEqual(report[0]["kind"], "link")
+
+    def test_link_to_nothing__is_a_link(self):
+        _blocks, report = self._report_for(self._slate_link("/de/page-missing"))
+
+        self.assertEqual(report[0]["kind"], "link")
+
+    def test_link_field__tells_the_kind_as_well(self):
+        # setup
+        records = getUtility(IRegistry).forInterface(ITranslationSettings, check=False)
+        records.link_fields = ["field_a"]
+
+        # do it
+        report = []
+        postprocess_links(self.portal["de"], "field_a", "/de/file-a", "en", report=report)
+
+        # postcondition
+        self.assertEqual(report[0]["kind"], "file")
+
+
 class TestObjectBrowserLinks(TestCase):
     """The shape a teaser block stores a link in: an array of entries that
     name the target by `@id` and carry the link text beside it."""
