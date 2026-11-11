@@ -180,6 +180,25 @@ def is_reference(field: Any) -> bool:
     )
 
 
+def holds_texts(field: Any) -> bool:
+    """a text, a choice or a collection of them: used to check if mappaple"""
+    if is_reference(field) or IRichText.providedBy(field):
+        return False
+    if _provides(field, (schema.interfaces.ITextLine, schema.interfaces.IText)):
+        return True
+    if schema.interfaces.IChoice.providedBy(field):
+        # a vocabulary of its own tells its values (allow_discussion: True, False);
+        # a named one is looked up only with a context, and taken for texts
+        vocabulary = getattr(field, "vocabulary", None)
+        terms = list(vocabulary) if vocabulary is not None and hasattr(vocabulary, "__iter__") else []
+        return all(isinstance(term.value, str) for term in terms)
+    if schema.interfaces.ICollection.providedBy(field):
+        value_type = getattr(field, "value_type", None)
+        return value_type is not None and holds_texts(value_type)
+
+    return False
+
+
 def mode_by_field_type(field: Any) -> Optional[str]:
     """get mode how to handle field by field type -> ``translate``, ``copy`` or ``None``"""
     # the order matters: an URI is a text line too, a relation a choice
@@ -329,6 +348,7 @@ def get_listed_fields(
                     "mode": mode,
                     "reason": reason,
                     "mapped": name in mapped and role != ROLE_IMPOSSIBLE and reason not in unmappable,
+                    "mappable": role == ROLE_DEFAULT and reason == REASON_FIELD_TYPE and holds_texts(field),
                 }
             )
 

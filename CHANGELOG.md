@@ -87,6 +87,11 @@
 - `GET @translate` answers `manual_translatable` (whether Plone's own form
   may translate the content by hand) and, when `translatable` is false, a
   `refusal` with its `code` and `message` in the language of the request.
+- `GET @translation-fields` tells per field whether it may be added to the
+  metadata mapping (`mappable`): a field of texts (text line, text, a choice
+  of texts, or a collection of them) that goes along by its type; not one
+  always translated, taken over by its name, the same in all languages, a
+  reference or a link.
 
 ## 1.0.0a1 (2026-10-14)
 

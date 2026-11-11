@@ -89,7 +89,7 @@ class TestTranslationFieldsGet(TranslationFieldsTestCase):
         self.assertEqual(fields[0]["fieldset"], "default")
         self.assertEqual(
             set(fields[0]),
-            {"id", "title", "fieldset", "kind", "role", "mode", "reason", "mapped"},
+            {"id", "title", "fieldset", "kind", "role", "mode", "reason", "mapped", "mappable"},
         )
 
     def test_get__puts_the_page_content_after_title_and_description(self):
@@ -175,6 +175,26 @@ class TestTranslationFieldsGet(TranslationFieldsTestCase):
         # postcondition
         self.assertFalse(related["mapped"])
 
+    def test_get__offers_fields_of_texts_for_the_mapping(self):
+        # do it
+        fields = {**self._fields("Event"), "remoteUrl": self._fields("Link")["remoteUrl"]}
+
+        # postcondition — keywords and text lines may be mapped; not what is
+        # always translated, a reference, a link, a date, a yes/no or a choice
+        # of no texts, nor a field taken over by its name
+        offered = {"subjects": True, "location": True, "rights": True}
+        refused = {
+            "title": False,
+            "relatedItems": False,
+            "remoteUrl": False,
+            "exclude_from_nav": False,
+            "allow_discussion": False,
+            "contact_email": False,
+        }
+        for field_id, mappable in {**offered, **refused}.items():
+            with self.subTest(field=field_id):
+                self.assertEqual(fields[field_id]["mappable"], mappable)
+
     def test_get__goes_by_the_field_lists_of_the_site(self):
         # setup — the site leaves out "rights", takes "location" over, always translates "contact_name"
         _records().excluded_fields = list(EXCLUDED_FIELDS) + ["rights"]
@@ -220,6 +240,8 @@ class TestTranslationFieldsGetMultilingual(TranslationFieldsTestCase):
 
         # postcondition
         self.assertEqual((start["mode"], start["reason"]), (MODE_COPY, "language_independent"))
+        # the same in all languages: nothing to map
+        self.assertFalse(start["mappable"])
 
 
 class TestHandledFields(TestCase):
