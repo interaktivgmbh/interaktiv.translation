@@ -18,6 +18,15 @@
 
     <include package=".providers"/>
 
+    <!-- A machine translation is named after its translated title. For the
+         more specific interface, so it is chosen over plone.app.multilingual's
+         own (for ITranslatable) without an override; it falls back to that. -->
+    <adapter
+            factory=".translation_id.TranslatedTitleIdChooser"
+            provides="plone.app.multilingual.interfaces.ITranslationIdChooser"
+            for="plone.app.multilingual.dx.interfaces.IDexterityTranslatable"
+    />
+
     <genericsetup:registerProfile
             name="default"
             title="Interaktiv Translation"

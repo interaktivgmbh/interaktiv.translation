@@ -95,6 +95,14 @@
 - The link report of `POST @translate` tells what an entry points at:
   `kind` is `image`, `file` or `link`. An image nothing else names is called
   by the alternative text of its block, else by its title.
+- A new machine translation is named after its translated title, as one
+  created by hand is (`/en/current-research`, not `/en/aktuelle-forschung`):
+  the short name is chosen while plone.app.multilingual creates it, through
+  an `ITranslationIdChooser` for `IDexterityTranslatable` that uses the
+  folder's name chooser, with the title normalized by the rules of the
+  target language; a taken name gets a number. Existing translations
+  and working copies keep theirs; anything else plone.app.multilingual
+  creates keeps its own way.
 
 ## 1.0.0a1 (2026-10-14)
 

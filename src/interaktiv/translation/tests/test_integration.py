@@ -16,6 +16,10 @@ from zope.annotation.interfaces import IAnnotations
 from plone.namedfile.file import NamedBlobFile, NamedBlobImage
 from zope.component import getUtility
 from zope.schema.interfaces import IVocabularyFactory
+from plone.app.multilingual.interfaces import ITranslationManager
+from zope.globalrequest import getRequest
+
+from interaktiv.translation.translation_id import TRANSLATED_TITLE_KEY, TranslatedTitleIdChooser
 
 from interaktiv.translation.registry.translation import ITranslationSettings
 from interaktiv.translation.settings import Settings
@@ -354,7 +358,7 @@ class TestTranslateServiceOnAMultilingualSite(TestCase):
         # postcondition — the marker sits on the machine-written sibling, not
         # on the hand-written original
         transaction.begin()
-        marker = IAnnotations(self.portal["en"]["page"]).get(MACHINE_TRANSLATION_KEY)
+        marker = IAnnotations(self.portal["en"]["good-day"]).get(MACHINE_TRANSLATION_KEY)
         self.assertEqual(marker["provider"], "DeepL")
         self.assertEqual(marker["source_language"], "de")
         self.assertEqual(marker["target_language"], "en")
@@ -370,7 +374,7 @@ class TestTranslateServiceOnAMultilingualSite(TestCase):
 
         # postcondition
         transaction.begin()
-        marker = IAnnotations(self.portal["en"]["page"]).get(MACHINE_TRANSLATION_KEY)
+        marker = IAnnotations(self.portal["en"]["good-day"]).get(MACHINE_TRANSLATION_KEY)
         self.assertEqual(marker["source_language"], "fr")
 
     def test_post__writes_into_the_language_sibling_instead_of_over_the_page(self):
@@ -383,7 +387,7 @@ class TestTranslateServiceOnAMultilingualSite(TestCase):
         self.assertTrue(response.json()["saved"])
         transaction.begin()
         self.assertEqual(self.page.title, "Guten Tag")
-        self.assertEqual(self.portal["en"]["page"].title, "Good day")
+        self.assertEqual(self.portal["en"]["good-day"].title, "Good day")
 
     def test_post__gives_the_sibling_the_order_its_blocks_are_shown_in(self):
         # setup — a page whose text lives in blocks, as a Volto page's does
@@ -406,7 +410,7 @@ class TestTranslateServiceOnAMultilingualSite(TestCase):
         # request with a page that renders nothing.
         self.assertEqual(response.status_code, 200)
         transaction.begin()
-        sibling = self.portal["en"]["startseite"]
+        sibling = self.portal["en"]["home"]
         self.assertEqual(sibling.blocks_layout, {"items": ["b1"]})
         self.assertEqual(set(sibling.blocks), {"b1"})
         self.assertEqual(sibling.blocks["b1"]["plaintext"], "Good day")
@@ -418,7 +422,7 @@ class TestTranslateServiceOnAMultilingualSite(TestCase):
         # postcondition — plone.app.multilingual sets the new page's language
         # when it creates it, and the page it was made from keeps its own
         transaction.begin()
-        self.assertEqual(self.portal["en"]["page"].language, "en")
+        self.assertEqual(self.portal["en"]["good-day"].language, "en")
         self.assertEqual(self.page.language, "de")
 
     def test_post__reports_the_translation_it_created(self):
@@ -435,7 +439,7 @@ class TestTranslateServiceOnAMultilingualSite(TestCase):
         # setup — the sibling exists, and an editor may have worked on it
         self._translate()
         transaction.begin()
-        self.portal["en"]["page"].title = "Edited by hand"
+        self.portal["en"]["good-day"].title = "Edited by hand"
         transaction.commit()
 
         # do it — the same translation again, without asking to overwrite
@@ -447,7 +451,7 @@ class TestTranslateServiceOnAMultilingualSite(TestCase):
         self.assertEqual(response.json()["code"], "translation_exists")
         self.assertEqual(response.json()["values"], {"language": "en"})
         transaction.begin()
-        self.assertEqual(self.portal["en"]["page"].title, "Edited by hand")
+        self.assertEqual(self.portal["en"]["good-day"].title, "Edited by hand")
 
     def test_post__refuses_before_the_provider_is_paid(self):
         # setup
@@ -473,7 +477,7 @@ class TestTranslateServiceOnAMultilingualSite(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.json()["saved"])
         transaction.begin()
-        self.assertEqual(self.portal["en"]["page"].title, "Good day")
+        self.assertEqual(self.portal["en"]["good-day"].title, "Good day")
 
     def test_get__reports_which_languages_already_hold_a_translation(self):
         # setup
@@ -592,7 +596,7 @@ class TestTranslateServiceOnAMultilingualSite(TestCase):
         # postcondition — mapped where the table knows the value, carried
         # over unchanged where it does not, and the report says which is which
         transaction.begin()
-        translation = self.portal["en"]["page"]
+        translation = self.portal["en"]["good-day"]
         self.assertEqual(tuple(translation.Subject()), ("value a", "Wert X"))
         self.assertEqual(
             response.json()["report"]["metadata"],
@@ -614,7 +618,7 @@ class TestTranslateServiceOnAMultilingualSite(TestCase):
 
         # postcondition — taken over as they are, named in the report
         transaction.begin()
-        translation = self.portal["en"]["page"]
+        translation = self.portal["en"]["good-day"]
         self.assertEqual(tuple(translation.Subject()), ("Wert A", "Wert B"))
         self.assertTrue(translation.exclude_from_nav)
         self.assertCountEqual(response.json()["report"]["copied"], ["subjects", "exclude_from_nav"])
@@ -629,7 +633,7 @@ class TestTranslateServiceOnAMultilingualSite(TestCase):
 
         # postcondition
         transaction.begin()
-        self.assertEqual(tuple(self.portal["en"]["page"].Subject()), ())
+        self.assertEqual(tuple(self.portal["en"]["good-day"].Subject()), ())
         self.assertEqual(response.json()["report"]["copied"], [])
 
     def test_post__translates_a_chosen_text_field(self):
@@ -645,7 +649,7 @@ class TestTranslateServiceOnAMultilingualSite(TestCase):
         # postcondition
         self.assertEqual(response.status_code, 200)
         transaction.begin()
-        self.assertEqual(self.portal["en"]["page"].rights, "Rights")
+        self.assertEqual(self.portal["en"]["good-day"].rights, "Rights")
 
     def test_post__does_not_take_metadata_over_from_the_folder(self):
         # setup — the fields sit on the language folder, not on the page
@@ -660,7 +664,7 @@ class TestTranslateServiceOnAMultilingualSite(TestCase):
 
         # postcondition — nothing acquired, nothing written, nothing reported
         transaction.begin()
-        translation = aq_base(self.portal["en"]["page"])
+        translation = aq_base(self.portal["en"]["good-day"])
         self.assertFalse(hasattr(translation, "field_a"))
         self.assertFalse(hasattr(translation, "field_b"))
         self.assertEqual(response.json()["report"]["copied"], [])
@@ -749,6 +753,92 @@ class TestTargetLanguageRefusal(TestCase):
         post.assert_not_called()
         messages = IStatusMessage(request).show()
         self.assertIn("fr is not offered for machine translation", messages[-1].message)
+
+
+class TestTranslatedShortNames(TestCase):
+    """A new machine translation is named after its translated title, as one
+    created by hand is; it does not keep the short name of the original."""
+
+    layer = INTERAKTIV_TRANSLATION_MULTILINGUAL_FUNCTIONAL_TESTING
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.page = api.content.create(container=self.portal["de"], type="Document", id="page-a", title="Titel A")
+        _records().api_key = "test-key"
+        self.api_session = RelativeSession(self.portal.absolute_url(), test=self)
+        self.api_session.headers.update({"Accept": "application/json"})
+        self.api_session.auth = (SITE_OWNER_NAME, SITE_OWNER_PASSWORD)
+        transaction.commit()
+
+    def tearDown(self) -> None:
+        self.api_session.close()
+        super().tearDown()
+
+    def _translate(self):
+        with mock.patch("requests.post", return_value=_deepl("Title A")):
+            return self.api_session.post("/de/page-a/@translate", json={"target_language": "en", "save": True})
+
+    def _translation(self):
+        transaction.begin()
+        return ITranslationManager(self.portal["de"]["page-a"]).get_translation("en")
+
+    def test_post__names_the_translation_after_its_translated_title(self):
+        # do it
+        response = self._translate()
+
+        # postcondition — and it is the translation of the page
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self._translation().getId(), "title-a")
+        self.assertTrue(response.json()["@id"].endswith("/en/title-a"))
+        self.assertNotIn("page-a", self.portal["en"].objectIds())
+
+    def test_post__numbers_a_name_already_taken(self):
+        # setup — other content holds the name in the target folder
+        api.content.create(container=self.portal["en"], type="Document", id="title-a", title="Other A")
+        transaction.commit()
+
+        # do it
+        self._translate()
+
+        # postcondition
+        self.assertEqual(self._translation().getId(), "title-a-1")
+
+    def test_translation_made_otherwise__keeps_the_name_of_the_original(self):
+        # do it — plone.app.multilingual itself, not the machine translation
+        transaction.begin()
+        translation = ITranslationManager(self.portal["de"]["page-a"]).add_translation("en")
+
+        # postcondition
+        self.assertEqual(translation.getId(), "page-a")
+
+    def _chosen_name(self, title, language):
+        transaction.begin()
+        IAnnotations(getRequest())[TRANSLATED_TITLE_KEY] = title
+
+        return TranslatedTitleIdChooser(self.portal["de"]["page-a"])(self.portal["en"], language)
+
+    def test_id_chooser__normalizes_by_the_rules_of_the_target_language(self):
+        # postcondition — German writes out its umlauts, other languages do not
+        self.assertEqual(self._chosen_name("Größe A", "de"), "groesse-a")
+        self.assertEqual(self._chosen_name("Größe A", "en"), "grosse-a")
+
+    def test_id_chooser__names_a_japanese_title_as_plone_does(self):
+        # do it
+        name = self._chosen_name("タイトル A", "ja")
+
+        # postcondition — a short hash, not a transliteration
+        self.assertRegex(name, r"^[a-z0-9]{1,6}$")
+
+    def test_id_chooser__falls_back_for_an_empty_title(self):
+        # setup
+        transaction.begin()
+        IAnnotations(getRequest())[TRANSLATED_TITLE_KEY] = "  "
+
+        # do it
+        name = TranslatedTitleIdChooser(self.portal["de"]["page-a"])(self.portal["en"], "en")
+
+        # postcondition
+        self.assertEqual(name, "page-a")
 
 
 class TestContentWithoutLanguage(TestCase):
@@ -871,7 +961,7 @@ class TestWorkingCopyStorage(TestCase):
         # postcondition
         self.assertEqual(response.status_code, 200)
         transaction.begin()
-        translation = self.portal["en"]["page"]
+        translation = self.portal["en"]["good-day"]
         self.assertEqual(translation.title, "Good day")
         self.assertIsNone(self._working_copy_of(translation))
 
@@ -879,7 +969,7 @@ class TestWorkingCopyStorage(TestCase):
         # setup — a translation exists and an editor has worked on it
         self._translate()
         transaction.begin()
-        self.portal["en"]["page"].title = "Edited by hand"
+        self.portal["en"]["good-day"].title = "Edited by hand"
         transaction.commit()
 
         # do it — translate again; iterate is on, so no overwrite is needed
@@ -890,7 +980,7 @@ class TestWorkingCopyStorage(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.json()["saved"])
         transaction.begin()
-        translation = self.portal["en"]["page"]
+        translation = self.portal["en"]["good-day"]
         self.assertEqual(translation.title, "Edited by hand")
         working_copy = self._working_copy_of(translation)
         self.assertIsNotNone(working_copy)
@@ -913,7 +1003,7 @@ class TestWorkingCopyStorage(TestCase):
 
         self._translate()
         transaction.begin()
-        ILockable(self.portal["en"]["page"]).lock()
+        ILockable(self.portal["en"]["good-day"]).lock()
         transaction.commit()
 
         # do it
@@ -925,7 +1015,7 @@ class TestWorkingCopyStorage(TestCase):
         self.assertEqual(response.json()["code"], "target_locked")
         self.assertEqual(response.json()["values"], {"language": "en"})
         transaction.begin()
-        self.assertIsNone(self._working_copy_of(self.portal["en"]["page"]))
+        self.assertIsNone(self._working_copy_of(self.portal["en"]["good-day"]))
 
     def test_second_translation__names_a_missing_checkout_permission(self):
         # setup — a translation exists, but nobody may check it out
@@ -934,7 +1024,7 @@ class TestWorkingCopyStorage(TestCase):
 
         self._translate()
         transaction.begin()
-        Permission(CheckoutPermission, (), self.portal["en"]["page"]).setRoles(())
+        Permission(CheckoutPermission, (), self.portal["en"]["good-day"]).setRoles(())
         transaction.commit()
 
         # do it
@@ -945,13 +1035,13 @@ class TestWorkingCopyStorage(TestCase):
         self.assertEqual(response.json()["code"], "checkout_not_allowed")
         self.assertEqual(response.json()["values"], {"language": "en"})
         transaction.begin()
-        self.assertIsNone(self._working_copy_of(self.portal["en"]["page"]))
+        self.assertIsNone(self._working_copy_of(self.portal["en"]["good-day"]))
 
     def test_second_translation__says_why_the_baseline_was_snapshotted(self):
         # setup — a translation exists and an editor has worked on it since
         self._translate()
         transaction.begin()
-        self.portal["en"]["page"].title = "Edited by hand"
+        self.portal["en"]["good-day"].title = "Edited by hand"
         transaction.commit()
 
         # do it
@@ -960,12 +1050,12 @@ class TestWorkingCopyStorage(TestCase):
         # postcondition — the checkout snapshot names its reason instead of
         # iterate's stock "Baseline created"
         transaction.begin()
-        history = api.portal.get_tool("portal_repository").getHistory(self.portal["en"]["page"])
+        history = api.portal.get_tool("portal_repository").getHistory(self.portal["en"]["good-day"])
         self.assertEqual(history[0].comment, "Baseline before machine translation into en with DeepL")
 
     def _working_copy_path(self):
         transaction.begin()
-        working_copy = self._working_copy_of(self.portal["en"]["page"])
+        working_copy = self._working_copy_of(self.portal["en"]["good-day"])
 
         return "/" + "/".join(working_copy.getPhysicalPath()[2:])
 
@@ -988,7 +1078,7 @@ class TestWorkingCopyStorage(TestCase):
         self.assertEqual(preview.status_code, 401)
         self.assertEqual(save.status_code, 401)
         transaction.begin()
-        working_copy = self._working_copy_of(self.portal["en"]["page"])
+        working_copy = self._working_copy_of(self.portal["en"]["good-day"])
         refusal = TranslationStorage(working_copy).refusal("de", overwrite=True)
         self.assertIn("working copy", refusal)
 
@@ -1004,7 +1094,7 @@ class TestWorkingCopyStorage(TestCase):
         # postcondition
         body = response.json()
         self.assertTrue(body["is_working_copy"])
-        self.assertEqual(body["baseline_url"], self.portal["en"]["page"].absolute_url())
+        self.assertEqual(body["baseline_url"], self.portal["en"]["good-day"].absolute_url())
 
     def test_get__the_original_is_no_working_copy(self):
         # setup
@@ -1012,7 +1102,7 @@ class TestWorkingCopyStorage(TestCase):
         transaction.begin()
 
         # do it
-        response = self.api_session.get("/en/page/@translate")
+        response = self.api_session.get("/en/good-day/@translate")
 
         # postcondition
         body = response.json()
@@ -1024,7 +1114,7 @@ class TestWorkingCopyStorage(TestCase):
         self._translate()
         self._translate()
         transaction.begin()
-        working_copy = self._working_copy_of(self.portal["en"]["page"])
+        working_copy = self._working_copy_of(self.portal["en"]["good-day"])
 
         # do it / postcondition — the edit-bar condition hides the button
         request = self.layer["request"]
@@ -1056,7 +1146,7 @@ class TestWorkingCopyStorage(TestCase):
 
         # do it
         refused = self.api_session.get(f"{working_copy_path}/@translation-locator", params={"target_language": "de"})
-        allowed = self.api_session.get("/en/page/@translation-locator", params={"target_language": "de"})
+        allowed = self.api_session.get("/en/good-day/@translation-locator", params={"target_language": "de"})
 
         # postcondition — the original keeps the stock behaviour
         self.assertEqual(refused.status_code, 401)
@@ -1071,7 +1161,7 @@ class TestWorkingCopyStorage(TestCase):
         self._translate()
         self._translate()
         transaction.begin()
-        translation = self.portal["en"]["page"]
+        translation = self.portal["en"]["good-day"]
         working_copy = self._working_copy_of(translation)
 
         # postcondition — nobody translates the copy, the original is free
@@ -1093,7 +1183,7 @@ class TestWorkingCopyStorage(TestCase):
         entry = response.json()["translations"]["en"]
         self.assertEqual(entry["status"], "machine_unreviewed")
         self.assertIsNotNone(entry["working_copy"])
-        self.assertIn("copy_of_page", entry["working_copy"]["url"])
+        self.assertIn("copy_of_good-day", entry["working_copy"]["url"])
         self.assertEqual(entry["working_copy"]["status"], "machine_unreviewed")
 
     def test_third_translation__is_refused_while_a_working_copy_stands(self):
@@ -1114,7 +1204,7 @@ class TestWorkingCopyStorage(TestCase):
         self._translate()
         self._translate()
         transaction.begin()
-        working_copy = self._working_copy_of(self.portal["en"]["page"])
+        working_copy = self._working_copy_of(self.portal["en"]["good-day"])
         title = working_copy.title
 
         # do it
@@ -1130,7 +1220,7 @@ class TestWorkingCopyStorage(TestCase):
         self.assertEqual(response.json()["values"], {"language": "en"})
         deepl.assert_not_called()
         transaction.begin()
-        self.assertEqual(self._working_copy_of(self.portal["en"]["page"]).title, title)
+        self.assertEqual(self._working_copy_of(self.portal["en"]["good-day"]).title, title)
 
     def test_post__reports_that_it_used_a_working_copy(self):
         # setup — a translation exists, so the next run goes to a working copy
@@ -1161,12 +1251,28 @@ class TestWorkingCopyStorage(TestCase):
         second = self.api_session.get("/de/page/@translate").json()
         self.assertIsNotNone(second["translations"]["en"]["working_copy"])
 
+    def test_short_name__of_an_existing_translation_stays(self):
+        # setup — a translation exists
+        self._translate()
+        transaction.begin()
+        translation = ITranslationManager(self.portal["de"]["page"]).get_translation("en")
+        name = translation.getId()
+
+        # do it — translated again, into a working copy
+        self._translate()
+
+        # postcondition — the live translation keeps its name
+        transaction.begin()
+        self.assertEqual(name, "good-day")
+        self.assertIn("good-day", self.portal["en"].objectIds())
+        self.assertIsNotNone(self._working_copy_of(self.portal["en"]["good-day"]))
+
     def _translate_back(self, **body):
         # from the English translation back into German
         payload = {"target_language": "de"}
         payload.update(body)
         with mock.patch("requests.post", return_value=_deepl("Guten Tag", "Eine Seite")) as post:
-            return self.api_session.post("/en/page/@translate", json=payload), post
+            return self.api_session.post("/en/good-day/@translate", json=payload), post
 
     def test_source_with_an_open_working_copy__is_refused(self):
         # setup — the English translation has an open working copy
@@ -1204,7 +1310,7 @@ class TestWorkingCopyStorage(TestCase):
         self._translate()
         self._translate()
         transaction.begin()
-        working_copy = self._working_copy_of(self.portal["en"]["page"])
+        working_copy = self._working_copy_of(self.portal["en"]["good-day"])
         ICheckinCheckoutPolicy(working_copy).cancelCheckout()
         transaction.commit()
 
@@ -1225,9 +1331,9 @@ class TestWorkingCopyStorage(TestCase):
         self._translate()
         self._translate()
         transaction.begin()
-        translation = self.portal["en"]["page"]
+        translation = self.portal["en"]["good-day"]
         for _deletion in range(2):
-            api.content.delete(obj=self.portal["en"]["copy_of_page"], check_linkintegrity=False)
+            api.content.delete(obj=self.portal["en"]["copy_of_good-day"], check_linkintegrity=False)
             ICheckinCheckoutPolicy(translation).checkout(self.portal["en"])
             transaction.commit()
 
@@ -1248,11 +1354,11 @@ class TestWorkingCopyStorage(TestCase):
         self._check_out_again_after_deletions()
 
         # do it
-        body = self.api_session.get("/en/page/@translate").json()
+        body = self.api_session.get("/en/good-day/@translate").json()
 
         # postcondition
         self.assertIsNotNone(body["working_copy_url"])
-        self.assertTrue(body["working_copy_url"].endswith("/en/copy_of_page"))
+        self.assertTrue(body["working_copy_url"].endswith("/en/copy_of_good-day"))
 
     def test_get__names_the_open_working_copy_of_the_content(self):
         # setup
@@ -1261,7 +1367,7 @@ class TestWorkingCopyStorage(TestCase):
         working_copy_path = self._working_copy_path()
 
         # do it
-        source = self.api_session.get("/en/page/@translate").json()
+        source = self.api_session.get("/en/good-day/@translate").json()
         working_copy = self.api_session.get(f"{working_copy_path}/@translate").json()
         original = self.api_session.get("/de/page/@translate").json()
 
@@ -1774,7 +1880,7 @@ class TestImagesAndFiles(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["report"]["copied"], ["image"])
         transaction.begin()
-        translation = self.portal["en"]["image"]
+        translation = self.portal["en"]["picture"]
         self.assertEqual(translation.title, "Picture")
         self.assertEqual(translation.image.data, GIF)
         self.assertEqual(translation.image.filename, "bild.gif")

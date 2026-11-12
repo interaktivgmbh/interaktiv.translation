@@ -10,6 +10,7 @@ from interaktiv.translation import _, logger
 from interaktiv.translation.helpers.field_access import set_field_value
 from interaktiv.translation.providers.base import PROVIDERS, TranslationError
 from interaktiv.translation.settings import settings
+from interaktiv.translation.translation_id import TRANSLATED_TITLE_KEY
 from plone.app.iterate.dexterity.utils import get_relations
 from plone.app.iterate.interfaces import ICheckinCheckoutPolicy, IObjectArchiver
 from plone.app.iterate.permissions import CheckoutPermission
@@ -430,6 +431,13 @@ class TranslationStorage:
             return self._apply(existing, fields, target_language)
 
         manager = ITranslationManager(self.content)
+        # plone.app.multilingual asks the id chooser while creating; ours names
+        # the translation after its translated title (see translation_id.py)
+        request = getRequest()
+        annotations = IAnnotations(request) if request is not None else None
+        title = fields.get("title")
+        if annotations is not None and isinstance(title, str):
+            annotations[TRANSLATED_TITLE_KEY] = title
         try:
             manager.add_translation(target_language)
         except Exception as error:  # noqa: BLE001
@@ -440,6 +448,9 @@ class TranslationStorage:
                 code="create_refused",
                 values={"language": target_language},
             ) from error
+        finally:
+            if annotations is not None:
+                annotations.pop(TRANSLATED_TITLE_KEY, None)
         existing = manager.get_translation(target_language)
 
         if existing is None:

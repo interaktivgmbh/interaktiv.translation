@@ -43,7 +43,7 @@ class TestCheckin(TestCase):
     def _working_copy(self):
         from plone.app.iterate.interfaces import ICheckinCheckoutPolicy
 
-        return ICheckinCheckoutPolicy(self.portal["en"]["page"]).getWorkingCopy()
+        return ICheckinCheckoutPolicy(self.portal["en"]["good-day"]).getWorkingCopy()
 
     def _translate_into_working_copy(self):
         # setup helper: first translation creates the sibling, the second
@@ -55,13 +55,13 @@ class TestCheckin(TestCase):
         return self._working_copy()
 
     def _checkin(self):
-        response = self.api_session.patch("/en/page/@workingcopy")
+        response = self.api_session.patch("/en/good-day/@workingcopy")
         transaction.begin()
 
         return response
 
     def _history(self):
-        return api.portal.get_tool("portal_repository").getHistory(self.portal["en"]["page"])
+        return api.portal.get_tool("portal_repository").getHistory(self.portal["en"]["good-day"])
 
     def test_store__marks_the_working_copy_as_machine_translated(self):
         # do it
@@ -102,7 +102,7 @@ class TestCheckin(TestCase):
         self._checkin()
 
         # postcondition
-        marker = IAnnotations(self.portal["en"]["page"]).get(MACHINE_TRANSLATION_KEY)
+        marker = IAnnotations(self.portal["en"]["good-day"]).get(MACHINE_TRANSLATION_KEY)
         self.assertEqual(marker["reviewed_by"], SITE_OWNER_NAME)
         self.assertIn("reviewed", marker)
 
@@ -147,7 +147,7 @@ class TestCheckin(TestCase):
         # postcondition — the denial did not travel along
         with api.env.adopt_user(SITE_OWNER_NAME):
             security = getSecurityManager()
-            self.assertTrue(security.checkPermission(MANAGE_TRANSLATIONS_PERMISSION, self.portal["en"]["page"]))
+            self.assertTrue(security.checkPermission(MANAGE_TRANSLATIONS_PERMISSION, self.portal["en"]["good-day"]))
 
     def test_checkin__after_the_review_tells_the_story_only_once(self):
         # setup
@@ -156,7 +156,7 @@ class TestCheckin(TestCase):
         self._translate_into_working_copy()
         self._checkin()
         with api.env.adopt_user(SITE_OWNER_NAME):
-            second_copy = ICheckinCheckoutPolicy(self.portal["en"]["page"]).checkout(self.portal["en"])
+            second_copy = ICheckinCheckoutPolicy(self.portal["en"]["good-day"]).checkout(self.portal["en"])
             second_copy.title = "Edited by hand"
         transaction.commit()
 

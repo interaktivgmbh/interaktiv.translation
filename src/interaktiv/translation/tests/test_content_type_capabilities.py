@@ -53,14 +53,14 @@ class CapabilitiesTestCase(TestCase):
     def _translate(self, **body):
         payload = {"target_language": "en", "save": True}
         payload.update(body)
-        with mock.patch("requests.post", return_value=_deepl("Title", "Description")):
+        with mock.patch("requests.post", return_value=_deepl("Title A", "Description")):
             response = self.api_session.post("/de/item/@translate", json=payload)
         transaction.begin()
 
         return response
 
     def _translation(self):
-        return self.portal["en"]["item"]
+        return self.portal["en"]["title-a"]
 
     def _status_over_rest(self, path):
         return self.api_session.get(f"{path}/@machine-translation").json()["status"]
@@ -120,7 +120,7 @@ class TestWithoutVersioningWithWorkingCopies(CapabilitiesTestCase):
         self._translate()
 
         # do it / postcondition
-        self.assertEqual(self._status_over_rest("/en/item"), STATUS_MACHINE_UNREVIEWED)
+        self.assertEqual(self._status_over_rest("/en/title-a"), STATUS_MACHINE_UNREVIEWED)
         response = self.api_session.get("/de/item/@translate")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["translations"]["en"]["status"], STATUS_MACHINE_UNREVIEWED)
@@ -141,7 +141,7 @@ class TestWithoutVersioningWithoutWorkingCopies(CapabilitiesTestCase):
         # postcondition
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["report"]["stored_as"], "translation")
-        self.assertEqual(self._translation().title, "Title")
+        self.assertEqual(self._translation().title, "Title A")
 
     def test_publish__marks_the_translation_as_reviewed(self):
         # setup
@@ -159,7 +159,7 @@ class TestWithoutVersioningWithoutWorkingCopies(CapabilitiesTestCase):
         self._translate()
 
         # do it
-        response = self.api_session.patch("/en/item", json={"title": "Edited"})
+        response = self.api_session.patch("/en/title-a", json={"title": "Edited"})
         transaction.begin()
 
         # postcondition
@@ -188,8 +188,8 @@ class TestWithoutWorkflowWithWorkingCopies(CapabilitiesTestCase):
         self._translate()
 
         # do it
-        edit = self.api_session.patch("/en/copy_of_item", json={"title": "Edited"})
-        checkin = self.api_session.patch("/en/item/@workingcopy")
+        edit = self.api_session.patch("/en/copy_of_title-a", json={"title": "Edited"})
+        checkin = self.api_session.patch("/en/title-a/@workingcopy")
         transaction.begin()
 
         # postcondition
@@ -220,15 +220,15 @@ class TestWithoutWorkflowWithoutWorkingCopies(CapabilitiesTestCase):
         self._translate()
 
         # do it / postcondition
-        self.assertEqual(self._status_over_rest("/en/item"), STATUS_MACHINE_WITHOUT_REVIEW)
-        self.assertEqual(self.api_session.get("/en/item").status_code, 200)
+        self.assertEqual(self._status_over_rest("/en/title-a"), STATUS_MACHINE_WITHOUT_REVIEW)
+        self.assertEqual(self.api_session.get("/en/title-a").status_code, 200)
 
     def test_status__stays_without_review_after_an_edit(self):
         # setup
         self._translate()
 
         # do it
-        response = self.api_session.patch("/en/item", json={"title": "Edited"})
+        response = self.api_session.patch("/en/title-a", json={"title": "Edited"})
         transaction.begin()
 
         # postcondition
