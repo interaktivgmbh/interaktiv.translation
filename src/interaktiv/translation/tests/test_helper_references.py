@@ -49,6 +49,7 @@ class TestTranslatedTargets(TestCase):
                     "before": self.target_a.absolute_url(),
                     "after": self.target_a_en.absolute_url(),
                     "kind": "link",
+                    "status": "translated",
                 }
             ],
         )
@@ -64,7 +65,15 @@ class TestTranslatedTargets(TestCase):
         self.assertEqual(target, self.target_b)
         self.assertEqual(
             report,
-            [{"text": "field_a", "before": self.target_b.absolute_url(), "after": None, "kind": "link"}],
+            [
+                {
+                    "text": "field_a",
+                    "before": self.target_b.absolute_url(),
+                    "after": None,
+                    "kind": "link",
+                    "status": "untranslated",
+                }
+            ],
         )
 
     def test_targets__tell_an_image_from_a_link(self):
@@ -78,7 +87,15 @@ class TestTranslatedTargets(TestCase):
         # postcondition
         self.assertEqual(
             report,
-            [{"text": "preview_image_link", "before": image.absolute_url(), "after": None, "kind": "image"}],
+            [
+                {
+                    "text": "preview_image_link",
+                    "before": image.absolute_url(),
+                    "after": None,
+                    "kind": "image",
+                    "status": "untranslated",
+                }
+            ],
         )
 
     def test_targets__of_a_list_each_and_without_a_broken_one(self):

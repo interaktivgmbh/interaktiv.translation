@@ -252,7 +252,10 @@ class TestLinkReportKinds(TestCase):
     def test_image_block__is_an_image_named_by_its_alt(self):
         _blocks, report = self._report_for({"@type": "image", "url": "/de/image-a", "alt": "Alt A"})
 
-        self.assertEqual(report, [{"text": "Alt A", "before": "/de/image-a", "after": None, "kind": "image"}])
+        self.assertEqual(
+            report,
+            [{"text": "Alt A", "before": "/de/image-a", "after": None, "kind": "image", "status": "untranslated"}],
+        )
 
     def test_image_block_without_alt__is_named_by_the_title_of_the_image(self):
         _blocks, report = self._report_for({"@type": "image", "url": "/de/image-a", "alt": ""})
@@ -301,6 +304,41 @@ class TestLinkReportKinds(TestCase):
         _blocks, report = self._report_for(self._slate_link("/de/page-missing"))
 
         self.assertEqual(report[0]["kind"], "link")
+
+    def test_link_moved_to_the_translation__is_translated(self):
+        # setup
+        ITranslationManager(self.page).add_translation("en")
+
+        # do it
+        _blocks, report = self._report_for(self._slate_link("/de/page-a"))
+
+        # postcondition — it was translatable, and is pointed at the translation now
+        self.assertEqual(report[0]["status"], "translated")
+
+    def test_link_to_a_page_without_translation__is_untranslated(self):
+        _blocks, report = self._report_for(self._slate_link("/de/page-a"))
+
+        self.assertEqual(report[0]["status"], "untranslated")
+
+    def test_link_to_content_without_language__is_independent(self):
+        # setup — outside the language folders
+        api.content.create(container=self.portal, type="Image", id="image-b", title="Image B")
+
+        # do it
+        _blocks, report = self._report_for({"@type": "image", "url": "/image-b", "alt": "Alt B"})
+
+        # postcondition
+        self.assertEqual(report[0]["status"], "independent")
+
+    def test_link_to_nothing__is_broken(self):
+        _blocks, report = self._report_for(self._slate_link("/de/page-missing"))
+
+        self.assertEqual(report[0]["status"], "broken")
+
+    def test_link_out_of_the_site__is_not_in_the_report_of_a_translation(self):
+        _blocks, report = self._report_for(self._slate_link("https://example.org/page-a"))
+
+        self.assertEqual(report, [])
 
     def test_link_field__tells_the_kind_as_well(self):
         # setup

@@ -4,6 +4,7 @@
     <include package=".machine_translation"/>
     <include package=".translate"/>
     <include package=".translation_fields"/>
+    <include package=".translation_links"/>
     <include package=".workingcopy"/>
 
 </configure>

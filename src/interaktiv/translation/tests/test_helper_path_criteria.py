@@ -72,7 +72,15 @@ class TestPathCriteria(TestCase):
         self.assertEqual(query[0]["v"], f"{self.folder_b.UID()}::1")
         self.assertEqual(
             report,
-            [{"text": "query", "before": self.folder_b.absolute_url(), "after": None, "kind": "link"}],
+            [
+                {
+                    "text": "query",
+                    "before": self.folder_b.absolute_url(),
+                    "after": None,
+                    "kind": "link",
+                    "status": "untranslated",
+                }
+            ],
         )
 
     def test_translation__is_reported(self):

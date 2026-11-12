@@ -103,6 +103,19 @@
   target language; a taken name gets a number. Existing translations
   and working copies keep theirs; anything else plone.app.multilingual
   creates keeps its own way.
+- Added `GET @translation-links`: the links of a content as it is now (blocks,
+  link fields, references, path criteria), each with `text`, `kind`, `url`
+  and a `status`, and a `summary` counting them by status. It changes nothing
+  and asks no translation service. The status tells how a link stands to the
+  language of the content: `translated` (the target is in that language),
+  `translatable` (in another language, a translation exists; `translation`
+  names it), `untranslated` (in another language, without a translation),
+  `independent` (the target or the content has no language of its own),
+  `broken` (the target is not found), `external` (leads out of the site; not
+  checked any further). Needs the permission to edit the content.
+- The entries of the link report of `POST @translate` carry the same
+  `status`; a link just pointed at the translation of its target is
+  `translated`. Links out of the site stay out of that report.
 
 ## 1.0.0a1 (2026-10-14)
 
