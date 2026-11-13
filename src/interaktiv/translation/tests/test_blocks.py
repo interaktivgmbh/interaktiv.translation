@@ -259,6 +259,68 @@ class TestDefaultBlockHandlerSlateValue(TestCase):
         self.assertEqual(rebuilt["@type"], "slate")
         self.assertEqual(self.block["plaintext"], "some text")
 
+    def test_rebuild__gives_the_nodes_the_properties_the_text_could_not_carry(self):
+        # setup
+        block = {
+            "@type": "slate",
+            "value": [
+                {
+                    "type": "p",
+                    "styleName": "style-a",
+                    "children": [
+                        {"text": "some "},
+                        {"text": "text", "style-b": True},
+                        {"text": " and a "},
+                        {
+                            "type": "link",
+                            "data": {"url": "/page-a", "target": "_blank", "title": "Title A"},
+                            "children": [{"text": "link"}],
+                        },
+                    ],
+                }
+            ],
+            "plaintext": "some text and a link",
+        }
+        pairs = self.handler.texts(block)
+
+        # do it — the answer as it was sent, the styled word moved to the front
+        rebuilt = self.handler.rebuild(
+            block,
+            [
+                '<p data-slate-node="1"><span data-slate-node="2">Text</span> etwas und ein '
+                '<a href="/page-a" data-slate-node="3">Link</a></p>'
+            ],
+        )
+
+        # postcondition
+        self.assertEqual(
+            pairs,
+            [
+                (
+                    ("value",),
+                    '<p data-slate-node="1">some <span data-slate-node="2">text</span> and a '
+                    '<a href="/page-a" data-slate-node="3">link</a></p>',
+                )
+            ],
+        )
+        expected_value = [
+            {
+                "type": "p",
+                "styleName": "style-a",
+                "children": [
+                    {"text": "Text", "style-b": True},
+                    {"text": " etwas und ein "},
+                    {
+                        "type": "link",
+                        "data": {"url": "/page-a", "target": "_blank", "title": "Title A"},
+                        "children": [{"text": "Link"}],
+                    },
+                ],
+            }
+        ]
+        self.assertEqual(rebuilt["value"], expected_value)
+        self.assertEqual(rebuilt["plaintext"], "Text etwas und ein Link")
+
     def test_rebuild__keeps_the_block_when_nothing_readable_comes_back(self):
         # do it
         rebuilt = self.handler.rebuild(self.block, [""])

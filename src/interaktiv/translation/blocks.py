@@ -135,7 +135,10 @@ class DefaultBlockHandler(BlockHandler):
 
     @staticmethod
     def _write_tree(node: Dict, answer: str) -> None:
-        parser = SlateHTMLParser()
+        # the tree numbers its nodes the same way it did for the text sent
+        serializer = SlateHTMLSerializer()
+        serializer.serialize(node[SLATE_VALUE_KEY])
+        parser = SlateHTMLParser(serializer.node_properties)
         parser.feed(answer)
         value, plaintext = parser.get_result()
         if not value:

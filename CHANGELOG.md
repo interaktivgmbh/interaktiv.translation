@@ -116,6 +116,12 @@
 - The entries of the link report of `POST @translate` carry the same
   `status`; a link just pointed at the translation of its target is
   `translated`. Links out of the site stay out of that report.
+- Fix: a translated text block keeps what its HTML has no place for: the
+  style of a paragraph or list (`styleName`), the style of a word
+  (`style-…` on a text node), and the data of a link beside its url
+  (`target`, `title`). Such a node is numbered (`data-slate-node`), only the
+  number travels to the translation service, and the properties are given
+  back by it, also where the translation moved or split the text.
 
 ## 1.0.0a1 (2026-10-14)
 
