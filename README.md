@@ -79,8 +79,9 @@ the provider *Mock*: it writes the text in capitals instead of translating it.
   its own is taken to be in the site's default language.
 - **Fields per content type:** per content type the fields that go into a
   translation. Title, description and page content always go along, and so
-  does the type's main field (the image of an image); the others are chosen.
-  Whether a field is translated or taken over follows from its kind.
+  does the type's main field (the image of an image); the others are chosen,
+  each to be translated or taken over as it is. Only a text can be
+  translated.
 - **Metadata Mapping:** fixed translations for the values of metadata
   fields (as `subjects`), per field one row per value with one entry per
   language; with import and export as Excel file.

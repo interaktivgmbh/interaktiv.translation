@@ -1,3 +1,4 @@
+import json
 from unittest import TestCase as UnitTestCase
 
 import plone.api as api
@@ -11,7 +12,7 @@ from interaktiv.translation.helpers.field_selection import LINK_FIELDS
 from interaktiv.translation.registry.translation import ITranslationSettings
 from interaktiv.translation.settings import Settings
 from interaktiv.translation.testing import INTERAKTIV_TRANSLATION_INTEGRATION_TESTING, TestCase
-from interaktiv.translation.upgrades import v1000_to_v1001
+from interaktiv.translation.upgrades import v1000_to_v1001, v1001_to_v1002
 from interaktiv.translation.upgrades.v1000_to_v1001 import (
     MAPPING_RECORD,
     REMOVED_RECORDS,
@@ -25,6 +26,13 @@ EXCLUDED_TYPES_RECORD = f"{ITranslationSettings.__identifier__}.excluded_types"
 API_KEY_RECORD = f"{ITranslationSettings.__identifier__}.api_key"
 LINK_FIELDS_RECORD = f"{ITranslationSettings.__identifier__}.link_fields"
 COPIED_FIELDS_RECORD = f"{ITranslationSettings.__identifier__}.copied_fields"
+SELECTION_RECORD = f"{ITranslationSettings.__identifier__}.metadata_selection"
+SELECTION_SCHEMA_1001 = json.dumps(
+    {
+        "type": "object",
+        "additionalProperties": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": True},
+    }
+)
 
 
 class TestUpgradeV1000ToV1001(TestCase):
@@ -198,3 +206,79 @@ class TestCsvToMapping(UnitTestCase):
 
     def test_csv_to_mapping__leaves_out_rows_and_sections_without_values(self):
         self.assertEqual(csv_to_mapping("verirrt\n[field_a]\nde, en\n,\n[field_b]\nde, en"), {})
+
+
+class TestUpgradeV1001ToV1002(TestCase):
+    layer = INTERAKTIV_TRANSLATION_INTEGRATION_TESTING
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.registry = getUtility(IRegistry)
+
+    def _install_1001_record(self, value: dict) -> None:
+        # the record as 1001 left it: a list of fields per content type, and a
+        # field that takes nothing else
+        self.registry.records[SELECTION_RECORD] = Record(
+            field.JSONField(title="Fields per content type", schema=SELECTION_SCHEMA_1001), value
+        )
+
+    def test_upgrade__is_registered_for_the_profile(self):
+        # do it
+        steps = api.portal.get_tool("portal_setup").listUpgrades("interaktiv.translation:default", show_old=True)
+
+        # postcondition
+        self.assertIn(("1001", "1002"), [(step["ssource"], step["sdest"]) for step in steps])
+
+    def test_upgrade__names_how_each_chosen_field_goes_along(self):
+        # setup
+        self._install_1001_record({"Document": ["subjects", "rights"]})
+
+        # do it
+        v1001_to_v1002.upgrade(None)
+
+        # postcondition — as each field went along by its kind
+        self.assertEqual(self.registry[SELECTION_RECORD], {"Document": {"subjects": "copy", "rights": "translate"}})
+
+    def test_upgrade__leaves_a_field_that_takes_the_new_form(self):
+        # setup
+        self._install_1001_record({"Document": ["rights"]})
+
+        # do it
+        v1001_to_v1002.upgrade(None)
+
+        # postcondition — a later change of the control panel is taken
+        self.registry[SELECTION_RECORD] = {"Document": {"rights": "copy"}}
+        with self.assertRaises(Exception):
+            self.registry[SELECTION_RECORD] = {"Document": ["rights"]}
+
+    def test_upgrade__goes_by_the_fields_the_site_takes_over_unchanged(self):
+        # setup
+        self.registry[COPIED_FIELDS_RECORD] = ["rights"]
+        self._install_1001_record({"Document": ["rights"]})
+
+        # do it
+        v1001_to_v1002.upgrade(None)
+
+        # postcondition
+        self.assertEqual(self.registry[SELECTION_RECORD], {"Document": {"rights": "copy"}})
+
+    def test_upgrade__drops_what_needs_no_choice_or_is_gone(self):
+        # setup — the title always goes along; "field_a" and "type_a" are not there
+        self._install_1001_record({"Document": ["title", "field_a", "rights"], "type_a": ["field_a"]})
+
+        # do it
+        v1001_to_v1002.upgrade(None)
+
+        # postcondition
+        self.assertEqual(self.registry[SELECTION_RECORD], {"Document": {"rights": "translate"}, "type_a": {}})
+
+    def test_upgrade__keeps_a_choice_that_names_the_modes_already(self):
+        # setup — the step runs on a site that has the new form
+        selection = {"Document": {"rights": "copy"}}
+        self.registry[SELECTION_RECORD] = selection
+
+        # do it
+        v1001_to_v1002.upgrade(None)
+
+        # postcondition
+        self.assertEqual(self.registry[SELECTION_RECORD], selection)

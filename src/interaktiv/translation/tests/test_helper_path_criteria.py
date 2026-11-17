@@ -123,7 +123,7 @@ class TestPathCriteria(TestCase):
         # setup
         collection = api.content.create(container=self.portal["de"], type="Collection", id="collection-a", title="A")
         collection.query = [_criterion(f"{self.folder_a.UID()}::1")]
-        api.portal.set_registry_record(SELECTION, {"Collection": ["query"]})
+        api.portal.set_registry_record(SELECTION, {"Collection": {"query": "copy"}})
 
         # do it
         result = ContentTranslator(translation_provider=MockProvider()).translate(collection, "en", "de")

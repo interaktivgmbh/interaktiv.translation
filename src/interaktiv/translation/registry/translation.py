@@ -119,10 +119,10 @@ class ITranslationSettings(Interface):
     metadata_selection = JSONField(
         title=_("Fields per content type"),
         description=_(
-            "Sets per content type which fields go along into the translation. Only fields "
-            "filled in on the page count. Whether a field is translated or taken over as it "
-            "is follows from the kind of field; a field with values in the metadata mapping "
-            "goes through the mapping."
+            "Sets per content type which fields go along into the translation, and whether "
+            "a field is translated or taken over as it is. Only fields filled in on the page "
+            "count. Only a text can be translated; a field with values in the metadata "
+            "mapping goes through the mapping."
         ),
         schema=METADATA_SELECTION_JSON_SCHEMA,
         widget="translation_metadata_selection",
@@ -199,8 +199,9 @@ class ITranslationSettings(Interface):
         description=_(
             "Fields taken over as they are where their kind would have them translated: "
             "text that is no prose, as an address or a project number. Named as in the "
-            "schema, one per line, for every content type. A field still only goes along "
-            "when it is chosen for the content type."
+            "schema, one per line, for every content type. Such a field cannot be chosen to "
+            "be translated for a content type. A field still only goes along when it is "
+            "chosen for the content type."
         ),
         value_type=schema.TextLine(),
         default=list(COPIED_FIELDS),

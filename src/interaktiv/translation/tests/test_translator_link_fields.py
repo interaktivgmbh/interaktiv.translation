@@ -19,7 +19,7 @@ class TestLinkFields(TestCase):
         manager = ITranslationManager(self.target_a)
         manager.add_translation("en")
         self.target_a_en = manager.get_translation("en")
-        api.portal.set_registry_record(SELECTION, {"Link": ["remoteUrl"]})
+        api.portal.set_registry_record(SELECTION, {"Link": {"remoteUrl": "copy"}})
 
     def _translate_link(self, remote_url):
         link = api.content.create(container=self.portal["de"], type="Link", id="link-a", title="Link A")

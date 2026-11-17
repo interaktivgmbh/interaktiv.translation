@@ -122,6 +122,16 @@
   (`target`, `title`). Such a node is numbered (`data-slate-node`), only the
   number travels to the translation service, and the properties are given
   back by it, also where the translation moved or split the text.
+- The fields per content type name how each field goes along:
+  `metadata_selection` is `{portal_type: {field_id: "translate" | "copy"}}`
+  now, no longer a list of fields. A text may be translated or taken over; a
+  number, a date, a file, a choice, a list, a reference, a link, a language
+  independent field and a field named in `copied_fields` are only taken
+  over. What always goes along, and a field the mapping has values for, has
+  no choice. `GET @translation-fields` tells the modes a field can take
+  (`modes`). Upgrade step 1001 → 1002 turns the lists into the new form,
+  each field with the mode it had by its kind; a list still found is read
+  that way too. Needs the front end that writes the new form.
 
 ## 1.0.0a1 (2026-10-14)
 

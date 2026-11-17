@@ -174,8 +174,8 @@ msgid "Fields per content type"
 msgstr "Felder je Inhaltstyp"
 
 #: ../registry/translation.py
-msgid "Sets per content type which fields go along into the translation. Only fields filled in on the page count. Whether a field is translated or taken over as it is follows from the kind of field; a field with values in the metadata mapping goes through the mapping."
-msgstr "Legt je Inhaltstyp fest, welche Felder in die Übersetzung mitgehen. Berücksichtigt werden nur Felder, die auf der Seite tatsächlich ausgefüllt sind. Ob ein Feld übersetzt oder unverändert übernommen wird, ergibt sich aus der Art des Feldes; ein Feld mit Einträgen im Metadaten-Mapping geht über das Mapping."
+msgid "Sets per content type which fields go along into the translation, and whether a field is translated or taken over as it is. Only fields filled in on the page count. Only a text can be translated; a field with values in the metadata mapping goes through the mapping."
+msgstr "Legt je Inhaltstyp fest, welche Felder in die Übersetzung mitgehen und ob ein Feld übersetzt oder unverändert übernommen wird. Berücksichtigt werden nur Felder, die auf der Seite tatsächlich ausgefüllt sind. Übersetzen lässt sich nur Text; ein Feld mit Einträgen im Metadaten-Mapping geht über das Mapping."
 
 #: ../registry/translation.py
 msgid "Fields never translated"
@@ -198,8 +198,8 @@ msgid "Fields taken over unchanged"
 msgstr "Unverändert übernommene Felder"
 
 #: ../registry/translation.py
-msgid "Fields taken over as they are where their kind would have them translated: text that is no prose, as an address or a project number. Named as in the schema, one per line, for every content type. A field still only goes along when it is chosen for the content type."
-msgstr "Felder, die unverändert übernommen werden, wo sie ihrer Art nach übersetzt würden: Text, der keine Sprache ist, etwa eine Adresse oder eine Projektnummer. Benannt wie im Schema, eines pro Zeile, für alle Inhaltstypen. Ein Feld geht trotzdem nur mit, wenn es für den Inhaltstyp ausgewählt ist."
+msgid "Fields taken over as they are where their kind would have them translated: text that is no prose, as an address or a project number. Named as in the schema, one per line, for every content type. Such a field cannot be chosen to be translated for a content type. A field still only goes along when it is chosen for the content type."
+msgstr "Felder, die unverändert übernommen werden, wo sie ihrer Art nach übersetzt würden: Text, der keine Sprache ist, etwa eine Adresse oder eine Projektnummer. Benannt wie im Schema, eines pro Zeile, für alle Inhaltstypen. Ein solches Feld lässt sich für keinen Inhaltstyp auf „Übersetzen“ stellen. Ein Feld geht trotzdem nur mit, wenn es für den Inhaltstyp ausgewählt ist."
 
 #: ../registry/translation.py
 msgid "DeepL glossary IDs"

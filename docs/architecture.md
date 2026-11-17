@@ -143,9 +143,14 @@ fields of a type are its schema and its behaviors, minus the fields named in
    and the type's primary field, as the image of an image — always;
 2. a field the metadata mapping has values for — through the mapping;
 3. a field chosen for the type in `metadata_selection`
-   (`{portal_type: [field_id, …]}`); nothing else.
+   (`{portal_type: {field_id: "translate" | "copy"}}`); nothing else.
 
-How a going field is treated follows from `copied_fields` (taken over),
+A chosen field goes along as it is chosen, among the modes it can take
+(`modes` in `GET @translation-fields`): a text either way, anything else
+taken over, and so a text named in `copied_fields`. A mode it cannot take
+is ignored, and so is the choice for a field of rule 1 or 2. What a field
+can take, and how a field of rule 1 goes along, follows from
+`copied_fields` (taken over),
 plone.app.multilingual's language independent fields (taken over), and else
 the kind of field: text is translated; booleans, numbers, dates, choices,
 addresses, files and images are taken over; a reference cannot go along.

@@ -173,7 +173,7 @@ msgid "Fields per content type"
 msgstr ""
 
 #: ../registry/translation.py
-msgid "Sets per content type which fields go along into the translation. Only fields filled in on the page count. Whether a field is translated or taken over as it is follows from the kind of field; a field with values in the metadata mapping goes through the mapping."
+msgid "Sets per content type which fields go along into the translation, and whether a field is translated or taken over as it is. Only fields filled in on the page count. Only a text can be translated; a field with values in the metadata mapping goes through the mapping."
 msgstr ""
 
 #: ../registry/translation.py
@@ -197,7 +197,7 @@ msgid "Fields taken over unchanged"
 msgstr ""
 
 #: ../registry/translation.py
-msgid "Fields taken over as they are where their kind would have them translated: text that is no prose, as an address or a project number. Named as in the schema, one per line, for every content type. A field still only goes along when it is chosen for the content type."
+msgid "Fields taken over as they are where their kind would have them translated: text that is no prose, as an address or a project number. Named as in the schema, one per line, for every content type. Such a field cannot be chosen to be translated for a content type. A field still only goes along when it is chosen for the content type."
 msgstr ""
 
 #: ../registry/translation.py

@@ -138,8 +138,8 @@ class Settings:
         return None
 
     @property
-    def metadata_selection(self) -> Dict[str, List[str]]:
-        # {portal_type: [field_id, ...]}: the fields chosen per content type
+    def metadata_selection(self) -> Dict[str, Any]:
+        # {portal_type: {field_id: mode}}: the fields chosen per content type, and how they go along
         selection = self._get("metadata_selection", {})
         return selection if isinstance(selection, dict) else {}
 

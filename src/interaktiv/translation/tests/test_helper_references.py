@@ -111,7 +111,7 @@ class TestTranslatedTargets(TestCase):
     def test_translate__takes_the_chosen_references_along(self):
         # setup
         document = self._document_with_references(self.target_a, self.target_b)
-        api.portal.set_registry_record(SELECTION, {"Document": ["relatedItems"]})
+        api.portal.set_registry_record(SELECTION, {"Document": {"relatedItems": "copy"}})
         translator = ContentTranslator(translation_provider=MockProvider())
 
         # do it
@@ -124,7 +124,7 @@ class TestTranslatedTargets(TestCase):
     def test_translate__writes_references_of_their_own(self):
         # setup
         document = self._document_with_references(self.target_a)
-        api.portal.set_registry_record(SELECTION, {"Document": ["relatedItems"]})
+        api.portal.set_registry_record(SELECTION, {"Document": {"relatedItems": "copy"}})
         result = ContentTranslator(translation_provider=MockProvider()).translate(document, "en", "de")
         translation = api.content.create(container=self.portal["en"], type="Document", id="document-a", title="A")
 

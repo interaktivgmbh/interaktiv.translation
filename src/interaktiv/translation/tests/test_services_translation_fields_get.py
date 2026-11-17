@@ -14,6 +14,7 @@ from interaktiv.translation.helpers.field_selection import (
     ROLE_DEFAULT,
     ROLE_ALWAYS,
     get_handled_fields,
+    get_suggested_modes,
 )
 from interaktiv.translation.testing import (
     INTERAKTIV_TRANSLATION_FUNCTIONAL_TESTING,
@@ -89,7 +90,7 @@ class TestTranslationFieldsGet(TranslationFieldsTestCase):
         self.assertEqual(fields[0]["fieldset"], "default")
         self.assertEqual(
             set(fields[0]),
-            {"id", "title", "fieldset", "kind", "role", "mode", "reason", "mapped", "mappable"},
+            {"id", "title", "fieldset", "kind", "role", "mode", "modes", "reason", "mapped", "mappable"},
         )
 
     def test_get__puts_the_page_content_after_title_and_description(self):
@@ -213,6 +214,37 @@ class TestTranslationFieldsGet(TranslationFieldsTestCase):
         # no longer named: back to its kind of field
         self.assertEqual(event["contact_email"]["mode"], MODE_TRANSLATE)
 
+    def test_get__tells_the_modes_a_site_may_choose(self):
+        # do it
+        page = self._fields("Document")
+
+        # postcondition — a text either way, a list of keywords and a reference only taken over
+        self.assertEqual(page["rights"]["modes"], [MODE_TRANSLATE, MODE_COPY])
+        self.assertEqual(page["subjects"]["modes"], [MODE_COPY])
+        self.assertEqual(page["relatedItems"]["modes"], [MODE_COPY])
+        # what always goes along has no choice
+        self.assertEqual(page["title"]["modes"], [])
+
+    def test_get__a_text_named_to_be_copied_is_only_taken_over(self):
+        # do it
+        event = self._fields("Event")
+
+        # postcondition — a text by its kind, but named for every type
+        self.assertEqual(event["contact_phone"]["mode"], MODE_COPY)
+        self.assertEqual(event["contact_phone"]["modes"], [MODE_COPY])
+
+    def test_get__a_text_no_longer_named_to_be_copied_may_be_translated(self):
+        # setup
+        _records().copied_fields = []
+        transaction.commit()
+
+        # postcondition
+        self.assertEqual(self._fields("Event")["contact_phone"]["modes"], [MODE_TRANSLATE, MODE_COPY])
+
+    def test_get__a_link_field_is_only_taken_over(self):
+        # postcondition
+        self.assertEqual(self._fields("Link")["remoteUrl"]["modes"], [MODE_COPY])
+
 
 class TestTranslationFieldsGetMultilingual(TranslationFieldsTestCase):
     layer = INTERAKTIV_TRANSLATION_MULTILINGUAL_FUNCTIONAL_TESTING
@@ -255,8 +287,47 @@ class TestHandledFields(TestCase):
         self.assertEqual(list(modes)[:3], ["title", "description", "text"])
         self.assertNotIn("subjects", modes)
 
-    def test_handled_fields__takes_the_chosen_fields_by_their_mode(self):
+    def test_handled_fields__takes_the_chosen_fields_as_they_are_chosen(self):
         # do it
+        modes = get_handled_fields("Document", {"Document": {"subjects": "copy", "rights": "copy"}})
+
+        # postcondition — "rights" is a text and would be translated by its kind
+        self.assertEqual(modes["subjects"], MODE_COPY)
+        self.assertEqual(modes["rights"], MODE_COPY)
+
+    def test_handled_fields__a_field_named_to_be_copied_is_not_translated_by_choice(self):
+        # do it
+        modes = get_handled_fields(
+            "Document", {"Document": {"rights": "translate"}}, rules=FieldRules(copied=("rights",))
+        )
+
+        # postcondition — named for every type: the choice of one type does not count
+        self.assertEqual(modes["rights"], MODE_COPY)
+
+    def test_handled_fields__a_mode_the_field_cannot_take_is_no_choice(self):
+        # do it
+        modes = get_handled_fields("Document", {"Document": {"subjects": "translate", "rights": "mapping"}})
+
+        # postcondition — back to the kind of field
+        self.assertEqual(modes["subjects"], MODE_COPY)
+        self.assertEqual(modes["rights"], MODE_TRANSLATE)
+
+    def test_handled_fields__what_always_goes_along_has_no_choice(self):
+        # do it
+        modes = get_handled_fields("Document", {"Document": {"title": "copy"}})
+
+        # postcondition
+        self.assertEqual(modes["title"], MODE_TRANSLATE)
+
+    def test_handled_fields__the_mapping_comes_before_the_choice(self):
+        # do it
+        modes = get_handled_fields("Document", {"Document": {"subjects": "copy"}}, mapped_fields=["subjects"])
+
+        # postcondition
+        self.assertEqual(modes["subjects"], MODE_MAPPING)
+
+    def test_handled_fields__a_list_of_fields_goes_by_the_kind_of_field(self):
+        # do it — as the fields were chosen before they named how they go along
         modes = get_handled_fields("Document", {"Document": ["subjects", "rights"]})
 
         # postcondition
@@ -296,3 +367,20 @@ class TestHandledFields(TestCase):
 
     def test_handled_fields__translates_the_title_of_a_type_dexterity_does_not_know(self):
         self.assertEqual(get_handled_fields("type_unknown", {})["title"], MODE_TRANSLATE)
+
+    def test_suggested_modes__names_the_mode_of_each_field_by_its_kind(self):
+        # do it — the title needs no choice, "field_a" is no field of the type
+        modes = get_suggested_modes("Document", ["subjects", "title", "rights", "field_a"])
+
+        # postcondition — in the order given
+        self.assertEqual(list(modes.items()), [("subjects", MODE_COPY), ("rights", MODE_TRANSLATE)])
+
+    def test_suggested_modes__goes_by_the_rules_given(self):
+        # do it
+        modes = get_suggested_modes("Document", ["rights"], FieldRules(copied=("rights",)))
+
+        # postcondition
+        self.assertEqual(modes, {"rights": MODE_COPY})
+
+    def test_suggested_modes__knows_no_field_of_a_type_dexterity_does_not_know(self):
+        self.assertEqual(get_suggested_modes("type_unknown", ["title"]), {})

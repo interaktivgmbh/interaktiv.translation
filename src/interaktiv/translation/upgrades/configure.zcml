@@ -12,4 +12,13 @@
       handler="interaktiv.translation.upgrades.v1000_to_v1001.upgrade"
       />
 
+  <genericsetup:upgradeStep
+      title="Fields per content type with the way each field goes along"
+      description="Turns the list of fields chosen per content type into the fields with their mode, translate or copy, as each field went along by its kind."
+      profile="interaktiv.translation:default"
+      source="1001"
+      destination="1002"
+      handler="interaktiv.translation.upgrades.v1001_to_v1002.upgrade"
+      />
+
 </configure>

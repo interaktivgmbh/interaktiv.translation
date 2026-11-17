@@ -608,7 +608,7 @@ class TestTranslateServiceOnAMultilingualSite(TestCase):
 
     def test_post__carries_the_chosen_fields_over_and_reports_them(self):
         # setup
-        _records().metadata_selection = {"Document": ["subjects", "exclude_from_nav"]}
+        _records().metadata_selection = {"Document": {"subjects": "copy", "exclude_from_nav": "copy"}}
         self.page.setSubject(("Wert A", "Wert B"))
         self.page.exclude_from_nav = True
         transaction.commit()
@@ -638,7 +638,7 @@ class TestTranslateServiceOnAMultilingualSite(TestCase):
 
     def test_post__translates_a_chosen_text_field(self):
         # setup
-        _records().metadata_selection = {"Document": ["rights"]}
+        _records().metadata_selection = {"Document": {"rights": "translate"}}
         self.page.rights = "Rechte"
         transaction.commit()
 
@@ -651,9 +651,23 @@ class TestTranslateServiceOnAMultilingualSite(TestCase):
         transaction.begin()
         self.assertEqual(self.portal["en"]["good-day"].rights, "Rights")
 
+    def test_post__takes_a_text_field_over_where_the_site_chose_so(self):
+        # setup
+        _records().metadata_selection = {"Document": {"rights": "copy"}}
+        self.page.rights = "Rechte"
+        transaction.commit()
+
+        # do it
+        response = self._translate()
+
+        # postcondition — not sent to the translation service, named in the report
+        transaction.begin()
+        self.assertEqual(self.portal["en"]["good-day"].rights, "Rechte")
+        self.assertEqual(response.json()["report"]["copied"], ["rights"])
+
     def test_post__does_not_take_metadata_over_from_the_folder(self):
         # setup — the fields sit on the language folder, not on the page
-        _records().metadata_selection = {"Document": ["field_a"]}
+        _records().metadata_selection = {"Document": {"field_a": "copy"}}
         _records().metadata_mapping_table = {"field_b": [{"de": "Wert B", "en": "value b"}]}
         self.portal["de"].field_a = "Wert A"
         self.portal["de"].field_b = "Wert B"
@@ -1432,7 +1446,7 @@ class TestControlPanels(TestCase):
 
     def test_patch__accepts_a_selection_of_fields_per_type(self):
         # setup
-        selection = {"type_a": ["field_a", "field_b"], "type_b": []}
+        selection = {"type_a": {"field_a": "translate", "field_b": "copy"}, "type_b": {}}
 
         # do it
         response = self.api_session.patch("/@controlpanels/translation", json={"metadata_selection": selection})
@@ -1443,7 +1457,13 @@ class TestControlPanels(TestCase):
         self.assertEqual(_records().metadata_selection, selection)
 
     def test_patch__refuses_a_selection_of_the_wrong_shape(self):
-        for selection in ({"type_a": "field_a"}, {"type_a": ["field_a", "field_a"]}, {"type_a": [""]}):
+        # a list of fields, as it was before a field named how it goes along, is refused too
+        for selection in (
+            {"type_a": "field_a"},
+            {"type_a": ["field_a"]},
+            {"type_a": {"field_a": "mapping"}},
+            {"type_a": {"": "copy"}},
+        ):
             with self.subTest(selection=selection):
                 # do it
                 response = self.api_session.patch("/@controlpanels/translation", json={"metadata_selection": selection})

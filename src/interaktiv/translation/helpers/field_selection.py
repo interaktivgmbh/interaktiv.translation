@@ -14,6 +14,12 @@ Every listed field has a role and a mode:
 
 ``reason`` names the rule that decided the mode, for the control panel to tell.
 
+The mode is a suggestion: for a field of role ``default`` the site says how it goes
+along, ``translate`` or ``copy``, among the modes the field can take (``modes``).
+Only a text can be translated; a reference, a link, a language independent field and
+a field the site names to be copied (``copied_fields``) are taken over. What always
+goes along, and what the mapping translates, has no choice.
+
 A reference (a relation, or a list of them) is taken over pointing at the target's
 translation where there is one, else at the target itself — as an editor may
 choose content of another language too. A link field (``link_fields``) is taken
@@ -51,16 +57,16 @@ except ImportError:  # pragma: no cover - plone.app.multilingual is a dependency
     MULTILINGUAL_KEY = None
     ILanguageIndependentField = None
 
-# {portal_type: [field_id, ...]}:
-# list of field_ids that are handled by translation for each portal_type
-# for a missing portal_type the default and mapped fields are handled
+# {portal_type: {field_id: "translate" | "copy"}}:
+# the fields that go along for each portal_type, and how
+# for a missing portal_type the always and mapped fields are handled
 METADATA_SELECTION_JSON_SCHEMA = json.dumps(
     {
         "type": "object",
         "additionalProperties": {
-            "type": "array",
-            "items": {"type": "string", "minLength": 1},
-            "uniqueItems": True,
+            "type": "object",
+            "propertyNames": {"minLength": 1},
+            "additionalProperties": {"enum": ["translate", "copy"]},
         },
     }
 )
@@ -268,6 +274,31 @@ def classify_field(
     return role, by_type, REASON_FIELD_TYPE if role == ROLE_DEFAULT else role_reason
 
 
+def selectable_modes(field: Any, role: str, reason: str) -> List[str]:
+    """The modes a site may choose for a field; none where it has no choice."""
+    if role != ROLE_DEFAULT:
+        return []
+    # a field named to be copied is copied for every type: no choice of one type
+    if reason in (REASON_REFERENCE, REASON_LINK, REASON_LANGUAGE_INDEPENDENT, REASON_FIELD_NAME):
+        return [MODE_COPY]
+    if mode_by_field_type(field) == MODE_TRANSLATE:
+        return [MODE_TRANSLATE, MODE_COPY]
+
+    return [MODE_COPY]
+
+
+def chosen_modes(selection: Any, portal_type: str) -> Dict[str, Optional[str]]:
+    """``{field_id: mode}`` as chosen for a type; ``None`` for a field chosen without a mode."""
+    chosen = (selection or {}).get(portal_type) if isinstance(selection, dict) else None
+    if isinstance(chosen, dict):
+        return {name: mode for name, mode in chosen.items() if isinstance(name, str)}
+    # a list, as it was before the mode could be chosen: the fields go by their kind
+    if isinstance(chosen, (list, tuple)):
+        return {name: None for name in chosen if isinstance(name, str)}
+
+    return {}
+
+
 def _language_independent_names(schemata: Iterable[Any]) -> Set[str]:
     if MULTILINGUAL_KEY is None:
         return set()
@@ -346,6 +377,7 @@ def get_listed_fields(
                     "kind": type(field).__name__,
                     "role": role,
                     "mode": mode,
+                    "modes": selectable_modes(field, role, reason),
                     "reason": reason,
                     "mapped": name in mapped and role != ROLE_IMPOSSIBLE and reason not in unmappable,
                     "mappable": role == ROLE_DEFAULT and reason == REASON_FIELD_TYPE and holds_texts(field),
@@ -357,7 +389,7 @@ def get_listed_fields(
 
 def get_handled_fields(
     portal_type: Optional[str],
-    selection: Dict[str, List[str]],
+    selection: Dict[str, Any],
     mapped_fields: Iterable[str] = (),
     rules: FieldRules = DEFAULT_RULES,
 ) -> Dict[str, str]:
@@ -368,7 +400,7 @@ def get_handled_fields(
 
     schemata = (fti.lookupSchema(),) + tuple(getAdditionalSchemata(portal_type=portal_type))
     independent = _language_independent_names(schemata)
-    chosen = set((selection or {}).get(portal_type) or ())
+    chosen = chosen_modes(selection, portal_type)
     mapped = set(mapped_fields)
 
     going: List[Dict[str, Any]] = []
@@ -379,7 +411,7 @@ def get_handled_fields(
                 continue
             seen.add(name)
 
-            role, mode, _reason = classify_field(
+            role, mode, reason = classify_field(
                 field,
                 primary=IPrimaryField.providedBy(field),
                 language_independent=name in independent
@@ -389,10 +421,47 @@ def get_handled_fields(
             )
             if role == ROLE_IMPOSSIBLE:
                 continue
-            if role == ROLE_ALWAYS or name in mapped or name in chosen:
+            if role == ROLE_ALWAYS or name in mapped:
                 going.append({"id": name, "mode": mode})
+            elif name in chosen:
+                # a mode the field cannot take is no choice: the field goes by its kind
+                wanted = chosen[name]
+                going.append({"id": name, "mode": wanted if wanted in selectable_modes(field, role, reason) else mode})
 
     # what always goes along, also where no schema names it (blocks without the behavior)
     going.extend({"id": name, "mode": MODE_TRANSLATE} for name in rules.always if name not in seen)
 
     return {field["id"]: field["mode"] for field in always_first(going, rules.always)}
+
+
+def get_suggested_modes(
+    portal_type: str, field_ids: Iterable[str], rules: FieldRules = DEFAULT_RULES
+) -> Dict[str, str]:
+    """``{field_id: mode}`` of the given fields as their kind has it, for the fields
+    of the type a site has a choice for; the mapping is left out, as in the listing."""
+    fti = queryUtility(IDexterityFTI, name=portal_type)
+    if fti is None:
+        return {}
+
+    schemata = (fti.lookupSchema(),) + tuple(getAdditionalSchemata(portal_type=portal_type))
+    independent = _language_independent_names(schemata)
+    wanted = list(field_ids)
+
+    modes: Dict[str, str] = {}
+    for item in schemata:
+        for name, field in schema.getFieldsInOrder(item):
+            if name in modes or name not in wanted or name in rules.excluded:
+                continue
+
+            role, mode, reason = classify_field(
+                field,
+                primary=IPrimaryField.providedBy(field),
+                language_independent=name in independent
+                or bool(ILanguageIndependentField and ILanguageIndependentField.providedBy(field)),
+                rules=rules,
+            )
+            if mode in selectable_modes(field, role, reason):
+                modes[name] = mode
+
+    # in the order they were chosen
+    return {name: modes[name] for name in wanted if name in modes}
