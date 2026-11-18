@@ -34,12 +34,18 @@ class TestBlockHandlerRegistry(TestCase):
         self.assertEqual(registry.names(), ["teaser"])
 
     def test_register__refuses_a_handler_without_a_type(self):
+        # do it
         with self.assertRaises(ValueError):
             BlockHandlerRegistry().register("", DefaultBlockHandler())
 
     def test_get__answers_nothing_for_a_type_nobody_registered(self):
-        self.assertIsNone(BlockHandlerRegistry().get("nope"))
-        self.assertIsNone(BlockHandlerRegistry().get(None))
+        # do it
+        unknown_type_handler = BlockHandlerRegistry().get("nope")
+        missing_type_handler = BlockHandlerRegistry().get(None)
+
+        # postcondition
+        self.assertIsNone(unknown_type_handler)
+        self.assertIsNone(missing_type_handler)
 
     def test_register__lets_a_project_replace_a_handler(self):
         # setup
@@ -139,7 +145,7 @@ class TestDefaultBlockHandlerEscaping(TestCase):
 
 
 class TestDefaultBlockHandlerSlateValue(TestCase):
-    # The text block itself: a slate `value` beside its `plaintext`.
+    # the text block itself: a slate `value` beside its `plaintext`
 
     def setUp(self):
         super().setUp()
@@ -171,8 +177,7 @@ class TestDefaultBlockHandlerSlateValue(TestCase):
         self.assertEqual(pairs, [])
 
     def test_texts__sends_nothing_for_the_empty_default_paragraph(self):
-        # setup — Volto writes this block on almost every page; it serializes
-        # to <p></p>, and there is nothing in it to pay a provider for
+        # setup
         block = {
             "@type": "slate",
             "value": [{"type": "p", "children": [{"text": ""}]}],
@@ -196,7 +201,7 @@ class TestDefaultBlockHandlerSlateValue(TestCase):
         # do it
         rebuilt = self.handler.rebuild(block, [])
 
-        # postcondition — untouched, and still a valid slate tree
+        # postcondition
         self.assertEqual(rebuilt, block)
 
     def test_texts__falls_back_to_the_leaf_walk_for_an_empty_value_with_plaintext(self):
@@ -220,7 +225,7 @@ class TestDefaultBlockHandlerSlateValue(TestCase):
         # do it
         pairs = self.handler.texts(block)
 
-        # postcondition — the inherited walk reads the text leaves one by one.
+        # postcondition
         self.assertEqual(
             pairs,
             [
@@ -230,14 +235,13 @@ class TestDefaultBlockHandlerSlateValue(TestCase):
         )
 
     def test_texts__falls_back_to_the_leaf_walk_for_a_value_that_is_no_tree(self):
-        # setup — imports and direct PATCHes write shapes no slate tree
-        # should hold, and plone.restapi accepts them
+        # setup
         block = {"@type": "slate", "value": "Value A", "plaintext": "Value A"}
 
         # do it
         pairs = self.handler.texts(block)
 
-        # postcondition — the leaf walk reads what it can
+        # postcondition
         self.assertEqual(
             pairs,
             [
@@ -283,7 +287,7 @@ class TestDefaultBlockHandlerSlateValue(TestCase):
         }
         pairs = self.handler.texts(block)
 
-        # do it — the answer as it was sent, the styled word moved to the front
+        # do it
         rebuilt = self.handler.rebuild(
             block,
             [
@@ -339,7 +343,7 @@ class TestDefaultBlockHandlerSlateValue(TestCase):
         # do it
         rebuilt = self.handler.rebuild(block, ["VALUE A", "VALUE A"])
 
-        # postcondition — written along the same paths the fallback walk read.
+        # postcondition
         self.assertEqual(rebuilt["value"][0]["children"][0]["text"], "VALUE A")
         self.assertEqual(rebuilt["value"][0]["type"], "unknown_type")
         self.assertEqual(rebuilt["plaintext"], "VALUE A")
@@ -351,7 +355,7 @@ class TestDefaultBlockHandlerSlateValue(TestCase):
         # do it
         rebuilt = self.handler.rebuild(block, ["VALUE A", "VALUE A"])
 
-        # postcondition — written along the same paths the fallback walk read
+        # postcondition
         self.assertEqual(rebuilt["value"], "VALUE A")
         self.assertEqual(rebuilt["plaintext"], "VALUE A")
 
@@ -408,6 +412,7 @@ class TestBlocksExtractorDispatch(TestCase):
         self.assertEqual(rebuilt["b2"]["title"], "TITLE VALUE B1")
 
     def test_texts__still_reads_an_entry_that_is_no_block(self):
+        # setup
         page = {"title": "Title Value", "b": {"@type": "default_block_type", "title": "Title Value b"}}
         extractor = BlocksExtractor()
 
@@ -422,8 +427,7 @@ class TestBlocksExtractorDispatch(TestCase):
         self.assertEqual(rebuilt["b"]["title"], "TITLE VALUE B")
 
     def test_texts__one_broken_block_does_not_cost_the_field(self):
-        # setup — b1 holds a leaf without text; its error used to propagate
-        # and leave the whole blocks field untranslated
+        # setup
         page = {
             "b1": {"@type": "slate", "value": [{"type": "p", "children": [{"text": None}]}]},
             "b2": {"@type": "default_block_type", "title": "Title Value"},
@@ -432,7 +436,7 @@ class TestBlocksExtractorDispatch(TestCase):
         # do it
         texts = BlocksExtractor().texts(page)
 
-        # postcondition — the healthy block still came through
+        # postcondition
         self.assertEqual(texts, ["Title Value"])
 
 
@@ -462,7 +466,7 @@ class TestDefaultBlockHandlerSlateTrees(TestCase):
         # do it
         pairs = self.handler.texts(block)
 
-        # postcondition — one string, and plaintext is not sent a second time
+        # postcondition
         self.assertEqual(pairs, [(("value",), self.html)])
 
     def test_texts__reads_the_other_keys_of_the_block_beside_the_tree(self):
@@ -478,7 +482,7 @@ class TestDefaultBlockHandlerSlateTrees(TestCase):
         # do it
         pairs = self.handler.texts(block)
 
-        # postcondition — the author is no text key and stays
+        # postcondition
         self.assertEqual(pairs, [(("value",), self.html), (("field_to_translate",), "Direktor")])
 
     def test_texts__finds_a_tree_under_a_nested_key(self):
@@ -550,11 +554,11 @@ class TestDefaultBlockHandlerSlateTrees(TestCase):
         # do it
         pairs = self.handler.texts(block)
 
-        # postcondition — an object list keeps being read key by key
+        # postcondition
         self.assertEqual(pairs, [(("value", 0, "title"), "Eintrag")])
 
     def test_rebuild__keeps_the_other_keys_of_a_list_that_only_looks_like_a_tree(self):
-        # setup — items with a `text` but no element on top: no slate tree
+        # setup
         handler = DefaultBlockHandler(["text"])
         block = {"@type": "someblock", "value": [{"@id": "1", "text": "Value A", "url": "/target"}]}
 
@@ -562,7 +566,7 @@ class TestDefaultBlockHandlerSlateTrees(TestCase):
         pairs = handler.texts(block)
         rebuilt = handler.rebuild(block, ["Value B"])
 
-        # postcondition — read key by key, the item keeps @id and url
+        # postcondition
         self.assertEqual(pairs, [(("value", 0, "text"), "Value A")])
         self.assertEqual(rebuilt["value"], [{"@id": "1", "text": "Value B", "url": "/target"}])
 
@@ -620,7 +624,7 @@ class TestDefaultBlockHandlerRichText(TestCase):
         # do it
         pairs = self.handler.texts(self.block)
 
-        # postcondition — not escaped: the widget wrote HTML on purpose
+        # postcondition
         self.assertEqual(
             pairs,
             [(("heading",), "Forschung"), (("description", "data"), "<p>Die <b>Anlage</b> läuft.</p>")],
@@ -637,7 +641,7 @@ class TestDefaultBlockHandlerRichText(TestCase):
         self.assertEqual(pairs, [])
 
     def test_texts__walks_a_data_dict_under_a_key_that_is_no_text_key(self):
-        # setup — an accordion keeps its panels under `data`
+        # setup
         handler = DefaultBlockHandler(["title"])
         block = {"@type": "accordion", "data": {"blocks": {"p1": {"title": "Panel"}}}}
 
@@ -666,5 +670,5 @@ class TestDefaultBlockHandlerRichText(TestCase):
         # do it
         rebuilt = self.handler.rebuild(block, ["<p>A &amp; B</p>"])
 
-        # postcondition — the entity stays an entity, as the widget stores it
+        # postcondition
         self.assertEqual(rebuilt["description"]["data"], "<p>A &amp; B</p>")

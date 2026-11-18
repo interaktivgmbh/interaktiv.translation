@@ -32,14 +32,14 @@ class TestBlocksExtractor(TestCase):
         # do it
         texts = BlocksExtractor().texts(SLATE_PAGE)
 
-        # postcondition — the slate block travels as one HTML string, the
-        # other blocks leaf by leaf.
+        # postcondition
         self.assertEqual(sorted(texts), sorted(["<p>Guten Tag</p>", "Ein Bild", "Aktuelles"]))
 
     def test_texts__leaves_structure_alone(self):
-        # postcondition — a path, a portal type, a sort index and a size are
-        # not prose, and a translated one breaks the page.
+        # do it
         texts = BlocksExtractor().texts(SLATE_PAGE)
+
+        # postcondition
         for structural in ("/bilder/hero.jpg", "full", "l", "News Item", "effective", "slate"):
             self.assertNotIn(structural, texts)
 
@@ -55,18 +55,20 @@ class TestBlocksExtractor(TestCase):
         self.assertEqual(rebuilt["b1"]["value"][0]["children"][0]["text"], "GUTEN TAG")
         self.assertEqual(rebuilt["b2"]["alt"], "EIN BILD")
         self.assertEqual(rebuilt["b3"]["headline"], "AKTUELLES")
-        # Structure untouched, and the original not mutated.
+        # structure untouched, and the original not mutated
         self.assertEqual(rebuilt["b2"]["url"], "/bilder/hero.jpg")
         self.assertEqual(rebuilt["b3"]["querystring"]["sort_on"], "effective")
         self.assertEqual(SLATE_PAGE["b2"]["alt"], "Ein Bild")
 
     def test_texts__skips_whitespace(self):
-        self.assertEqual(BlocksExtractor().texts({"b": {"title": "   "}}), [])
+        # do it
+        texts = BlocksExtractor().texts({"b": {"title": "   "}})
+
+        # postcondition
+        self.assertEqual(texts, [])
 
     def test_texts__never_reads_the_style_menus_values(self):
-        # postcondition — the style menu's values are English words, and the
-        # keys they sit under are prose elsewhere: a contact's `role` is a job
-        # title, a block's `role` is how it should look.
+        # setup
         page = {
             "b": {
                 "styles": {"role": "showcase", "surface": "subtle"},
@@ -74,30 +76,44 @@ class TestBlocksExtractor(TestCase):
             }
         }
 
-        self.assertEqual(BlocksExtractor(["role", "surface"]).texts(page), ["Studienberatung"])
+        # do it
+        texts = BlocksExtractor(["role", "surface"]).texts(page)
+
+        # postcondition
+        self.assertEqual(texts, ["Studienberatung"])
 
     def test_texts__reads_the_keys_it_was_given(self):
-        # A block type a project writes itself names its fields as it likes,
-        # and its prose is invisible to a reading that only knows the stock
-        # names.
+        # setup
         page = {"b": {"@type": "ownCard", "eyebrow": "Forschung", "profile_label": "Beratung"}}
 
-        self.assertEqual(BlocksExtractor().texts(page), ["Forschung"])
-        self.assertEqual(
-            sorted(BlocksExtractor(["eyebrow", "profile_label"]).texts(page)),
-            ["Beratung", "Forschung"],
-        )
+        # do it
+        stock_texts = BlocksExtractor().texts(page)
+        configured_texts = BlocksExtractor(["eyebrow", "profile_label"]).texts(page)
+
+        # postcondition
+        self.assertEqual(stock_texts, ["Forschung"])
+        self.assertEqual(sorted(configured_texts), ["Beratung", "Forschung"])
 
 
 class TestExtractorRegistry(TestCase):
     def test_for_value__reads_a_mapping_as_blocks_and_a_string_as_text(self):
+        # setup
         registry = default_extractors()
 
-        self.assertIsInstance(registry.for_value({"b": {}}), BlocksExtractor)
-        self.assertIsInstance(registry.for_value("Hallo"), TextExtractor)
+        # do it
+        mapping_extractor = registry.for_value({"b": {}})
+        string_extractor = registry.for_value("Hallo")
+
+        # postcondition
+        self.assertIsInstance(mapping_extractor, BlocksExtractor)
+        self.assertIsInstance(string_extractor, TextExtractor)
 
     def test_for_value__answers_nothing_for_a_shape_it_does_not_know(self):
-        self.assertIsNone(default_extractors().for_value(42))
+        # do it
+        extractor = default_extractors().for_value(42)
+
+        # postcondition
+        self.assertIsNone(extractor)
 
     def test_register__lets_a_customer_shadow_a_stock_extractor(self):
         # setup
@@ -115,8 +131,15 @@ class TestExtractorRegistry(TestCase):
 
 class TestTextExtractor(TestCase):
     def test_texts__escapes_a_plain_string_for_the_html_reading_provider(self):
-        self.assertEqual(TextExtractor().texts("a < b & 'c'"), ["a &lt; b &amp; 'c'"])
+        # do it
+        texts = TextExtractor().texts("a < b & 'c'")
+
+        # postcondition
+        self.assertEqual(texts, ["a &lt; b &amp; 'c'"])
 
     def test_rebuild__unescapes_the_answer(self):
-        # DeepL answers an apostrophe in HTML mode as an entity
-        self.assertEqual(TextExtractor().rebuild("", ["Here&#x27;s a picture"]), "Here's a picture")
+        # do it
+        rebuilt = TextExtractor().rebuild("", ["Here&#x27;s a picture"])
+
+        # postcondition
+        self.assertEqual(rebuilt, "Here's a picture")

@@ -75,8 +75,12 @@ class TestSlateHTMLSerializer(TestCase):
         self.assertEqual(result, "<ul><li>Item A</li><li>Item B</li></ul>")
 
     def test_slate_html_serializer__serialize__refuses_an_unknown_node_type(self):
+        # setup
+        nodes = [{"type": "unknown_type", "children": [{"text": "some text"}]}]
+
+        # do it
         with self.assertRaises(ValueError):
-            self.serializer.serialize([{"type": "unknown_type", "children": [{"text": "some text"}]}])
+            self.serializer.serialize(nodes)
 
     def test_slate_html_serializer__roundtrip_with_the_parser(self):
         # setup
@@ -115,7 +119,7 @@ class TestSlateHTMLSerializer(TestCase):
         # do it
         result = self.serializer.serialize(nodes)
 
-        # postcondition — the properties stay here, only the number travels
+        # postcondition
         self.assertEqual(result, '<p data-slate-node="1">some text</p>')
         self.assertEqual(self.serializer.node_properties, {"1": {"styleName": "style-a"}})
 
@@ -143,7 +147,7 @@ class TestSlateHTMLSerializer(TestCase):
         # do it
         result = self.serializer.serialize(nodes)
 
-        # postcondition — the url is the href and not kept twice
+        # postcondition
         self.assertEqual(result, '<a href="https://interaktiv.de" data-slate-node="1">link</a>')
         self.assertEqual(self.serializer.node_properties, {"1": {"data": {"target": "_blank", "title": "Title A"}}})
 

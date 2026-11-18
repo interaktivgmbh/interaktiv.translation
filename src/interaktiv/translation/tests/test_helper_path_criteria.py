@@ -38,20 +38,24 @@ class TestPathCriteria(TestCase):
         return result["block-a"]["querystring"]["query"]
 
     def test_uid__points_at_the_translation_and_keeps_its_depth(self):
-        # do it — as Volto stores it
+        # do it
         query = self._translated(_criterion(f"{self.folder_a.UID()}::1"))
 
         # postcondition
         self.assertEqual(query[0]["v"], f"{self.folder_a_en.UID()}::1")
 
     def test_uid_without_depth__points_at_the_translation(self):
-        self.assertEqual(self._translated(_criterion(self.folder_a.UID()))[0]["v"], self.folder_a_en.UID())
+        # do it
+        query = self._translated(_criterion(self.folder_a.UID()))
+
+        # postcondition
+        self.assertEqual(query[0]["v"], self.folder_a_en.UID())
 
     def test_path__points_at_the_translation_and_keeps_its_depth(self):
         # do it
         query = self._translated(_criterion(f"{self._path(self.folder_a)}::2"))
 
-        # postcondition — a path stays a path
+        # postcondition
         self.assertEqual(query[0]["v"], f"{self._path(self.folder_a_en)}::2")
 
     def test_path_with_the_portal__keeps_the_portal(self):
@@ -68,7 +72,7 @@ class TestPathCriteria(TestCase):
         # do it
         query = self._translated(_criterion(f"{self.folder_b.UID()}::1"), report=report)
 
-        # postcondition — the listing still lists the source language; the report tells
+        # postcondition
         self.assertEqual(query[0]["v"], f"{self.folder_b.UID()}::1")
         self.assertEqual(
             report,
@@ -104,7 +108,7 @@ class TestPathCriteria(TestCase):
         # do it
         query = self._translated(*[dict(criterion) for criterion in criteria], report=report)
 
-        # postcondition — it resolves inside the translation's own folder already
+        # postcondition
         self.assertEqual(query, criteria)
         self.assertEqual(report, [])
 
@@ -128,6 +132,6 @@ class TestPathCriteria(TestCase):
         # do it
         result = ContentTranslator(translation_provider=MockProvider()).translate(collection, "en", "de")
 
-        # postcondition — the source keeps its own search
+        # postcondition
         self.assertEqual(result["query"][0]["v"], f"{self.folder_a_en.UID()}::1")
         self.assertEqual(collection.query[0]["v"], f"{self.folder_a.UID()}::1")

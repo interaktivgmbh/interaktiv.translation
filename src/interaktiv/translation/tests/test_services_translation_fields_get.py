@@ -97,7 +97,7 @@ class TestTranslationFieldsGet(TranslationFieldsTestCase):
         # do it
         fields = self._types()["Event"]["fields"]
 
-        # postcondition — "text" comes later in the edit form of an event
+        # postcondition
         self.assertEqual([field["id"] for field in fields[:3]], ["title", "description", "text"])
 
     def test_get__leaves_out_the_excluded_fields(self):
@@ -150,7 +150,7 @@ class TestTranslationFieldsGet(TranslationFieldsTestCase):
         # do it
         subjects = self._fields("Document")["subjects"]
 
-        # postcondition — the control panel decides with the mapping it edits
+        # postcondition
         self.assertTrue(subjects["mapped"])
         self.assertEqual(subjects["mode"], MODE_COPY)
 
@@ -180,9 +180,7 @@ class TestTranslationFieldsGet(TranslationFieldsTestCase):
         # do it
         fields = {**self._fields("Event"), "remoteUrl": self._fields("Link")["remoteUrl"]}
 
-        # postcondition — keywords and text lines may be mapped; not what is
-        # always translated, a reference, a link, a date, a yes/no or a choice
-        # of no texts, nor a field taken over by its name
+        # postcondition
         offered = {"subjects": True, "location": True, "rights": True}
         refused = {
             "title": False,
@@ -197,7 +195,7 @@ class TestTranslationFieldsGet(TranslationFieldsTestCase):
                 self.assertEqual(fields[field_id]["mappable"], mappable)
 
     def test_get__goes_by_the_field_lists_of_the_site(self):
-        # setup — the site leaves out "rights", takes "location" over, always translates "contact_name"
+        # setup
         _records().excluded_fields = list(EXCLUDED_FIELDS) + ["rights"]
         _records().copied_fields = ["location"]
         _records().always_fields = ["title", "contact_name"]
@@ -218,7 +216,7 @@ class TestTranslationFieldsGet(TranslationFieldsTestCase):
         # do it
         page = self._fields("Document")
 
-        # postcondition — a text either way, a list of keywords and a reference only taken over
+        # postcondition
         self.assertEqual(page["rights"]["modes"], [MODE_TRANSLATE, MODE_COPY])
         self.assertEqual(page["subjects"]["modes"], [MODE_COPY])
         self.assertEqual(page["relatedItems"]["modes"], [MODE_COPY])
@@ -229,7 +227,7 @@ class TestTranslationFieldsGet(TranslationFieldsTestCase):
         # do it
         event = self._fields("Event")
 
-        # postcondition — a text by its kind, but named for every type
+        # postcondition
         self.assertEqual(event["contact_phone"]["mode"], MODE_COPY)
         self.assertEqual(event["contact_phone"]["modes"], [MODE_COPY])
 
@@ -238,12 +236,18 @@ class TestTranslationFieldsGet(TranslationFieldsTestCase):
         _records().copied_fields = []
         transaction.commit()
 
+        # do it
+        modes = self._fields("Event")["contact_phone"]["modes"]
+
         # postcondition
-        self.assertEqual(self._fields("Event")["contact_phone"]["modes"], [MODE_TRANSLATE, MODE_COPY])
+        self.assertEqual(modes, [MODE_TRANSLATE, MODE_COPY])
 
     def test_get__a_link_field_is_only_taken_over(self):
+        # do it
+        modes = self._fields("Link")["remoteUrl"]["modes"]
+
         # postcondition
-        self.assertEqual(self._fields("Link")["remoteUrl"]["modes"], [MODE_COPY])
+        self.assertEqual(modes, [MODE_COPY])
 
 
 class TestTranslationFieldsGetMultilingual(TranslationFieldsTestCase):
@@ -291,7 +295,7 @@ class TestHandledFields(TestCase):
         # do it
         modes = get_handled_fields("Document", {"Document": {"subjects": "copy", "rights": "copy"}})
 
-        # postcondition — "rights" is a text and would be translated by its kind
+        # postcondition
         self.assertEqual(modes["subjects"], MODE_COPY)
         self.assertEqual(modes["rights"], MODE_COPY)
 
@@ -301,14 +305,14 @@ class TestHandledFields(TestCase):
             "Document", {"Document": {"rights": "translate"}}, rules=FieldRules(copied=("rights",))
         )
 
-        # postcondition — named for every type: the choice of one type does not count
+        # postcondition
         self.assertEqual(modes["rights"], MODE_COPY)
 
     def test_handled_fields__a_mode_the_field_cannot_take_is_no_choice(self):
         # do it
         modes = get_handled_fields("Document", {"Document": {"subjects": "translate", "rights": "mapping"}})
 
-        # postcondition — back to the kind of field
+        # postcondition
         self.assertEqual(modes["subjects"], MODE_COPY)
         self.assertEqual(modes["rights"], MODE_TRANSLATE)
 
@@ -327,7 +331,7 @@ class TestHandledFields(TestCase):
         self.assertEqual(modes["subjects"], MODE_MAPPING)
 
     def test_handled_fields__a_list_of_fields_goes_by_the_kind_of_field(self):
-        # do it — as the fields were chosen before they named how they go along
+        # do it
         modes = get_handled_fields("Document", {"Document": ["subjects", "rights"]})
 
         # postcondition
@@ -362,17 +366,21 @@ class TestHandledFields(TestCase):
             "Document", {"Document": ["rights"]}, rules=FieldRules(excluded=("rights",), always=("title",), copied=())
         )
 
-        # postcondition — "text", the main field of a page, goes along all the same
+        # postcondition
         self.assertEqual(list(modes), ["title", "text"])
 
     def test_handled_fields__translates_the_title_of_a_type_dexterity_does_not_know(self):
-        self.assertEqual(get_handled_fields("type_unknown", {})["title"], MODE_TRANSLATE)
+        # do it
+        modes = get_handled_fields("type_unknown", {})
+
+        # postcondition
+        self.assertEqual(modes["title"], MODE_TRANSLATE)
 
     def test_suggested_modes__names_the_mode_of_each_field_by_its_kind(self):
-        # do it — the title needs no choice, "field_a" is no field of the type
+        # do it
         modes = get_suggested_modes("Document", ["subjects", "title", "rights", "field_a"])
 
-        # postcondition — in the order given
+        # postcondition
         self.assertEqual(list(modes.items()), [("subjects", MODE_COPY), ("rights", MODE_TRANSLATE)])
 
     def test_suggested_modes__goes_by_the_rules_given(self):
@@ -383,4 +391,8 @@ class TestHandledFields(TestCase):
         self.assertEqual(modes, {"rights": MODE_COPY})
 
     def test_suggested_modes__knows_no_field_of_a_type_dexterity_does_not_know(self):
-        self.assertEqual(get_suggested_modes("type_unknown", ["title"]), {})
+        # do it
+        modes = get_suggested_modes("type_unknown", ["title"])
+
+        # postcondition
+        self.assertEqual(modes, {})

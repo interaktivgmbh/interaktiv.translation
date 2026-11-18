@@ -8,7 +8,7 @@ from interaktiv.translation.extractors import ExtractorRegistry, FieldExtractor,
 from interaktiv.translation.providers.base import TranslationProvider
 from interaktiv.translation.translator import ContentTranslator
 
-# The smallest valid GIF: one transparent pixel.
+# the smallest valid GIF: one transparent pixel
 GIF = (
     b"GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff"
     b"!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;"
@@ -67,8 +67,7 @@ class TestContentTranslator(TestCase):
             )
             patcher.start()
             self.addCleanup(patcher.stop)
-        # which fields go along, and how: what the content type and the
-        # control panel decide, here decided by the test
+        # which fields go along and how, here decided by the test
         self.modes = {"title": "translate", "description": "translate", "blocks": "translate"}
         patcher = mock.patch(
             "interaktiv.translation.translator.get_handled_fields",
@@ -81,9 +80,14 @@ class TestContentTranslator(TestCase):
         return ContentTranslator(translation_provider=self.provider)
 
     def test_fields_of__names_only_the_fields_the_content_has(self):
+        # setup
         content = Content(title="Titel", blocks={})
 
-        self.assertEqual(self._translator().fields_of(content), ["title", "blocks"])
+        # do it
+        fields = self._translator().fields_of(content)
+
+        # postcondition
+        self.assertEqual(fields, ["title", "blocks"])
 
     def test_translate__answers_the_translated_fields_without_writing_them(self):
         # setup
@@ -107,19 +111,21 @@ class TestContentTranslator(TestCase):
         self.assertEqual(self.provider.calls[0][2], "de")
 
     def test_translate__never_takes_the_language_of_a_folder_above(self):
-        # setup — content without a language of its own, in a folder that has one
+        # setup
         folder = Folder(language="fr")
         content = AcquiringContent(title="Titel").__of__(folder)
 
         # do it
         self._translator().translate(content, "EN")
 
-        # postcondition — the site's default language, not the folder's
+        # postcondition
         self.assertEqual(self.provider.calls[0][2], "de")
 
     def test_translate__lets_the_caller_override_the_source_language(self):
+        # do it
         self._translator().translate(Content(title="Title"), "DE", source_language="en")
 
+        # postcondition
         self.assertEqual(self.provider.calls[0][2], "en")
 
     def test_translate__skips_a_field_that_is_empty(self):
@@ -129,7 +135,7 @@ class TestContentTranslator(TestCase):
         # do it
         result = self._translator().translate(content, "EN")
 
-        # postcondition — nothing was sent for the empty ones
+        # postcondition
         self.assertEqual(list(result), ["title"])
 
     def test_translate__keeps_going_when_one_field_cannot_be_read(self):
@@ -151,12 +157,11 @@ class TestContentTranslator(TestCase):
         # do it
         result = translator.translate(Content(title="boom", description="Text"), "EN")
 
-        # postcondition — the readable field still came back
+        # postcondition
         self.assertEqual(result, {"description": "TEXT"})
 
     def test_translate__carries_the_block_order_along_with_the_blocks(self):
-        # setup — the order is not prose, and a page written without it holds
-        # blocks that nothing lays out.
+        # setup
         content = Content(
             title="Titel",
             blocks={"b1": {"title": "Hallo"}},
@@ -171,10 +176,13 @@ class TestContentTranslator(TestCase):
         self.assertEqual(result["blocks"], {"b1": {"title": "HALLO"}})
 
     def test_translate__does_not_send_the_block_order_to_the_service(self):
+        # setup
         content = Content(blocks={"b1": {"title": "Hallo"}}, blocks_layout={"items": ["b1"]})
 
+        # do it
         self._translator().translate(content, "EN")
 
+        # postcondition
         self.assertEqual([text for call in self.provider.calls for text in call[0]], ["Hallo"])
 
     def test_translate__leaves_the_order_out_when_the_blocks_never_came_back(self):
@@ -203,8 +211,7 @@ class TestContentTranslator(TestCase):
         self.assertEqual(result, {"title": "TITEL"})
 
     def test_translate__keeps_the_translation_when_postprocessing_fails(self):
-        # setup — the translation is already made and paid for; a failing
-        # link rewrite may cost the rewritten links, never the content.
+        # setup
         content = Content(
             title="Titel",
             blocks={"b1": {"title": "Hallo"}},
@@ -218,8 +225,7 @@ class TestContentTranslator(TestCase):
         ):
             result = self._translator().translate(content, "EN")
 
-        # postcondition — every field carries the plain translation, and the
-        # block order came along with the blocks
+        # postcondition
         self.assertEqual(result["title"], "TITEL")
         self.assertEqual(result["blocks"], {"b1": {"title": "HALLO"}})
         self.assertEqual(result["blocks_layout"], {"items": ["b1"]})
@@ -235,8 +241,7 @@ class TestContentTranslator(TestCase):
         # do it
         result = self._translator().translate(content, "EN")
 
-        # postcondition — mapped where the table knows the value, carried
-        # over unchanged where it does not, and still a tuple
+        # postcondition
         self.assertEqual(result["field_a"], ("value a", "Wert X"))
         # the mapped field never went to the provider
         sent = [text for call in self.provider.calls for text in call[0]]
@@ -262,20 +267,19 @@ class TestContentTranslator(TestCase):
 
         # do it
         translator.translate(Content(title="Titel", field_a=("Wert A", "Wert X")), "EN")
+        first_report = list(translator.metadata_report)
+        translator.translate(Content(title="Titel", field_a=("Wert A",)), "EN")
+        second_report = list(translator.metadata_report)
 
-        # postcondition — same contract as the link report: `after` stays
-        # None for a value the table does not know
+        # postcondition
         self.assertEqual(
-            translator.metadata_report,
+            first_report,
             [
                 {"field": "field_a", "before": "Wert A", "after": "value a"},
                 {"field": "field_a", "before": "Wert X", "after": None},
             ],
         )
-
-        # a second run starts a fresh report
-        translator.translate(Content(title="Titel", field_a=("Wert A",)), "EN")
-        self.assertEqual(len(translator.metadata_report), 1)
+        self.assertEqual(len(second_report), 1)
 
     def test_translate__skips_a_mapped_field_the_content_does_not_have(self):
         # setup
@@ -289,7 +293,7 @@ class TestContentTranslator(TestCase):
         self.assertNotIn("field_a", result)
 
     def test_translate__skips_a_mapped_field_that_is_empty_in_the_source(self):
-        # setup — nothing to map: the translation keeps the values it has
+        # setup
         self.modes.update({"field_a": "mapping", "field_b": "mapping"})
         self.settings.get_metadata_mapping.return_value = {"field_a": {"Wert A": "value a"}, "field_b": {}}
         content = Content(title="Titel", field_a=(), field_b="")
@@ -310,7 +314,7 @@ class TestContentTranslator(TestCase):
         # do it
         result = translator.translate(content, "EN")
 
-        # postcondition — taken over as they are, never sent to the provider
+        # postcondition
         self.assertEqual(result["field_a"], ("Wert A", "Wert B"))
         self.assertEqual(result["field_b"], "Wert C")
         self.assertEqual(result["field_c"], 42)
@@ -327,7 +331,7 @@ class TestContentTranslator(TestCase):
         result = self._translator().translate(content, "EN")
         result["field_a"].append("Wert B")
 
-        # postcondition — the source's list is untouched
+        # postcondition
         self.assertEqual(content.field_a, ["Wert A"])
 
     def test_translate__copies_a_file_instead_of_sharing_it(self):
@@ -343,7 +347,7 @@ class TestContentTranslator(TestCase):
         # do it
         result = translator.translate(content, "EN")
 
-        # postcondition — same data, but an object of its own
+        # postcondition
         for field_id in ("field_a", "field_b"):
             source, copied = getattr(content, field_id), result[field_id]
             self.assertIsNot(copied, source)
@@ -354,7 +358,7 @@ class TestContentTranslator(TestCase):
         self.assertEqual(translator.copied_report, ["field_a", "field_b"])
 
     def test_translate__skips_copy_fields_that_are_missing_or_empty(self):
-        # setup — nothing to take over: the translation keeps what it has
+        # setup
         self.modes.update({"field_a": "copy", "field_b": "copy", "field_c": "copy"})
         content = Content(title="Titel", field_a=(), field_b=None)
         translator = self._translator()
@@ -369,7 +373,7 @@ class TestContentTranslator(TestCase):
         self.assertEqual(translator.copied_report, [])
 
     def test_translate__skips_copy_fields_that_hold_no_plain_value(self):
-        # setup — a reference must not travel as it is
+        # setup
         self.modes.update({"field_a": "copy", "field_b": "copy"})
         content = Content(title="Titel", field_a=object(), field_b=[object()])
 
@@ -381,7 +385,7 @@ class TestContentTranslator(TestCase):
         self.assertNotIn("field_b", result)
 
     def test_translate__a_field_to_copy_is_not_mapped(self):
-        # setup — the mapping knows the value, but the field is taken over
+        # setup
         self.modes.update({"field_a": "copy"})
         self.settings.get_metadata_mapping.return_value = {"field_a": {"Wert A": "value a"}}
         content = Content(title="Titel", field_a=("Wert A",))
@@ -389,32 +393,30 @@ class TestContentTranslator(TestCase):
         # do it
         result = self._translator().translate(content, "EN")
 
-        # postcondition — the content type decides how a field goes along
+        # postcondition
         self.assertEqual(result["field_a"], ("Wert A",))
 
     def test_translate__asks_for_the_mapping_of_the_resolved_direction(self):
-        # do it — no source given: the configured default counts
+        # do it
         self._translator().translate(Content(title="Titel"), "EN")
 
         # postcondition
         self.settings.get_metadata_mapping.assert_called_once_with("de", "EN")
 
     def test_translate__the_contents_own_language_beats_the_site_default(self):
-        # do it — the page knows what language it holds; the default is a
-        # guess that cannot cover a multilingual tree
+        # do it
         self._translator().translate(Content(title="Title", language="fr"), "DE")
 
         # postcondition
         self.assertEqual(self.provider.calls[0][2], "fr")
 
     def test_translate__survives_without_any_source_language(self):
-        # setup — nothing configured, nothing on the content
+        # setup
         self.settings.default_source_language = None
 
         # do it
         result = self._translator().translate(Content(title="Titel"), "EN")
 
-        # postcondition — translated with provider detection, mapping asked
-        # with no direction
+        # postcondition
         self.assertEqual(result["title"], "TITEL")
         self.settings.get_metadata_mapping.assert_called_once_with(None, "EN")

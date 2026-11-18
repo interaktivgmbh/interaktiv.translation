@@ -38,60 +38,115 @@ class TestTranslatedObjectPath(TestCase):
         )
 
     def test_absolute_path__names_the_translation(self):
-        self.assertResolves(self._translated("/de/ziel"))
+        # do it
+        translated_path = self._translated("/de/ziel")
+
+        # postcondition
+        self.assertResolves(translated_path)
 
     def test_path_naming_the_portal__is_understood(self):
+        # setup
         portal_path = "/".join(self.portal.getPhysicalPath())
-        self.assertResolves(self._translated(f"{portal_path}/de/ziel"))
+
+        # do it
+        translated_path = self._translated(f"{portal_path}/de/ziel")
+
+        # postcondition
+        self.assertResolves(translated_path)
 
     def test_api_prefix__is_understood(self):
-        self.assertResolves(self._translated("/++api++/de/ziel"))
+        # do it
+        translated_path = self._translated("/++api++/de/ziel")
+
+        # postcondition
+        self.assertResolves(translated_path)
 
     def test_full_url_of_this_site__is_understood(self):
-        # The form becomes resolveuid — that is what Plone stores.
-        self.assertResolves(self._translated(f"{self.portal.absolute_url()}/de/ziel"))
+        # do it
+        translated_path = self._translated(f"{self.portal.absolute_url()}/de/ziel")
+
+        # postcondition
+        self.assertResolves(translated_path)
 
     def test_images_suffix__survives_untouched(self):
+        # do it
+        translated_path = self._translated("/de/ziel/@@images/image/preview")
+
+        # postcondition
         self.assertResolves(
-            self._translated("/de/ziel/@@images/image/preview"),
+            translated_path,
             suffix="/@@images/image/preview",
         )
 
     def test_view_suffix__survives_untouched(self):
-        # `/de/ziel/view` traverses to the view, not to a deeper object.
-        self.assertResolves(self._translated("/de/ziel/view"), suffix="/view")
+        # do it
+        translated_path = self._translated("/de/ziel/view")
+
+        # postcondition
+        self.assertResolves(translated_path, suffix="/view")
 
     def test_query_and_fragment__survive_untouched(self):
-        self.assertResolves(self._translated("/de/ziel?a=1#kapitel"), suffix="?a=1#kapitel")
+        # do it
+        translated_path = self._translated("/de/ziel?a=1#kapitel")
+
+        # postcondition
+        self.assertResolves(translated_path, suffix="?a=1#kapitel")
 
     def test_the_answer_names_the_translation__not_the_original(self):
-        # The translation was renamed on purpose: an answer built by patching
-        # up the original would still name the German page.
-        self.assertNotIn(self.target.UID(), self._translated("/de/ziel"))
+        # do it
+        translated_path = self._translated("/de/ziel")
+
+        # postcondition
+        self.assertNotIn(self.target.UID(), translated_path)
 
     def test_untranslated_target__is_left_alone(self):
-        self.assertIsNone(self._translated("/de/allein"))
+        # do it
+        translated_path = self._translated("/de/allein")
+
+        # postcondition
+        self.assertIsNone(translated_path)
 
     def test_unknown_path__is_left_alone(self):
-        self.assertIsNone(self._translated("/de/gibt-es-nicht"))
+        # do it
+        translated_path = self._translated("/de/gibt-es-nicht")
+
+        # postcondition
+        self.assertIsNone(translated_path)
 
     def test_relative_path__needs_the_page_that_holds_it(self):
-        # Without a base there is nothing to count `../` from.
-        self.assertIsNone(self._translated("../ziel"))
+        # do it
+        translated_path = self._translated("../ziel")
+
+        # postcondition
+        self.assertIsNone(translated_path)
 
     def test_relative_path__resolves_against_that_page(self):
-        self.assertResolves(self._translated("../ziel", content=self.source))
+        # do it
+        translated_path = self._translated("../ziel", content=self.source)
+
+        # postcondition
+        self.assertResolves(translated_path)
 
     def test_acquisition__does_not_pass_for_a_hit(self):
-        # `/de/quelle/ziel` does not exist; acquisition would hand back
-        # `/de/ziel` and it would look like a match.
-        self.assertIsNone(self._translated("/de/quelle/ziel"))
+        # do it
+        translated_path = self._translated("/de/quelle/ziel")
+
+        # postcondition
+        self.assertIsNone(translated_path)
 
     def test_path_climbing_out_of_the_site__is_refused(self):
-        self.assertIsNone(self._translated("/de/../../etc/passwd"))
+        # do it
+        translated_path = self._translated("/de/../../etc/passwd")
+
+        # postcondition
+        self.assertIsNone(translated_path)
 
     def test_relative_path_climbing_out_of_the_site__is_refused(self):
-        self.assertIsNone(self._translated("../../../etc", content=self.source))
+        # do it
+        translated_path = self._translated("../../../etc", content=self.source)
+
+        # postcondition
+        self.assertIsNone(translated_path)
 
 
 class TestLinkReport(TestCase):
@@ -126,45 +181,54 @@ class TestLinkReport(TestCase):
         return blocks, report
 
     def test_translated_target__is_reported_as_rewritten(self):
+        # do it
         blocks, report = self._report_for("/de/ziel")
 
+        # postcondition
         self.assertEqual(len(report), 1)
         entry = report[0]
         self.assertEqual(entry["text"], "Ziele 2035")
         self.assertEqual(entry["before"], "/de/ziel")
-        # The report is for people: it names where the link now goes...
         translation = ITranslationManager(self.target).get_translation("en")
         self.assertEqual(entry["after"], translation.absolute_url())
-        # ...while the block stores the uid, which survives a rename.
+        # the block stores the uid, which survives a rename
         self.assertIn(
             f"resolveuid/{translation.UID()}",
             blocks["b1"]["value"][0]["data"]["url"],
         )
 
     def test_untranslated_target__is_reported_as_left_alone(self):
+        # do it
         blocks, report = self._report_for("/de/allein")
 
+        # postcondition
         self.assertEqual(len(report), 1)
         self.assertIsNone(report[0]["after"])
-        # the link stays exactly as it was
         self.assertEqual(blocks["b1"]["value"][0]["data"]["url"], "/de/allein")
 
     def test_external_link__is_not_reported_at_all(self):
+        # do it
         _blocks, report = self._report_for("https://www.example.org/x")
 
+        # postcondition
         self.assertEqual(report, [])
 
     def test_mailto__is_not_reported_at_all(self):
+        # do it
         _blocks, report = self._report_for("mailto:a@example.org")
 
+        # postcondition
         self.assertEqual(report, [])
 
     def test_anchor__is_not_reported_at_all(self):
+        # do it
         _blocks, report = self._report_for("#kapitel")
 
+        # postcondition
         self.assertEqual(report, [])
 
     def test_link_without_words__falls_back_to_the_enclosing_title(self):
+        # setup
         blocks = {
             "b1": {
                 "@type": "teaser",
@@ -173,12 +237,15 @@ class TestLinkReport(TestCase):
             }
         }
         report = []
+
+        # do it
         postprocess_links(self.portal["de"], "blocks", blocks, "en", report=report)
 
+        # postcondition
         self.assertEqual(report[0]["text"], "Link Title")
 
     def test_object_list_entry_ids__are_no_links_and_not_reported(self):
-        # setup — the tabs of a tab block: Volto gives each entry a uuid as `@id`
+        # setup
         blocks = {
             "b1": {
                 "@type": "tabBlock",
@@ -194,13 +261,13 @@ class TestLinkReport(TestCase):
         # do it
         postprocess_links(self.portal["de"], "blocks", blocks, "en", report=report)
 
-        # postcondition — nothing rewritten, nothing for the editor to read
+        # postcondition
         self.assertEqual(report, [])
         self.assertEqual(blocks["b1"]["columns"][0]["@id"], "cdde56fc-5346-4f9e-a01a-b9c11b3aebf4")
         self.assertEqual(blocks["b1"]["columns"][1]["@id"], "E597C38A-61DB-488C-946C-89BBCAE3B6A4")
 
     def test_values_in_no_link_shape__are_left_alone_and_not_reported(self):
-        # setup — short ids some add-ons give list entries, and a mail link
+        # setup
         blocks = {
             "b1": {
                 "@type": "someblock",
@@ -250,28 +317,38 @@ class TestLinkReportKinds(TestCase):
         }
 
     def test_image_block__is_an_image_named_by_its_alt(self):
+        # do it
         _blocks, report = self._report_for({"@type": "image", "url": "/de/image-a", "alt": "Alt A"})
 
+        # postcondition
         self.assertEqual(
             report,
             [{"text": "Alt A", "before": "/de/image-a", "after": None, "kind": "image", "status": "untranslated"}],
         )
 
     def test_image_block_without_alt__is_named_by_the_title_of_the_image(self):
+        # do it
         _blocks, report = self._report_for({"@type": "image", "url": "/de/image-a", "alt": ""})
 
+        # postcondition
         self.assertEqual(report[0]["text"], "Image A")
         self.assertEqual(report[0]["kind"], "image")
 
     def test_image_as_uid_link__is_an_image_too(self):
+        # setup
         url = f"../resolveuid/{self.image.UID()}/@@images/image"
+
+        # do it
         _blocks, report = self._report_for({"@type": "image", "url": url, "alt": "Alt A"})
 
+        # postcondition
         self.assertEqual(report[0]["kind"], "image")
 
     def test_linked_image__keeps_the_text_of_the_link(self):
+        # do it
         _blocks, report = self._report_for(self._slate_link("/de/image-a"))
 
+        # postcondition
         self.assertEqual(report[0]["text"], "Text A")
         self.assertEqual(report[0]["kind"], "image")
 
@@ -290,19 +367,25 @@ class TestLinkReportKinds(TestCase):
         self.assertIn(f"resolveuid/{translation.UID()}", blocks["b1"]["url"])
 
     def test_link_to_a_file__is_a_file(self):
+        # do it
         _blocks, report = self._report_for(self._slate_link("/de/file-a"))
 
+        # postcondition
         self.assertEqual(report[0]["text"], "Text A")
         self.assertEqual(report[0]["kind"], "file")
 
     def test_link_to_a_page__is_a_link(self):
+        # do it
         _blocks, report = self._report_for(self._slate_link("/de/page-a"))
 
+        # postcondition
         self.assertEqual(report[0]["kind"], "link")
 
     def test_link_to_nothing__is_a_link(self):
+        # do it
         _blocks, report = self._report_for(self._slate_link("/de/page-missing"))
 
+        # postcondition
         self.assertEqual(report[0]["kind"], "link")
 
     def test_link_moved_to_the_translation__is_translated(self):
@@ -312,16 +395,18 @@ class TestLinkReportKinds(TestCase):
         # do it
         _blocks, report = self._report_for(self._slate_link("/de/page-a"))
 
-        # postcondition — it was translatable, and is pointed at the translation now
+        # postcondition
         self.assertEqual(report[0]["status"], "translated")
 
     def test_link_to_a_page_without_translation__is_untranslated(self):
+        # do it
         _blocks, report = self._report_for(self._slate_link("/de/page-a"))
 
+        # postcondition
         self.assertEqual(report[0]["status"], "untranslated")
 
     def test_link_to_content_without_language__is_independent(self):
-        # setup — outside the language folders
+        # setup
         api.content.create(container=self.portal, type="Image", id="image-b", title="Image B")
 
         # do it
@@ -331,13 +416,17 @@ class TestLinkReportKinds(TestCase):
         self.assertEqual(report[0]["status"], "independent")
 
     def test_link_to_nothing__is_broken(self):
+        # do it
         _blocks, report = self._report_for(self._slate_link("/de/page-missing"))
 
+        # postcondition
         self.assertEqual(report[0]["status"], "broken")
 
     def test_link_out_of_the_site__is_not_in_the_report_of_a_translation(self):
+        # do it
         _blocks, report = self._report_for(self._slate_link("https://example.org/page-a"))
 
+        # postcondition
         self.assertEqual(report, [])
 
     def test_link_field__tells_the_kind_as_well(self):
@@ -379,10 +468,14 @@ class TestObjectBrowserLinks(TestCase):
         }
 
     def test_teaser_href__is_rewritten_and_reported(self):
+        # setup
         blocks = self._teaser()
         report = []
+
+        # do it
         postprocess_links(self.portal["de"], "blocks", blocks, "en", report=report)
 
+        # postcondition
         uid = ITranslationManager(self.target).get_translation("en").UID()
         entry = blocks["b1"]["href"][0]
         self.assertIn(f"resolveuid/{uid}", entry["@id"])
@@ -390,23 +483,28 @@ class TestObjectBrowserLinks(TestCase):
         self.assertEqual(report[0]["text"], "Teaser Title")
 
     def test_preview_image__is_treated_the_same_way(self):
-        # Plone counts `preview_image` as a link field too. Whether it is
-        # rewritten decides itself: only a target that HAS a translation moves.
+        # setup
         blocks = self._teaser(key="preview_image")
         report = []
+
+        # do it
         postprocess_links(self.portal["de"], "blocks", blocks, "en", report=report)
 
+        # postcondition
         self.assertEqual(len(report), 1)
         self.assertIsNotNone(report[0]["after"])
 
     def test_the_entry_keeps_everything_else_it_carries(self):
+        # setup
         blocks = self._teaser()
+
+        # do it
         postprocess_links(self.portal["de"], "blocks", blocks, "en", report=[])
 
+        # postcondition
         entry = blocks["b1"]["href"][0]
         self.assertTrue(entry["hasPreviewImage"])
-        # Only the link moves: the title stored beside it still names the
-        # source page, the translation does not touch it.
+        # only the link moves, the title beside it still names the source page
         self.assertEqual(entry["title"], "Teaser Title")
 
 
@@ -437,7 +535,7 @@ class TestContentTypeLinkFields(TestCase):
         self.assertEqual(report[0]["before"], "/de/ziel")
 
     def test_a_field_nobody_named__is_left_alone(self):
-        # setup — the site knows of no link fields at all
+        # setup
         self.records.link_fields = []
 
         # do it
@@ -449,7 +547,7 @@ class TestContentTypeLinkFields(TestCase):
         self.assertEqual(report, [])
 
     def test_block_keys__are_configurable_too(self):
-        # setup — a block type of one's own keeping its target under `ziel_url`
+        # setup
         self.records.block_link_fields = ["ziel_url"]
 
         # do it

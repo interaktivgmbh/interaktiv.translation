@@ -72,11 +72,11 @@ class TestConnectionPost(TestCase):
         self.assertEqual(post.call_args.kwargs["headers"]["Authorization"], "DeepL-Auth-Key key-value-a")
 
     def test_post__tests_the_key_of_the_form_before_it_is_saved(self):
-        # do it — a free key, as the form holds it
+        # do it
         with mock.patch("requests.post", return_value=USAGE) as post:
             response = self._test(api_key="key-value-b:fx")
 
-        # postcondition — the stored key is untouched
+        # postcondition
         self.assertEqual(response.json()["plan"], "free")
         self.assertEqual(post.call_args.kwargs["headers"]["Authorization"], "DeepL-Auth-Key key-value-b:fx")
         transaction.begin()
@@ -96,7 +96,7 @@ class TestConnectionPost(TestCase):
         with mock.patch("requests.post", return_value=_answer(403)):
             response = self._test()
 
-        # postcondition — an answer, not an error of the request
+        # postcondition
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.json()["ok"])
         self.assertEqual(response.json()["code"], "key_refused")
@@ -118,7 +118,7 @@ class TestConnectionPost(TestCase):
         self.assertEqual(response.json()["code"], "unreachable")
 
     def test_post__tells_a_missing_key_without_asking_the_service(self):
-        # do it — the key emptied in the form
+        # do it
         with mock.patch("requests.post") as post:
             response = self._test(api_key="")
 
@@ -127,7 +127,7 @@ class TestConnectionPost(TestCase):
         post.assert_not_called()
 
     def test_post__answers_for_the_provider_of_the_form(self):
-        # do it — the mock needs no key
+        # do it
         response = self._test(provider={"token": "mock", "title": "Mock"}, api_key="")
 
         # postcondition
@@ -160,7 +160,7 @@ class TestConnectionPost(TestCase):
         self.assertEqual(response.status_code, 401)
 
     def test_post__tells_a_stored_key_that_cannot_be_decrypted(self):
-        # setup — encrypted with a secret of the environment that changed since
+        # setup
         with mock.patch.dict(os.environ, {SECRET_VARIABLE: "secret-a"}):
             _records().api_key = "key-value-b"
             transaction.commit()

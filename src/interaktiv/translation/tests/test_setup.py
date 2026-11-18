@@ -14,18 +14,25 @@ class TestSetup(TestCase):
     addon_name = "interaktiv.translation"
 
     def test_addon_installed(self):
+        # setup
         installer = self.get_installer()
 
-        self.assertTrue(installer.is_product_installed(self.addon_name))
+        # do it
+        installed = installer.is_product_installed(self.addon_name)
+
+        # postcondition
+        self.assertTrue(installed)
 
     def test_dependencies_are_installed(self):
+        # setup
         installer = self.get_installer()
 
+        # do it
+        installed = {addon_name: installer.is_product_installed(addon_name) for addon_name in ADDON_DEPENDENCIES}
+
+        # postcondition
         for addon_name in ADDON_DEPENDENCIES:
-            self.assertTrue(
-                installer.is_product_installed(addon_name),
-                msg="Add-on '{}' missing".format(addon_name),
-            )
+            self.assertTrue(installed[addon_name], msg="Add-on '{}' missing".format(addon_name))
 
 
 class TestUninstall(TestCase):
@@ -38,21 +45,37 @@ class TestUninstall(TestCase):
             self.get_installer().uninstall_product(self.addon_name)
 
     def test_addon_uninstalled(self):
-        self.assertFalse(self.get_installer().is_product_installed(self.addon_name))
+        # do it
+        installed = self.get_installer().is_product_installed(self.addon_name)
+
+        # postcondition
+        self.assertFalse(installed)
 
     def test_browserlayer_removed(self):
-        self.assertNotIn(IInteraktivTranslationBrowserLayer, registered_layers())
+        # do it
+        layers = registered_layers()
+
+        # postcondition
+        self.assertNotIn(IInteraktivTranslationBrowserLayer, layers)
 
     def test_registry_records_removed(self):
+        # do it
         records = getUtility(IRegistry).records
 
+        # postcondition
         for name in ITranslationSettings.names():
             self.assertNotIn(f"{ITranslationSettings.__identifier__}.{name}", records)
 
     def test_action_removed(self):
-        self.assertNotIn("translate", api.portal.get_tool("portal_actions").object_buttons.objectIds())
+        # do it
+        action_ids = api.portal.get_tool("portal_actions").object_buttons.objectIds()
+
+        # postcondition
+        self.assertNotIn("translate", action_ids)
 
     def test_controlpanel_removed(self):
+        # do it
         configlets = [configlet.getId() for configlet in api.portal.get_tool("portal_controlpanel").listActions()]
 
+        # postcondition
         self.assertNotIn("translation_controlpanel", configlets)

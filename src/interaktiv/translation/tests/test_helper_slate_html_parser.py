@@ -45,7 +45,7 @@ class TestSlateHTMLParser(TestCase):
         self.assertEqual(self.parser.stack, [1, 2, 3])
 
     def test_slate_html_parser__handle_endtag__removes_stack_entry(self):
-        # setup — the closing tag matches the innermost open one
+        # setup
         self.parser.stack = [1, 2, [{"text": "some text"}]]
         self.parser.open_tags = ["p", "strong"]
         tag = "b"
@@ -66,7 +66,7 @@ class TestSlateHTMLParser(TestCase):
         # do it
         self.parser.handle_endtag(tag)
 
-        # postcondition — nothing was closed
+        # postcondition
         self.assertEqual(self.parser.stack, [1, 2, [{"text": "some text"}]])
         self.assertEqual(self.parser.open_tags, ["p", "strong"])
 
@@ -220,7 +220,7 @@ class TestSlateHTMLParser(TestCase):
         self.assertEqual(result[1], "some link")
 
     def test_slate_html_parser__feed__empty_element_gets_an_empty_text_child(self):
-        # setup — slate's invariant: every element holds at least one text child
+        # setup
         html = "<p></p>"
 
         # do it
@@ -245,8 +245,7 @@ class TestSlateHTMLParser(TestCase):
         self.assertEqual(result[0], expected_slate_value)
 
     def test_slate_html_parser__feed__ignores_a_stray_closing_tag(self):
-        # setup — a provider does not guarantee balanced HTML; the stray
-        # </strong> must not shift " Welt" out of the paragraph
+        # setup
         html = "<p>Hallo</strong> Welt</p>"
 
         # do it
@@ -259,14 +258,14 @@ class TestSlateHTMLParser(TestCase):
         self.assertEqual(result[1], "Hallo Welt")
 
     def test_slate_html_parser__feed__closing_a_parent_closes_the_open_child(self):
-        # setup — the unclosed <strong> must not swallow the second paragraph
+        # setup
         html = "<p>Hallo <strong>Welt</p><p>Zwei</p>"
 
         # do it
         self.parser.feed(data=html)
         result = self.parser.get_result()
 
-        # postcondition — two paragraphs side by side, no p inside a p
+        # postcondition
         expected_slate_value = [
             {"type": "p", "children": [{"text": "Hallo "}, {"type": "strong", "children": [{"text": "Welt"}]}]},
             {"type": "p", "children": [{"text": "Zwei"}]},
@@ -288,7 +287,7 @@ class TestSlateHTMLParser(TestCase):
         self.assertEqual(result[0], expected_slate_value)
 
     def test_slate_html_parser__feed__an_alias_closing_tag_finds_its_opener(self):
-        # setup — <b> opens as strong; </b> has to close it all the same
+        # setup
         html = "<p><b>Hallo</b> Welt</p>"
 
         # do it
@@ -303,7 +302,7 @@ class TestSlateHTMLParser(TestCase):
 
 
 class TestSlateHTMLParserNodeProperties(TestCase):
-    # What the serializer kept of the tree comes back by the number of the node.
+    # what the serializer kept of the tree comes back by the number of the node
 
     def setUp(self):
         super().setUp()
@@ -331,7 +330,7 @@ class TestSlateHTMLParserNodeProperties(TestCase):
         # do it
         value, plaintext = self._parsed('<p>some <span data-slate-node="2">text</span> here</p>')
 
-        # postcondition — the tag itself leaves no element behind
+        # postcondition
         self.assertEqual(
             value,
             [{"type": "p", "children": [{"text": "some "}, {"text": "text", "style-b": True}, {"text": " here"}]}],
@@ -355,7 +354,7 @@ class TestSlateHTMLParserNodeProperties(TestCase):
         )
 
     def test_slate_html_parser__feed__follows_a_text_node_the_translation_moved(self):
-        # do it — "text styled" came back as "styled text"
+        # do it
         value, _plaintext = self._parsed('<p><span data-slate-node="2">styled</span> text</p>')
 
         # postcondition
@@ -383,7 +382,7 @@ class TestSlateHTMLParserNodeProperties(TestCase):
         )
 
     def test_slate_html_parser__feed__gives_the_text_of_an_element_inside_a_leaf_tag_the_properties(self):
-        # do it — the tags came back the other way round
+        # do it
         value, _plaintext = self._parsed('<p><span data-slate-node="2"><strong>text a</strong></span></p>')
 
         # postcondition
@@ -456,7 +455,7 @@ class TestSlateHTMLParserLeafTagAsElement(TestCase):
         parser.feed(data='<p><span>text a</span> <span data-slate-node="1">text b</span></p>')
         value, _plaintext = parser.get_result()
 
-        # postcondition — only the numbered one is the tag of a text node
+        # postcondition
         self.assertEqual(
             value,
             [

@@ -29,10 +29,10 @@ class TestLinkFields(TestCase):
         return translator.translate(link, "en", "de"), translator
 
     def test_link__points_at_the_translation_of_its_target(self):
-        # do it — Volto stores an internal address as resolveuid
+        # do it
         result, translator = self._translate_link(f"../resolveuid/{self.target_a.UID()}")
 
-        # postcondition — not sent to the service (the mock would upper-case it)
+        # postcondition
         self.assertEqual(result["remoteUrl"], f"../resolveuid/{self.target_a_en.UID()}")
         self.assertEqual(len(translator.link_report), 1)
 
@@ -40,7 +40,7 @@ class TestLinkFields(TestCase):
         # do it
         result, translator = self._translate_link(f"../resolveuid/{self.target_b.UID()}")
 
-        # postcondition — the report tells
+        # postcondition
         self.assertEqual(result["remoteUrl"], f"../resolveuid/{self.target_b.UID()}")
         self.assertIsNone(translator.link_report[0]["after"])
 

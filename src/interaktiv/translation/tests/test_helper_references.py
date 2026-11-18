@@ -61,7 +61,7 @@ class TestTranslatedTargets(TestCase):
         # do it
         target = translated_targets("field_a", self.target_b, "en", report)
 
-        # postcondition — as an editor may point at another language too; the report tells
+        # postcondition
         self.assertEqual(target, self.target_b)
         self.assertEqual(
             report,
@@ -81,7 +81,7 @@ class TestTranslatedTargets(TestCase):
         image = api.content.create(container=self.portal["de"], type="Image", id="image-a", title="Image A")
         report = []
 
-        # do it — as the preview image of a page is referenced
+        # do it
         translated_targets("preview_image_link", image, "en", report)
 
         # postcondition
@@ -99,14 +99,18 @@ class TestTranslatedTargets(TestCase):
         )
 
     def test_targets__of_a_list_each_and_without_a_broken_one(self):
-        # do it — a broken reference is read as None
+        # do it
         targets = translated_targets("field_a", [self.target_a, None, self.target_b], "en")
 
         # postcondition
         self.assertEqual(targets, [self.target_a_en, self.target_b])
 
     def test_targets__of_none_are_none(self):
-        self.assertIsNone(translated_targets("field_a", None, "en"))
+        # do it
+        targets = translated_targets("field_a", None, "en")
+
+        # postcondition
+        self.assertIsNone(targets)
 
     def test_translate__takes_the_chosen_references_along(self):
         # setup
@@ -131,7 +135,7 @@ class TestTranslatedTargets(TestCase):
         # do it
         set_field_value(translation, "relatedItems", result["relatedItems"])
 
-        # postcondition — new relations; the source keeps its own
+        # postcondition
         self.assertEqual([relation.to_object for relation in translation.relatedItems], [self.target_a_en])
         self.assertIsNot(translation.relatedItems[0], document.relatedItems[0])
         self.assertEqual(document.relatedItems[0].to_object, self.target_a)
@@ -143,5 +147,5 @@ class TestTranslatedTargets(TestCase):
         # do it
         result = ContentTranslator(translation_provider=MockProvider()).translate(document, "en", "de")
 
-        # postcondition — opt-in, as any field of the selection
+        # postcondition
         self.assertNotIn("relatedItems", result)

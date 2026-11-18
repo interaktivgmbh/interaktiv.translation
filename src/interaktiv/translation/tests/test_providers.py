@@ -48,20 +48,27 @@ class TestProviderRegistry(TestCase):
         class Nameless(Fake):
             name = ""
 
-        # do it / postcondition
+        # do it
         with self.assertRaises(ValueError):
             ProviderRegistry().register(Nameless)
 
     def test_get__answers_nothing_for_an_unknown_provider(self):
-        self.assertIsNone(ProviderRegistry().get("nope"))
+        # do it
+        provider = ProviderRegistry().get("nope")
+
+        # postcondition
+        self.assertIsNone(provider)
 
     def test_titles__pairs_every_name_with_something_readable(self):
         # setup
         registry = ProviderRegistry()
         registry.register(Fake)
 
-        # do it / postcondition
-        self.assertEqual(registry.titles(), [{"name": "fake", "title": "Fake"}])
+        # do it
+        titles = registry.titles()
+
+        # postcondition
+        self.assertEqual(titles, [{"name": "fake", "title": "Fake"}])
 
 
 def _response(status=200, payload=None, text=""):
@@ -76,27 +83,48 @@ def _response(status=200, payload=None, text=""):
 
 class TestDeepLProvider(TestCase):
     def test_api_url__free_key_goes_to_the_free_host(self):
-        self.assertEqual(DeepLProvider(api_key="abc:fx").api_url, FREE_API)
+        # do it
+        api_url = DeepLProvider(api_key="abc:fx").api_url
+
+        # postcondition
+        self.assertEqual(api_url, FREE_API)
 
     def test_api_url__any_other_key_goes_to_the_pro_host(self):
-        self.assertEqual(DeepLProvider(api_key="abc").api_url, PRO_API)
+        # do it
+        api_url = DeepLProvider(api_key="abc").api_url
+
+        # postcondition
+        self.assertEqual(api_url, PRO_API)
 
     def test_api_url__an_explicit_url_wins(self):
+        # setup
         provider = DeepLProvider(api_key="abc:fx", api_url="http://proxy.test/v2/")
-        self.assertEqual(provider.api_url, "http://proxy.test/v2")
+
+        # do it
+        api_url = provider.api_url
+
+        # postcondition
+        self.assertEqual(api_url, "http://proxy.test/v2")
 
     def test_configured__is_the_key_and_nothing_else(self):
-        self.assertFalse(DeepLProvider(api_key="").configured())
-        self.assertTrue(DeepLProvider(api_key="abc").configured())
+        # do it
+        configured_without_key = DeepLProvider(api_key="").configured()
+        configured_with_key = DeepLProvider(api_key="abc").configured()
+
+        # postcondition
+        self.assertFalse(configured_without_key)
+        self.assertTrue(configured_with_key)
 
     def test_translate__refuses_before_asking_when_unconfigured(self):
         # setup
         provider = DeepLProvider(api_key="")
 
-        # do it / postcondition — a 503 the caller can act on, no request made
+        # do it
         with mock.patch("requests.post") as post:
             with self.assertRaises(TranslationError) as caught:
                 provider.translate(["Hallo"], "EN")
+
+        # postcondition
         self.assertEqual(caught.exception.status, 503)
         post.assert_not_called()
 
@@ -115,14 +143,12 @@ class TestDeepLProvider(TestCase):
         self.assertEqual(result, ["Hello"])
         payload = post.call_args.kwargs["json"]
         self.assertEqual(payload["target_lang"], "EN-GB")
-        # DeepL refuses a regional code as a source.
         self.assertEqual(payload["source_lang"], "DE")
         self.assertEqual(payload["tag_handling"], "html")
         self.assertEqual(post.call_args.kwargs["headers"]["Authorization"], "DeepL-Auth-Key abc:fx")
 
     def test_translate__leaves_the_source_out_when_it_only_repeats_the_target(self):
-        # setup — an in-place site whose `language` field mirrors the target:
-        # no information, DeepL should detect the real language itself
+        # setup
         provider = DeepLProvider(api_key="abc")
 
         # do it
@@ -146,14 +172,16 @@ class TestDeepLProvider(TestCase):
         ) as post:
             result = provider.translate(["", "Hallo", "   "], "EN")
 
-        # postcondition — one answer per input, and only one text billed
+        # postcondition
         self.assertEqual(result, ["", "Hello", "   "])
         self.assertEqual(post.call_args.kwargs["json"]["text"], ["Hallo"])
 
     def test_translate__does_not_call_at_all_when_there_is_nothing_to_say(self):
+        # do it
         with mock.patch("requests.post") as post:
             result = DeepLProvider(api_key="abc").translate(["", " "], "EN")
 
+        # postcondition
         self.assertEqual(result, ["", " "])
         post.assert_not_called()
 
@@ -161,16 +189,17 @@ class TestDeepLProvider(TestCase):
         # setup
         provider = DeepLProvider(api_key="abc")
 
-        # do it / postcondition — splitting one text would cut through markup
-        # or sentences, so it is refused instead of sent
+        # do it
         with mock.patch("requests.post") as post:
             with self.assertRaises(TranslationError) as caught:
                 provider.translate(["x" * (MAX_REQUEST_BYTES + 1)], "EN")
+
+        # postcondition
         self.assertEqual(caught.exception.status, 413)
         post.assert_not_called()
 
     def test_translate__splits_more_texts_than_deepl_takes_into_two_requests(self):
-        # setup — one text more than a single request may carry
+        # setup
         provider = DeepLProvider(api_key="abc")
         texts = [f"text {index}" for index in range(MAX_TEXTS_PER_REQUEST + 1)]
         first = _response(
@@ -182,7 +211,7 @@ class TestDeepLProvider(TestCase):
         with mock.patch("requests.post", side_effect=[first, second]) as post:
             result = provider.translate(texts, "EN")
 
-        # postcondition — two requests, every answer back in its place
+        # postcondition
         self.assertEqual(post.call_count, 2)
         self.assertEqual(len(post.call_args_list[0].kwargs["json"]["text"]), MAX_TEXTS_PER_REQUEST)
         self.assertEqual(post.call_args_list[1].kwargs["json"]["text"], [f"text {MAX_TEXTS_PER_REQUEST}"])
@@ -190,7 +219,7 @@ class TestDeepLProvider(TestCase):
         self.assertEqual(result[-1], f"TEXT {MAX_TEXTS_PER_REQUEST}")
 
     def test_translate__cuts_a_new_request_when_the_byte_budget_is_full(self):
-        # setup — a budget that fits two of the three texts
+        # setup
         provider = DeepLProvider(api_key="abc")
         first = _response(payload={"translations": [{"text": "TEXT A"}, {"text": "TEXT B"}]})
         second = _response(payload={"translations": [{"text": "TEXT C"}]})
@@ -214,29 +243,33 @@ class TestDeepLProvider(TestCase):
         with mock.patch("requests.post", return_value=_response(payload=answers)) as post:
             result = provider.translate_texts_by_key({"field_a": ["title"], "field_b": ["text a", "text b"]}, "EN")
 
-        # postcondition — one request, the answers sliced back per field
+        # postcondition
         self.assertEqual(post.call_count, 1)
         self.assertEqual(post.call_args.kwargs["json"]["text"], ["title", "text a", "text b"])
         self.assertEqual(result, {"field_a": ["TITLE"], "field_b": ["TEXT A", "TEXT B"]})
 
     def test_translate__names_a_refused_key_rather_than_a_generic_failure(self):
+        # do it
         with mock.patch("requests.post", return_value=_response(status=403)):
             with self.assertRaises(TranslationError) as caught:
                 DeepLProvider(api_key="abc").translate(["Hallo"], "EN")
 
+        # postcondition
         self.assertEqual(caught.exception.status, 403)
         self.assertIn("refused the API key", str(caught.exception))
 
     def test_translate__reports_a_used_up_quota_as_a_rate_limit(self):
+        # do it
         with mock.patch("requests.post", return_value=_response(status=456)):
             with self.assertRaises(TranslationError) as caught:
                 DeepLProvider(api_key="abc").translate(["Hallo"], "EN")
 
+        # postcondition
         self.assertEqual(caught.exception.status, 429)
         self.assertIn("quota", str(caught.exception))
 
     def test_translate__retries_a_rate_limited_request(self):
-        # setup — the first answer is a 429, the second succeeds
+        # setup
         provider = DeepLProvider(api_key="abc")
         answers = [
             _response(status=429),
@@ -248,7 +281,7 @@ class TestDeepLProvider(TestCase):
             with mock.patch("requests.post", side_effect=answers) as post:
                 result = provider.translate(["Hallo"], "EN")
 
-        # postcondition — one wait, one retry, then the answer
+        # postcondition
         self.assertEqual(result, ["Hello"])
         self.assertEqual(post.call_count, 2)
         self.assertEqual(sleep.call_count, 1)
@@ -257,50 +290,65 @@ class TestDeepLProvider(TestCase):
         # setup
         provider = DeepLProvider(api_key="abc")
 
-        # do it / postcondition — all attempts used, then the 429 surfaces
+        # do it
         with mock.patch("interaktiv.translation.providers.deepl.time.sleep") as sleep:
             with mock.patch("requests.post", return_value=_response(status=429)) as post:
                 with self.assertRaises(TranslationError) as caught:
                     provider.translate(["Hallo"], "EN")
 
+        # postcondition
         self.assertEqual(caught.exception.status, 429)
         self.assertEqual(post.call_count, RETRY_ATTEMPTS)
         self.assertEqual(sleep.call_count, RETRY_ATTEMPTS - 1)
 
     def test_translate__reports_an_unreachable_deepl_as_such(self):
+        # setup
         import requests
 
+        # do it
         with mock.patch("requests.post", side_effect=requests.ConnectionError("no route")):
             with self.assertRaises(TranslationError) as caught:
                 DeepLProvider(api_key="abc").translate(["Hallo"], "EN")
 
+        # postcondition
         self.assertIn("not reachable", str(caught.exception))
 
     def test_translate__refuses_an_answer_that_lost_a_text(self):
+        # do it
         with mock.patch("requests.post", return_value=_response(payload={"translations": []})):
             with self.assertRaises(TranslationError):
                 DeepLProvider(api_key="abc").translate(["Hallo"], "EN")
 
     def test_languages__is_empty_rather_than_broken_when_deepl_is_down(self):
+        # setup
         import requests
 
+        # do it
         with mock.patch("requests.post", side_effect=requests.ConnectionError("no route")):
-            self.assertEqual(DeepLProvider(api_key="abc").languages(), [])
+            languages = DeepLProvider(api_key="abc").languages()
+
+        # postcondition
+        self.assertEqual(languages, [])
 
     def test_languages__asks_only_when_there_is_a_key(self):
+        # do it
         with mock.patch("requests.post") as post:
-            self.assertEqual(DeepLProvider(api_key="").languages(), [])
+            languages = DeepLProvider(api_key="").languages()
+
+        # postcondition
+        self.assertEqual(languages, [])
         post.assert_not_called()
 
     def test_languages__reads_the_codes_and_names_deepl_offers(self):
+        # do it
         with mock.patch(
             "requests.post",
             return_value=_response(payload=[{"language": "EN-GB", "name": "English (British)"}]),
         ):
-            self.assertEqual(
-                DeepLProvider(api_key="abc").languages(),
-                [{"code": "EN-GB", "title": "English (British)"}],
-            )
+            languages = DeepLProvider(api_key="abc").languages()
+
+        # postcondition
+        self.assertEqual(languages, [{"code": "EN-GB", "title": "English (British)"}])
 
 
 class TestMockProvider(TestCase):
@@ -310,16 +358,25 @@ class TestMockProvider(TestCase):
         self.provider = MockProvider()
 
     def test_registered__is_in_the_stock_registry(self):
-        self.assertIs(PROVIDERS.get("mock"), MockProvider)
+        # do it
+        provider = PROVIDERS.get("mock")
+
+        # postcondition
+        self.assertIs(provider, MockProvider)
 
     def test_configured__needs_no_key(self):
-        self.assertTrue(self.provider.configured())
+        # do it
+        configured = self.provider.configured()
+
+        # postcondition
+        self.assertTrue(configured)
 
     def test_languages__offers_the_codes_without_asking_anyone(self):
-        self.assertEqual(
-            self.provider.languages(),
-            [{"code": "DE", "title": "Deutsch"}, {"code": "EN", "title": "English"}],
-        )
+        # do it
+        languages = self.provider.languages()
+
+        # postcondition
+        self.assertEqual(languages, [{"code": "DE", "title": "Deutsch"}, {"code": "EN", "title": "English"}])
 
     def test_translate__uppercases_each_text(self):
         # do it

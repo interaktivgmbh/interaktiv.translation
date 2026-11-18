@@ -80,8 +80,7 @@ class TestWithoutVersioningWithWorkingCopies(CapabilitiesTestCase):
         # do it
         response = self._translate()
 
-        # postcondition — refused like on a site without working copies, not
-        # with a checkout that could never succeed
+        # postcondition
         self.assertEqual(response.status_code, 409)
         self.assertEqual(response.json()["code"], "translation_exists")
 
@@ -112,16 +111,19 @@ class TestWithoutVersioningWithWorkingCopies(CapabilitiesTestCase):
         # do it
         response = self.api_session.get("/de/item/@translate")
 
-        # postcondition — the front end asks for overwrite instead
+        # postcondition
         self.assertFalse(response.json()["working_copies_enabled"])
 
     def test_status_endpoints__answer_for_the_translation(self):
         # setup
         self._translate()
 
-        # do it / postcondition
-        self.assertEqual(self._status_over_rest("/en/title-a"), STATUS_MACHINE_UNREVIEWED)
+        # do it
+        status = self._status_over_rest("/en/title-a")
         response = self.api_session.get("/de/item/@translate")
+
+        # postcondition
+        self.assertEqual(status, STATUS_MACHINE_UNREVIEWED)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["translations"]["en"]["status"], STATUS_MACHINE_UNREVIEWED)
 
@@ -219,9 +221,13 @@ class TestWithoutWorkflowWithoutWorkingCopies(CapabilitiesTestCase):
         # setup
         self._translate()
 
-        # do it / postcondition
-        self.assertEqual(self._status_over_rest("/en/title-a"), STATUS_MACHINE_WITHOUT_REVIEW)
-        self.assertEqual(self.api_session.get("/en/title-a").status_code, 200)
+        # do it
+        status = self._status_over_rest("/en/title-a")
+        response = self.api_session.get("/en/title-a")
+
+        # postcondition
+        self.assertEqual(status, STATUS_MACHINE_WITHOUT_REVIEW)
+        self.assertEqual(response.status_code, 200)
 
     def test_status__stays_without_review_after_an_edit(self):
         # setup

@@ -74,9 +74,12 @@ class TestTranslationLinksGet(TestCase):
         # setup
         self._set_blocks(b1=_slate_link("/en/page-c"))
 
+        # do it
+        items = self._items()
+
         # postcondition
         self.assertEqual(
-            self._items(),
+            items,
             [{"text": "Text A", "kind": "link", "status": "translated", "url": "/en/page-c", "translation": None}],
         )
 
@@ -84,25 +87,31 @@ class TestTranslationLinksGet(TestCase):
         # setup
         self._set_blocks(b1=_slate_link("/de/page-a"))
 
+        # do it
+        items = self._items()
+
         # postcondition
         self.assertEqual(
-            self._items(),
+            items,
             [{"text": "Text A", "kind": "link", "status": "untranslated", "url": "/de/page-a", "translation": None}],
         )
 
     def test_get__link_becomes_translatable_once_its_target_is_translated(self):
-        # setup — the link was left alone, its target got a translation later
+        # setup
         self._set_blocks(b1=_slate_link("/de/page-a"))
-        self.assertEqual(self._items()[0]["status"], "untranslated")
         manager = ITranslationManager(self.page_a)
+
+        # precondition
+        items_before = self._items()
+        self.assertEqual(items_before[0]["status"], "untranslated")
+
+        # do it
         manager.add_translation("en")
         translation = manager.get_translation("en")
         transaction.commit()
-
-        # do it
         items = self._items()
 
-        # postcondition — with where it could point instead
+        # postcondition
         self.assertEqual(items[0]["status"], "translatable")
         self.assertEqual(items[0]["url"], "/de/page-a")
         self.assertEqual(items[0]["translation"], translation.absolute_url())
@@ -111,8 +120,10 @@ class TestTranslationLinksGet(TestCase):
         # setup
         self._set_blocks(b1=_slate_link("/file-a"))
 
-        # postcondition
+        # do it
         items = self._items()
+
+        # postcondition
         self.assertEqual(items[0]["status"], "independent")
         self.assertEqual(items[0]["kind"], "file")
 
@@ -120,16 +131,22 @@ class TestTranslationLinksGet(TestCase):
         # setup
         self._set_blocks(b1=_slate_link("/de/page-missing"))
 
+        # do it
+        items = self._items()
+
         # postcondition
-        self.assertEqual(self._items()[0]["status"], "broken")
+        self.assertEqual(items[0]["status"], "broken")
 
     def test_get__link_out_of_the_site_is_external(self):
         # setup
         self._set_blocks(b1=_slate_link("https://example.org/page-a"))
 
+        # do it
+        items = self._items()
+
         # postcondition
         self.assertEqual(
-            self._items(),
+            items,
             [
                 {
                     "text": "Text A",
@@ -145,15 +162,20 @@ class TestTranslationLinksGet(TestCase):
         # setup
         self._set_blocks(b1=_slate_link("mailto:a@example.org"), b2=_slate_link("#anchor-a"))
 
+        # do it
+        items = self._items()
+
         # postcondition
-        self.assertEqual(self._items(), [])
+        self.assertEqual(items, [])
 
     def test_get__image_block_is_an_image_named_by_its_alt(self):
         # setup
         self._set_blocks(b1={"@type": "image", "url": "/de/image-a", "alt": "Alt A"})
 
-        # postcondition
+        # do it
         items = self._items()
+
+        # postcondition
         self.assertEqual(items[0]["kind"], "image")
         self.assertEqual(items[0]["text"], "Alt A")
         self.assertEqual(items[0]["status"], "untranslated")
@@ -164,9 +186,12 @@ class TestTranslationLinksGet(TestCase):
         self.page.relatedItems = [RelationValue(intids.getId(self.page_b)), RelationValue(intids.getId(self.page_c))]
         transaction.commit()
 
+        # do it
+        items = self._items()
+
         # postcondition
         self.assertEqual(
-            [(item["text"], item["url"], item["status"]) for item in self._items()],
+            [(item["text"], item["url"], item["status"]) for item in items],
             [
                 ("relatedItems", self.page_b.absolute_url(), "untranslated"),
                 ("relatedItems", self.page_c.absolute_url(), "translated"),
@@ -182,14 +207,17 @@ class TestTranslationLinksGet(TestCase):
             b4=_slate_link("https://example.org/page-a"),
         )
 
+        # do it
+        response = self._get()
+
         # postcondition
         self.assertEqual(
-            self._get().json()["summary"],
+            response.json()["summary"],
             {"translated": 1, "translatable": 0, "untranslated": 2, "independent": 0, "broken": 0, "external": 1},
         )
 
     def test_get__changes_nothing(self):
-        # setup — a link that could be pointed at a translation
+        # setup
         ITranslationManager(self.page_a).add_translation("en")
         self._set_blocks(b1=_slate_link("/de/page-a"))
         before = copy.deepcopy(self.page.blocks)
@@ -208,8 +236,11 @@ class TestTranslationLinksGet(TestCase):
         transaction.commit()
         self.api_session.auth = ("user-a", "secret-secret")
 
+        # do it
+        response = self._get()
+
         # postcondition
-        self.assertEqual(self._get().status_code, 401)
+        self.assertEqual(response.status_code, 401)
 
 
 class TestTranslationLinksGetWithoutLanguages(TestCase):

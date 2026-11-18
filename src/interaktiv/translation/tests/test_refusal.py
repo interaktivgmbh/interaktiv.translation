@@ -5,9 +5,10 @@ from interaktiv.translation.storage import Refusal
 
 class TestRefusal(TestCase):
     def test_refusal__is_its_message(self):
-        # a refusal is shown as it is, e.g. as a Classic status message
+        # do it
         refusal = Refusal("code_a", "Message A", language="xx")
 
+        # postcondition
         self.assertEqual(refusal, "Message A")
         self.assertEqual(refusal.code, "code_a")
         self.assertEqual(refusal.values, {"language": "xx"})

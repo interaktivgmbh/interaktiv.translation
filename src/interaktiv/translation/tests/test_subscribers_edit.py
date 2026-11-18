@@ -67,8 +67,7 @@ class TestEditSubscriber(TestCase):
         self.assertEqual(translation_status(self.page), STATUS_MACHINE_UNREVIEWED)
 
     def test_store__does_not_count_as_an_edit(self):
-        # do it — the machine writes; the storing flag keeps the edit
-        # subscriber quiet
+        # do it
         self._translate_in_place()
         transaction.begin()
 
@@ -90,7 +89,7 @@ class TestEditSubscriber(TestCase):
         self.assertEqual(translation_status(self.page), STATUS_MACHINE_EDITED)
 
     def test_edit__after_the_review_changes_nothing(self):
-        # setup — reviewed via publish
+        # setup
         self._translate_in_place()
         transaction.begin()
         with api.env.adopt_user(SITE_OWNER_NAME):
@@ -100,7 +99,7 @@ class TestEditSubscriber(TestCase):
         # do it
         self._edit("Good day, edited after review")
 
-        # postcondition — reviewed stays reviewed
+        # postcondition
         marker = IAnnotations(self.page)[MACHINE_TRANSLATION_KEY]
         self.assertNotIn("edited_by", marker)
         self.assertEqual(translation_status(self.page), STATUS_MACHINE_REVIEWED)

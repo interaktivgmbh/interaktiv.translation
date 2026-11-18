@@ -64,7 +64,7 @@ class TestGlossariesPost(TestCase):
         with mock.patch("requests.get", return_value=GLOSSARIES) as get:
             response = self._list()
 
-        # postcondition — lower case codes; an entry without an ID is left out
+        # postcondition
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             response.json(),
@@ -85,7 +85,7 @@ class TestGlossariesPost(TestCase):
         with mock.patch("requests.get", return_value=GLOSSARIES) as get:
             self._list(api_key="key-value-b:fx")
 
-        # postcondition — a free key asks the free API
+        # postcondition
         self.assertIn("api-free.deepl.com", get.call_args.args[0])
         self.assertEqual(get.call_args.kwargs["headers"]["Authorization"], "DeepL-Auth-Key key-value-b:fx")
 
@@ -133,7 +133,7 @@ class TestGlossariesPost(TestCase):
         get.assert_not_called()
 
     def test_post__lists_none_for_a_provider_without_glossaries(self):
-        # do it — the mock needs no key
+        # do it
         response = self._list(provider="mock", api_key="")
 
         # postcondition

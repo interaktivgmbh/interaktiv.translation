@@ -46,8 +46,7 @@ class TestCheckin(TestCase):
         return ICheckinCheckoutPolicy(self.portal["en"]["good-day"]).getWorkingCopy()
 
     def _translate_into_working_copy(self):
-        # setup helper: first translation creates the sibling, the second
-        # lands in a working copy of it
+        # the first translation creates the sibling, the second lands in a working copy of it
         self._translate()
         self._translate()
         transaction.begin()
@@ -87,10 +86,10 @@ class TestCheckin(TestCase):
         history = self._history()
         self.assertEqual(len(history), versions_before + 2)
 
-        # Comment from Version created by Iterate
+        # comment of the version created by iterate
         self.assertEqual(history[1].comment, "Checked in")
 
-        # Comment from Version created by modified event
+        # comment of the version created by the modified event
         expected_comment = f"Machine translation into en with DeepL, reviewed by {SITE_OWNER_NAME}"
         self.assertEqual(history[0].comment, expected_comment)
 
@@ -141,10 +140,10 @@ class TestCheckin(TestCase):
 
         self._translate_into_working_copy()
 
-        # do it — the copy becomes the new baseline
+        # do it
         self._checkin()
 
-        # postcondition — the denial did not travel along
+        # postcondition
         with api.env.adopt_user(SITE_OWNER_NAME):
             security = getSecurityManager()
             self.assertTrue(security.checkPermission(MANAGE_TRANSLATIONS_PERMISSION, self.portal["en"]["good-day"]))

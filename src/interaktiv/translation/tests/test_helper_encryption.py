@@ -38,7 +38,7 @@ class TestEncryption(TestCase):
         # do it
         stored = encrypt("key-value-a")
 
-        # postcondition — a keyring of the add-on's own was made for it
+        # postcondition
         self.assertTrue(stored.startswith("fernet:site:"))
         self.assertNotIn("key-value-a", stored)
         self.assertIn(KEYRING_NAME, getUtility(IKeyManager))
@@ -61,7 +61,7 @@ class TestEncryption(TestCase):
         stored = encrypt("key-value-a")
         os.environ[SECRET_VARIABLE] = "secret-b"
 
-        # do it, postcondition
+        # do it
         with self.assertRaises(UnreadableSecret):
             decrypt(stored)
 
@@ -71,7 +71,7 @@ class TestEncryption(TestCase):
         stored = encrypt("key-value-a")
         del os.environ[SECRET_VARIABLE]
 
-        # do it, postcondition
+        # do it
         with self.assertRaises(UnreadableSecret):
             decrypt(stored)
 
@@ -80,11 +80,18 @@ class TestEncryption(TestCase):
         stored = encrypt("key-value-a")
         getUtility(IKeyManager).rotate(KEYRING_NAME)
 
-        # do it, postcondition
-        self.assertEqual(decrypt(stored), "key-value-a")
+        # do it
+        decrypted = decrypt(stored)
+
+        # postcondition
+        self.assertEqual(decrypted, "key-value-a")
 
     def test_decrypt__reads_a_key_stored_before_encryption(self):
-        self.assertEqual(decrypt("key-value-a"), "key-value-a")
+        # do it
+        decrypted = decrypt("key-value-a")
+
+        # postcondition
+        self.assertEqual(decrypted, "key-value-a")
 
     def test_status__tells_how_a_value_is_kept(self):
         # setup
@@ -92,20 +99,23 @@ class TestEncryption(TestCase):
         os.environ[SECRET_VARIABLE] = "secret-a"
         environment = encrypt("key-value-a")
 
-        # do it, postcondition
-        self.assertEqual(encryption_status(""), {"stored": False, "encryption": None, "readable": False})
-        self.assertEqual(
-            encryption_status("key-value-a"), {"stored": True, "encryption": ENCRYPTION_NONE, "readable": True}
-        )
-        self.assertEqual(encryption_status(site), {"stored": True, "encryption": ENCRYPTION_SITE, "readable": True})
-        self.assertEqual(
-            encryption_status(environment), {"stored": True, "encryption": ENCRYPTION_ENVIRONMENT, "readable": True}
-        )
+        # do it
+        status_empty = encryption_status("")
+        status_plain = encryption_status("key-value-a")
+        status_site = encryption_status(site)
+        status_environment = encryption_status(environment)
         os.environ[SECRET_VARIABLE] = "secret-b"
-        self.assertFalse(encryption_status(environment)["readable"])
+        readable_with_another_secret = encryption_status(environment)["readable"]
+
+        # postcondition
+        self.assertEqual(status_empty, {"stored": False, "encryption": None, "readable": False})
+        self.assertEqual(status_plain, {"stored": True, "encryption": ENCRYPTION_NONE, "readable": True})
+        self.assertEqual(status_site, {"stored": True, "encryption": ENCRYPTION_SITE, "readable": True})
+        self.assertEqual(status_environment, {"stored": True, "encryption": ENCRYPTION_ENVIRONMENT, "readable": True})
+        self.assertFalse(readable_with_another_secret)
 
     def test_registry__stores_a_key_set_in_plain_text_encrypted(self):
-        # do it — as the registry's own view or a profile would
+        # do it
         getUtility(IRegistry)[API_KEY_RECORD] = "key-value-a"
 
         # postcondition
@@ -118,16 +128,20 @@ class TestEncryption(TestCase):
         getUtility(IRegistry)[API_KEY_RECORD] = "key-value-a"
         os.environ[SECRET_VARIABLE] = "secret-b"
 
-        # do it, postcondition — not configured, rather than a wrong key sent
-        self.assertEqual(Settings().api_key, "")
-        self.assertFalse(Settings().api_key_status["readable"])
+        # do it
+        api_key = Settings().api_key
+        readable = Settings().api_key_status["readable"]
+
+        # postcondition
+        self.assertEqual(api_key, "")
+        self.assertFalse(readable)
 
     def test_registry__moves_a_key_to_the_secret_of_the_environment_once_it_is_set(self):
-        # setup — stored while the environment had no secret
+        # setup
         getUtility(IRegistry)[API_KEY_RECORD] = "key-value-a"
         os.environ[SECRET_VARIABLE] = "secret-a"
 
-        # do it — the settings saved again, the key unchanged
+        # do it
         getUtility(IRegistry)[API_KEY_RECORD] = getUtility(IRegistry)[API_KEY_RECORD]
 
         # postcondition
@@ -144,5 +158,5 @@ class TestEncryption(TestCase):
         # do it
         getUtility(IRegistry)[API_KEY_RECORD] = stored
 
-        # postcondition — to be entered again, not lost to a wrong secret
+        # postcondition
         self.assertEqual(getUtility(IRegistry)[API_KEY_RECORD], stored)

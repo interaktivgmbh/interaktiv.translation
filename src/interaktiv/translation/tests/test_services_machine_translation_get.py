@@ -72,7 +72,7 @@ class TestMachineTranslationGet(TestCase):
         # do it
         response = self.api_session.get("/page?expand=machine_translation")
 
-        # postcondition — one request serves the page and the banner
+        # postcondition
         self.assertEqual(response.status_code, 200)
         component = response.json()["@components"]["machine_translation"]
         self.assertTrue(component["machine_translated"])
@@ -87,7 +87,7 @@ class TestMachineTranslationGet(TestCase):
         self.assertEqual(list(component), ["@id"])
 
     def _publish_and_visit_anonymously(self):
-        # setup helper: the page goes public, the visitor carries no login
+        # the page goes public, the visitor carries no login
         transaction.begin()
         with api.env.adopt_user(SITE_OWNER_NAME):
             api.content.transition(obj=self.page, transition="publish")
@@ -106,12 +106,11 @@ class TestMachineTranslationGet(TestCase):
         response = visitor.get("/page/@machine-translation")
         visitor.close()
 
-        # postcondition — review state is editorial, the service needs the
-        # permission to change the page
+        # postcondition
         self.assertEqual(response.status_code, 401)
 
     def test_expand__answers_visitors_only_the_component_url(self):
-        # setup — the marker exists, but the visitor may not edit the page
+        # setup
         self._translate_in_place()
         visitor = self._publish_and_visit_anonymously()
 
@@ -119,7 +118,7 @@ class TestMachineTranslationGet(TestCase):
         response = visitor.get("/page?expand=machine_translation")
         visitor.close()
 
-        # postcondition — no reviewer id, no timestamps: only the URL
+        # postcondition
         self.assertEqual(response.status_code, 200)
         component = response.json()["@components"]["machine_translation"]
         self.assertEqual(list(component), ["@id"])

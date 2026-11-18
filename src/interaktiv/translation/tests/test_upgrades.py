@@ -63,7 +63,7 @@ class TestUpgradeV1000ToV1001(TestCase):
         # do it
         v1000_to_v1001.upgrade(None)
 
-        # postcondition — the field is JSON, the values are kept, the empty cell is left out
+        # postcondition
         self.assertIsInstance(self.registry.records[MAPPING_RECORD].field, JSONField)
         self.assertEqual(
             self.registry[MAPPING_RECORD],
@@ -87,7 +87,7 @@ class TestUpgradeV1000ToV1001(TestCase):
         self.assertEqual(self.registry[MAPPING_RECORD], {})
 
     def test_upgrade__keeps_a_mapping_that_is_json_already(self):
-        # setup — the step runs on a site that has the JSON field
+        # setup
         mapping = {"field_a": [{"de": "Wert A", "en": "value a"}]}
         self.registry[MAPPING_RECORD] = mapping
 
@@ -98,20 +98,19 @@ class TestUpgradeV1000ToV1001(TestCase):
         self.assertEqual(self.registry[MAPPING_RECORD], mapping)
 
     def test_upgrade__keeps_the_target_languages_the_site_has(self):
-        # setup — 1.0.0a1 took any code; Italian is no site language
+        # setup
         api.portal.get_tool("portal_languages").addSupportedLanguage("fr")
         self.registry.records[TARGET_LANGUAGES_RECORD] = Record(field.List(value_type=field.TextLine()), ["fr", "it"])
 
         # do it
         v1000_to_v1001.upgrade(None)
 
-        # postcondition — a choice of site languages, the unknown code dropped,
-        # not the whole list emptied (which would offer every site language)
+        # postcondition
         self.assertIsInstance(self.registry.records[TARGET_LANGUAGES_RECORD].field.value_type, field.Choice)
         self.assertEqual(self.registry[TARGET_LANGUAGES_RECORD], ["fr"])
 
     def test_upgrade__keeps_the_excluded_types(self):
-        # setup — 1.0.0a1 took any name; "type_unknown" is no type of the site
+        # setup
         self.registry.records[EXCLUDED_TYPES_RECORD] = Record(
             field.List(value_type=field.TextLine()), ["Image", "type_unknown"]
         )
@@ -119,13 +118,12 @@ class TestUpgradeV1000ToV1001(TestCase):
         # do it
         v1000_to_v1001.upgrade(None)
 
-        # postcondition — a choice of the site's types now; Plone's vocabulary of
-        # them takes any name, so nothing is lost on the import
+        # postcondition
         self.assertIsInstance(self.registry.records[EXCLUDED_TYPES_RECORD].field.value_type, field.Choice)
         self.assertEqual(self.registry[EXCLUDED_TYPES_RECORD], ["Image", "type_unknown"])
 
     def test_upgrade__encrypts_a_key_stored_in_plain_text(self):
-        # setup — 1.0.0a1 kept the key as it came, past the subscriber of today
+        # setup
         self.registry.records._values[API_KEY_RECORD] = "key-value-a"
 
         # do it
@@ -136,7 +134,7 @@ class TestUpgradeV1000ToV1001(TestCase):
         self.assertEqual(Settings().api_key, "key-value-a")
 
     def test_upgrade__adds_the_link_fields_to_the_sites_own(self):
-        # setup — 1.0.0a1 had no defaults; a site named its own
+        # setup
         self.registry[LINK_FIELDS_RECORD] = ["field_a"]
 
         # do it
@@ -183,9 +181,12 @@ class TestCsvToMapping(UnitTestCase):
         # setup
         table = "[field_a]\nde, en\nWert A, value a\n\n[field_b]\nde; en\nWert B; value b\n"
 
-        # do it / postcondition
+        # do it
+        mapping = csv_to_mapping(table)
+
+        # postcondition
         self.assertEqual(
-            csv_to_mapping(table),
+            mapping,
             {
                 "field_a": [{"de": "Wert A", "en": "value a"}],
                 "field_b": [{"de": "Wert B", "en": "value b"}],
@@ -193,19 +194,25 @@ class TestCsvToMapping(UnitTestCase):
         )
 
     def test_csv_to_mapping__keeps_a_quoted_value_with_the_delimiter(self):
-        self.assertEqual(
-            csv_to_mapping('[field_a]\nde,en\n"Wert A, Wert B",value a'),
-            {"field_a": [{"de": "Wert A, Wert B", "en": "value a"}]},
-        )
+        # do it
+        mapping = csv_to_mapping('[field_a]\nde,en\n"Wert A, Wert B",value a')
+
+        # postcondition
+        self.assertEqual(mapping, {"field_a": [{"de": "Wert A, Wert B", "en": "value a"}]})
 
     def test_csv_to_mapping__drops_a_column_that_is_no_language_or_named_twice(self):
-        self.assertEqual(
-            csv_to_mapping("[field_a]\nde, Deutsch, en, DE\nWert A, Wert B, value a, Wert C"),
-            {"field_a": [{"de": "Wert A", "en": "value a"}]},
-        )
+        # do it
+        mapping = csv_to_mapping("[field_a]\nde, Deutsch, en, DE\nWert A, Wert B, value a, Wert C")
+
+        # postcondition
+        self.assertEqual(mapping, {"field_a": [{"de": "Wert A", "en": "value a"}]})
 
     def test_csv_to_mapping__leaves_out_rows_and_sections_without_values(self):
-        self.assertEqual(csv_to_mapping("verirrt\n[field_a]\nde, en\n,\n[field_b]\nde, en"), {})
+        # do it
+        mapping = csv_to_mapping("verirrt\n[field_a]\nde, en\n,\n[field_b]\nde, en")
+
+        # postcondition
+        self.assertEqual(mapping, {})
 
 
 class TestUpgradeV1001ToV1002(TestCase):
@@ -216,8 +223,7 @@ class TestUpgradeV1001ToV1002(TestCase):
         self.registry = getUtility(IRegistry)
 
     def _install_1001_record(self, value: dict) -> None:
-        # the record as 1001 left it: a list of fields per content type, and a
-        # field that takes nothing else
+        # the record as 1001 left it: a list of fields per content type
         self.registry.records[SELECTION_RECORD] = Record(
             field.JSONField(title="Fields per content type", schema=SELECTION_SCHEMA_1001), value
         )
@@ -236,7 +242,7 @@ class TestUpgradeV1001ToV1002(TestCase):
         # do it
         v1001_to_v1002.upgrade(None)
 
-        # postcondition — as each field went along by its kind
+        # postcondition
         self.assertEqual(self.registry[SELECTION_RECORD], {"Document": {"subjects": "copy", "rights": "translate"}})
 
     def test_upgrade__leaves_a_field_that_takes_the_new_form(self):
@@ -245,8 +251,6 @@ class TestUpgradeV1001ToV1002(TestCase):
 
         # do it
         v1001_to_v1002.upgrade(None)
-
-        # postcondition — a later change of the control panel is taken
         self.registry[SELECTION_RECORD] = {"Document": {"rights": "copy"}}
         with self.assertRaises(Exception):
             self.registry[SELECTION_RECORD] = {"Document": ["rights"]}
@@ -263,7 +267,7 @@ class TestUpgradeV1001ToV1002(TestCase):
         self.assertEqual(self.registry[SELECTION_RECORD], {"Document": {"rights": "copy"}})
 
     def test_upgrade__drops_what_needs_no_choice_or_is_gone(self):
-        # setup — the title always goes along; "field_a" and "type_a" are not there
+        # setup
         self._install_1001_record({"Document": ["title", "field_a", "rights"], "type_a": ["field_a"]})
 
         # do it
@@ -273,7 +277,7 @@ class TestUpgradeV1001ToV1002(TestCase):
         self.assertEqual(self.registry[SELECTION_RECORD], {"Document": {"rights": "translate"}, "type_a": {}})
 
     def test_upgrade__keeps_a_choice_that_names_the_modes_already(self):
-        # setup — the step runs on a site that has the new form
+        # setup
         selection = {"Document": {"rights": "copy"}}
         self.registry[SELECTION_RECORD] = selection
 

@@ -18,11 +18,14 @@ class TestFieldAccess(TestCase):
         self.page = api.content.create(container=self.portal, type="Document", id="page", title="Titel")
 
     def test_field_value__reads_a_field_its_behavior_keeps_elsewhere(self):
-        # setup — the keywords of "subjects" live in "subject"
+        # setup
         self.page.setSubject(("Wert A",))
 
-        # do it, postcondition
-        self.assertEqual(field_value(self.page, "subjects"), ("Wert A",))
+        # do it
+        value = field_value(self.page, "subjects")
+
+        # postcondition
+        self.assertEqual(value, ("Wert A",))
 
     def test_set_field_value__writes_a_field_its_behavior_keeps_elsewhere(self):
         # do it
@@ -35,11 +38,18 @@ class TestFieldAccess(TestCase):
         # setup
         self.portal.field_a = "Wert A"
 
-        # do it, postcondition
-        self.assertIs(field_value(self.page, "field_a", MISSING), MISSING)
+        # do it
+        value = field_value(self.page, "field_a", MISSING)
+
+        # postcondition
+        self.assertIs(value, MISSING)
 
     def test_field_value__reads_an_object_without_a_type_as_attribute(self):
-        self.assertEqual(field_value(Content(field_a="Wert A"), "field_a"), "Wert A")
+        # do it
+        value = field_value(Content(field_a="Wert A"), "field_a")
+
+        # postcondition
+        self.assertEqual(value, "Wert A")
 
     def test_set_field_value__writes_an_object_without_a_type_as_attribute(self):
         # setup

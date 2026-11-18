@@ -14,10 +14,10 @@ class TestClassicControlPanel(TestCase):
         self.form.update()
 
     def test_save__keeps_the_api_key_for_an_empty_field(self):
-        # do it — the password field shows no value, so it comes back empty
+        # do it
         self.form.applyChanges({"api_key": None, "api_url": "https://proxy.test/v2"})
 
-        # postcondition — the other field is saved, the key stays
+        # postcondition
         self.assertEqual(Settings().api_key, "key-value-a")
         self.assertEqual(_records().api_url, "https://proxy.test/v2")
 

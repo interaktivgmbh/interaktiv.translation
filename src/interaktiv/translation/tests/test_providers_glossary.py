@@ -18,22 +18,40 @@ class TestGlossaryId(TestCase):
         return settings
 
     def test_glossary_id__names_the_glossary_of_the_direction_from_the_default_language(self):
+        # setup
         settings = self._settings({"en": "glossary-a", "fr": "glossary-b"})
 
-        self.assertEqual(settings.glossary_id("de", "en"), "glossary-a")
-        self.assertEqual(settings.glossary_id("DE", "FR"), "glossary-b")
+        # do it
+        glossary_en = settings.glossary_id("de", "en")
+        glossary_fr = settings.glossary_id("DE", "FR")
+
+        # postcondition
+        self.assertEqual(glossary_en, "glossary-a")
+        self.assertEqual(glossary_fr, "glossary-b")
 
     def test_glossary_id__names_none_from_another_language(self):
+        # setup
         settings = self._settings({"en": "glossary-a"})
 
-        self.assertIsNone(settings.glossary_id("fr", "en"))
-        self.assertIsNone(settings.glossary_id(None, "en"))
+        # do it
+        glossary_from_fr = settings.glossary_id("fr", "en")
+        glossary_without_source = settings.glossary_id(None, "en")
+
+        # postcondition
+        self.assertIsNone(glossary_from_fr)
+        self.assertIsNone(glossary_without_source)
 
     def test_glossary_id__names_none_for_a_direction_without_one(self):
+        # setup
         settings = self._settings({"en": " "})
 
-        self.assertIsNone(settings.glossary_id("de", "en"))
-        self.assertIsNone(settings.glossary_id("de", "fr"))
+        # do it
+        glossary_blank = settings.glossary_id("de", "en")
+        glossary_missing = settings.glossary_id("de", "fr")
+
+        # postcondition
+        self.assertIsNone(glossary_blank)
+        self.assertIsNone(glossary_missing)
 
 
 class TestDeepLGlossary(TestCase):
@@ -49,7 +67,7 @@ class TestDeepLGlossary(TestCase):
         with mock.patch("requests.post", return_value=_response(payload=TRANSLATED)) as post:
             DeepLProvider(api_key="abc").translate(["Hallo"], "en", "de")
 
-        # postcondition — with the source language DeepL needs for it
+        # postcondition
         payload = post.call_args.kwargs["json"]
         self.assertEqual(payload["glossary_id"], "glossary-a")
         self.assertEqual(payload["source_lang"], "DE")
@@ -63,7 +81,7 @@ class TestDeepLGlossary(TestCase):
         self.assertNotIn("glossary_id", post.call_args.kwargs["json"])
 
     def test_translate__goes_on_without_a_glossary_deepl_refuses(self):
-        # setup — the glossary unknown, the translation without it fine
+        # setup
         answers = [_response(status=404, payload={}), _response(payload=TRANSLATED)]
 
         # do it
@@ -76,8 +94,10 @@ class TestDeepLGlossary(TestCase):
         self.assertNotIn("glossary_id", post.call_args_list[1].kwargs["json"])
 
     def test_translate__fails_for_a_refused_key_glossary_or_not(self):
-        # do it, postcondition — not a matter of the glossary: no second try
+        # do it
         with mock.patch("requests.post", return_value=_response(status=403, payload={})) as post:
             with self.assertRaises(TranslationError):
                 DeepLProvider(api_key="abc").translate(["Hallo"], "en", "de")
+
+        # postcondition
         self.assertEqual(post.call_count, 1)
