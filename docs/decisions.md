@@ -165,6 +165,12 @@ settings also moves a key to the environment's secret once that is set.
 a language that went away stays in its vocabulary to be chosen off, under
 its id or code.
 
+**The condition of the Translate action calls the view, it reads no
+attribute.** The condition is TALES in restricted Python, and reading an
+attribute off a view there raises "the container has no security
+assertions". That only shows when the action is really evaluated, never
+when the expression is merely read, so a test evaluates it.
+
 ## Working copies and permissions (`subscribers/events.py`)
 
 **A working copy cannot be translated.** On checkout the permission to
