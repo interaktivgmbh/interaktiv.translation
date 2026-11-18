@@ -1,6 +1,6 @@
 from typing import Any, List, Optional, Dict
 
-from plone import api
+import plone.api as api
 from plone.registry.interfaces import IRegistry
 from zope.component import getUtility
 from zope.interface.interfaces import ComponentLookupError
@@ -24,11 +24,11 @@ from interaktiv.translation.registry.translation import (
 
 
 class Settings:
-    def __init__(self, records=None) -> None:
+    def __init__(self, records: Optional[Any] = None) -> None:
         self._records = records if records is not None else self._records_from_site()
 
     @staticmethod
-    def _records_from_site():
+    def _records_from_site() -> Optional[Any]:
         try:
             return getUtility(IRegistry).forInterface(ITranslationSettings, check=False)
         except ComponentLookupError:

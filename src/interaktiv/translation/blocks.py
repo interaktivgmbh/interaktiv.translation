@@ -63,7 +63,8 @@ def slate_html(nodes: Any) -> Optional[str]:
 
     try:
         return SlateHTMLSerializer().serialize(nodes)
-    except Exception:  # noqa: BLE001
+    except Exception as error:  # noqa: BLE001
+        logger.debug("Slate tree read leaf by leaf, it cannot be serialized: %s", error)
         return None
 
 

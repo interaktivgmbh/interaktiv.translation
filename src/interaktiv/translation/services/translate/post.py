@@ -41,13 +41,17 @@ class TranslatePost(Service):
                 "values": error.values,
             }
 
-    def _reply_text(self, translator, texts, target: str, source) -> Dict[str, Any]:
+    def _reply_text(
+        self, translator: ContentTranslator, texts: Any, target: str, source: Optional[str]
+    ) -> Dict[str, Any]:
         one = isinstance(texts, str)
         translated = translator.provider.translate([texts] if one else list(texts), target, source)
 
         return {"target_language": target, "text": translated[0] if one else translated}
 
-    def _reply_content(self, translator, body: Dict, target: str, source: Optional[str]) -> Dict[str, Any]:
+    def _reply_content(
+        self, translator: ContentTranslator, body: Dict, target: str, source: Optional[str]
+    ) -> Dict[str, Any]:
         overwrite = bool(body.get("overwrite"))
 
         storage = TranslationStorage(self.context, self.request)

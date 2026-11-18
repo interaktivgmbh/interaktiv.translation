@@ -2,7 +2,7 @@ import csv
 import re
 from typing import Any, Dict, List, Optional, Tuple
 
-from plone import api
+import plone.api as api
 from plone.registry.interfaces import IRegistry
 from Products.GenericSetup.tool import SetupTool
 from zope.component import getUtility

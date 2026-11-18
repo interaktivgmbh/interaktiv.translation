@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from plone import api
+import plone.api as api
 from zope.component import queryUtility
 from zope.interface import implementer
 from zope.schema.interfaces import IVocabularyFactory
@@ -54,7 +54,7 @@ class SiteLanguagesVocabularyFactory:
 def site_languages() -> List[str]:
     try:
         tool = api.portal.get_tool("portal_languages")
-    except Exception:  # noqa: BLE001
+    except (api.exc.InvalidParameterError, api.exc.CannotGetPortalError):
         return []
 
     return list(tool.getSupportedLanguages() or [])

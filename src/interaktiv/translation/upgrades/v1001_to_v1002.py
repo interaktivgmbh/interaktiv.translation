@@ -1,6 +1,6 @@
 from typing import Any, Dict, Optional
 
-from plone import api
+import plone.api as api
 from plone.registry.interfaces import IRegistry
 from Products.GenericSetup.tool import SetupTool
 from zope.component import getUtility

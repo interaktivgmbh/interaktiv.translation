@@ -2,7 +2,7 @@ import copy
 import html
 
 from html.parser import HTMLParser
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 BLOCK_TYPES = ("p", "h1", "h2", "h3", "h4", "h5", "h6", "ul", "ol", "li", "blockquote")
 INLINE_TYPES = ("strong", "em", "u", "s", "code", "sub", "sup", "del")
@@ -94,7 +94,7 @@ class SlateHTMLParser(HTMLParser):
 
     BLOCK_CONTAINER_TAGS = frozenset({"ul", "ol"})
 
-    def __init__(self, node_properties: Optional[NodeProperties] = None):
+    def __init__(self, node_properties: Optional[NodeProperties] = None) -> None:
         super().__init__()
         self.result = []
         self.stack = [self.result]
@@ -118,7 +118,7 @@ class SlateHTMLParser(HTMLParser):
 
         return node
 
-    def handle_starttag(self, tag, attrs):
+    def handle_starttag(self, tag: str, attrs: List[Tuple[str, Optional[str]]]) -> None:
         attrs_dict = dict(attrs)
 
         if tag == LEAF_TAG:
@@ -143,7 +143,7 @@ class SlateHTMLParser(HTMLParser):
             self.stack.append(node["children"])
             self.open_tags.append(tag)
 
-    def handle_endtag(self, tag):
+    def handle_endtag(self, tag: str) -> None:
         if tag == LEAF_TAG and self.open_leaves:
             _depth, properties = self.open_leaves.pop()
             if properties is not None:
@@ -167,17 +167,17 @@ class SlateHTMLParser(HTMLParser):
         while self.open_leaves and self.open_leaves[-1][0] > len(self.open_tags):
             self.open_leaves.pop()
 
-    def _close_element(self):
+    def _close_element(self) -> None:
         if len(self.stack) > 1:
             if not self.stack[-1]:
                 # slate's invariant: every element holds at least one text child
                 self.stack[-1].append({"text": ""})
             self.stack.pop()
 
-    def _in_block_container(self):
+    def _in_block_container(self) -> bool:
         return not self.open_tags or self.open_tags[-1] in self.BLOCK_CONTAINER_TAGS
 
-    def handle_data(self, data):
+    def handle_data(self, data: str) -> None:
         text = data
         if not text:
             return
@@ -199,7 +199,7 @@ class SlateHTMLParser(HTMLParser):
 
         return properties
 
-    def get_result(self):
+    def get_result(self) -> List[Dict]:
         # close what a truncated answer left open
         while self.open_tags:
             self.open_tags.pop()
