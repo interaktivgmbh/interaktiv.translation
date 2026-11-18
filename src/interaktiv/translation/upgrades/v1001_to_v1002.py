@@ -15,8 +15,7 @@ SELECTION_RECORD = f"{ITranslationSettings.__identifier__}.metadata_selection"
 
 # noinspection PyUnusedLocal
 def upgrade(site_setup: Optional[SetupTool] = None) -> None:
-    """The fields per content type name how each field goes along: a list of fields
-    becomes ``{field_id: mode}``, with the mode the field had by its kind."""
+    """Turns the list of fields per content type into ``{field_id: mode}``."""
     registry = getUtility(IRegistry)
     if SELECTION_RECORD not in registry.records:
         return
@@ -25,8 +24,7 @@ def upgrade(site_setup: Optional[SetupTool] = None) -> None:
     if not isinstance(selection, dict):
         return
 
-    # the registry step gives the record the field of today: the one it has
-    # refuses a field naming how it goes along
+    # the record's old field refuses the new form: the registry step renews it
     setup_tool = site_setup or api.portal.get_tool("portal_setup")
     setup_tool.runImportStepFromProfile(
         "profile-interaktiv.translation:default", "plone.app.registry", run_dependencies=False

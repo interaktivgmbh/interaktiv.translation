@@ -23,8 +23,7 @@ class UpdateWorkingCopy(StockUpdateWorkingCopy):
             return self._error(400, "Bad Request", "There is no working copy to check in.")
 
         if not policy.getBaseline():
-            # We are on the baseline; the policy that can check in is the
-            # working copy's.
+            # we are on the baseline; the working copy's policy checks in
             policy = ICheckinCheckoutPolicy(working_copy)
 
         control = getMultiAdapter((working_copy, self.request), name="iterate_control")

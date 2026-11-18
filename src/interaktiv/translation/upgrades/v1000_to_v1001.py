@@ -47,8 +47,7 @@ def upgrade(site_setup: Optional[SetupTool] = None) -> None:
     _encrypt_api_key(registry)
     _upgrade_link_fields(registry)
 
-    # the source language is the site's default language now; the fields of a
-    # translation are chosen per content type
+    # the source language is the site's default now; the fields are chosen per content type
     for record_name in REMOVED_RECORDS:
         if record_name in registry.records:
             del registry.records[record_name]
@@ -91,8 +90,7 @@ def _upgrade_mapping(registry: IRegistry, old_value: Any) -> None:
 
 
 def _upgrade_target_languages(registry: IRegistry, old_value: Any) -> None:
-    # the import empties the whole list for a single code that is no site language,
-    # and an empty list offers every site language
+    # one code that is no site language would empty the whole list
     site_languages = api.portal.get_tool("portal_languages").getSupportedLanguages()
     kept = [code for code in old_value or [] if code in site_languages]
     dropped = [code for code in old_value or [] if code not in site_languages]

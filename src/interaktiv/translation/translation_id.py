@@ -14,9 +14,7 @@ TRANSLATED_TITLE_KEY = "interaktiv.translation.translated_title"
 
 
 class TranslatedTitleIdChooser(DefaultTranslationIdChooser):
-    """Names a machine translation after its translated title, as Plone names
-    content created by hand; anything else plone.app.multilingual creates keeps
-    its own way (the id of the original)."""
+    """Names a machine translation after its translated title."""
 
     def __call__(self, parent: Any, language: str) -> str:
         request = getRequest()
@@ -24,9 +22,7 @@ class TranslatedTitleIdChooser(DefaultTranslationIdChooser):
         title = annotations.get(TRANSLATED_TITLE_KEY) if annotations is not None else None
 
         if isinstance(title, str) and title.strip():
-            # By the rules of the target language, as for content created by
-            # hand in its folder; the name chooser alone would take those of
-            # the request, which is on the source.
+            # by the rules of the target language; the request is on the source
             name = getUtility(IURLNormalizer).normalize(title, locale=language)
             if name:
                 return INameChooser(parent).chooseName(name, self.context)

@@ -74,7 +74,6 @@ class BlocksExtractor(FieldExtractor):
 
         for block_id, block in value.items():
             if isinstance(block, dict):
-                # is a block
                 handler = self._get_block_handler(block)
                 pairs = handler.texts(block)
             else:

@@ -1,6 +1,5 @@
 <configure xmlns="http://namespaces.zope.org/zope">
 
-    <!-- the API key is stored encrypted, whichever way it is set -->
     <subscriber
         for="plone.registry.interfaces.IRecordModifiedEvent"
         handler=".events.encrypt_api_key"

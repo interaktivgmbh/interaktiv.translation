@@ -35,8 +35,7 @@ MANAGE_TRANSLATIONS_PERMISSION = "plone.app.multilingual: Manage Translations"
 
 
 class Refusal(str):
-    """Why a translation is refused: in English as a text, the translatable
-    message, and a code and the values it names for a front end to react to."""
+    """Why a translation is refused: a text, its translatable message, a code and its values."""
 
     code: str
     values: Dict[str, str]
@@ -127,38 +126,25 @@ class TranslationStorage:
     def __init__(self, content: Any, request: Optional[Any] = None) -> None:
         self.content = content
         self.request = request
-        # What the last `store` did, for the report an editor is shown:
-        # where the translation went and whether that object is new.
         self.stored_as: Optional[str] = None
         self.created: bool = False
         self.source_language: Optional[str] = None
 
     @property
     def multilingual(self) -> bool:
-        # The profile version, not `getProfileImportDate`: that one answers
-        # out of the import log files portal_setup keeps, whose names carry
-        # the `profile-` prefix the caller does not write — so it says "never
-        # imported" for a profile that is installed. This is what Plone's own
-        # installer asks.
+        # not getProfileImportDate: it misses a profile named without the "profile-" prefix
         setup_tool = api.portal.get_tool("portal_setup")
 
         return setup_tool.getLastVersionForProfile(MULTILINGUAL_PROFILE) != UNKNOWN
 
     @property
     def working_copies(self) -> bool:
-        # `plone.app.iterate` installed on the site: an existing translation is
-        # then not overwritten but checked out, so the machine translation
-        # lands in a working copy an editor reviews and checks in. The profile
-        # version, the same way `multilingual` is read — the admin switches the
-        # feature on by installing iterate.
         setup_tool = api.portal.get_tool("portal_setup")
 
         return setup_tool.getLastVersionForProfile(ITERATE_PROFILE) != UNKNOWN
 
     def uses_working_copies(self, content: Any) -> bool:
-        # iterate checks out only what can be locked: a type without the
-        # `plone.locking` behavior (a stock Folder, say) is never checked out,
-        # so its translation is overwritten as on a site without iterate.
+        # iterate checks out only what can be locked; anything else is overwritten
         return self.working_copies and ILockable(content, None) is not None
 
     def existing_translation(self, target_language: str) -> Optional[Any]:
@@ -168,7 +154,7 @@ class TranslationStorage:
         try:
             return ITranslationManager(self.content).get_translation(target_language)
         except TypeError:
-            # Not translatable content — the site root, say.
+            # not translatable content, the site root say
             return None
 
     def baseline(self) -> Optional[Any]:
@@ -207,7 +193,6 @@ class TranslationStorage:
 
     @property
     def content_refusal(self) -> Optional[Refusal]:
-        # why the content itself is not translated by machine, whatever the target
         if self.is_excluded_type:
             return EXCLUDED_TYPE_REFUSAL
 
@@ -217,14 +202,11 @@ class TranslationStorage:
         return None
 
     def working_copy_of(self, translation: Any) -> Optional[Any]:
-        # The working copy of a checked-out translation, or None. Answers None
-        # where iterate is not installed on the site, so callers need not
-        # guard separately.
+        # None also where iterate is not installed
         if ICheckinCheckoutPolicy(translation, None) is None:
             return None
 
-        # Not iterate's getWorkingCopy(): it takes the first relation, even a
-        # broken one left by a working copy deleted instead of discarded.
+        # not iterate's getWorkingCopy(): it takes the first relation, even a broken one
         own_id = getUtility(IIntIds).queryId(aq_base(translation))
         for relation in get_relations(translation):
             if relation.from_id == own_id and not relation.isBroken():
@@ -290,9 +272,7 @@ class TranslationStorage:
         return None
 
     def refusal(self, target_language: str, overwrite: bool) -> Optional[Refusal]:
-        # The one place that decides whether a save would be refused, so the
-        # service can turn DeepL away before it is paid and `store` can raise
-        # the same way. None means "go ahead".
+        # None means "go ahead"; asked before the translation service is paid
         if self.content_refusal is not None:
             return self.content_refusal
 
@@ -311,9 +291,7 @@ class TranslationStorage:
             return None
 
         if self.uses_working_copies(existing):
-            # A translation exists but iterate is on: a working copy is made
-            # instead of overwriting it. A working copy that is already there
-            # holds somebody's work and is never replaced, not even on request.
+            # a working copy that is already there holds somebody's work and is never replaced
             if self.working_copy_of(existing) is not None:
                 return Refusal(
                     "target_working_copy",
@@ -323,9 +301,7 @@ class TranslationStorage:
                     language=target_language,
                 )
 
-            # A fresh checkout would be made: iterate's own rules first, or
-            # somebody editing the translation right now would lose their lock
-            # and with it their unsaved work.
+            # iterate's own rules first: a checkout would take the lock of somebody editing
             return self.checkout_refusal(existing, target_language)
 
         if not overwrite:
@@ -344,9 +320,7 @@ class TranslationStorage:
         overwrite: bool = False,
         source_language: Optional[str] = None,
     ) -> Any:
-        # the same fallback as the translator's
         self.source_language = source_language_of(self.content, source_language)
-        # mark request annotations for machine created content
         request = getRequest()
         annotations = IAnnotations(request) if request is not None else None
         if annotations is not None:
@@ -391,19 +365,14 @@ class TranslationStorage:
 
         self._mark_machine_translated(content, target_language)
         self._note_change(target_language)
-        # Subscribers, not just the catalog: versioning, link integrity and
-        # cache purging all hang off the modified event, and a translation that
-        # skips it leaves an object nobody can roll back.
+        # versioning, link integrity and cache purging hang off the modified event
         notify(ObjectModifiedEvent(content))
         content.reindexObject()
 
         return content
 
     def _store_in_place(self, fields: Dict[str, Any], target_language: str) -> Any:
-        # The page now holds another language, and nothing else is going to say
-        # so: no second object was made here, and it is the field the catalogue
-        # and the front end both read. On the other path
-        # `plone.app.multilingual` sets it on the object it creates.
+        # no second object was made: the page itself holds the other language now
         self.stored_as = "in_place"
         self.created = False
 
@@ -417,8 +386,6 @@ class TranslationStorage:
             if refusal is not None:
                 raise refusal.error(409)
             if self.uses_working_copies(existing):
-                # Don't touch the live translation: translate into a fresh
-                # working copy the editor reviews and checks in.
                 working_copy = self._checkout(existing, target_language)
                 self.stored_as = "working_copy"
                 self.created = True
@@ -431,8 +398,7 @@ class TranslationStorage:
             return self._apply(existing, fields, target_language)
 
         manager = ITranslationManager(self.content)
-        # plone.app.multilingual asks the id chooser while creating; ours names
-        # the translation after its translated title (see translation_id.py)
+        # our id chooser names the translation after its translated title (translation_id.py)
         request = getRequest()
         annotations = IAnnotations(request) if request is not None else None
         title = fields.get("title")
@@ -467,8 +433,7 @@ class TranslationStorage:
         return self._apply(existing, fields, target_language)
 
     def _checkout(self, translation: Any, target_language: str) -> Any:
-        # A fresh checkout into the translation's own folder, with the
-        # baseline versioned first so the history names what it was cut from.
+        # the baseline is versioned first, so the history names what it was cut from
         self._version_baseline_before_translation(translation, target_language)
 
         policy = ICheckinCheckoutPolicy(translation)
@@ -477,8 +442,7 @@ class TranslationStorage:
         return working_copy
 
     def _version_baseline_before_translation(self, translation: Any, target_language: str) -> None:
-        # call "archiver.save" before handleBeforeCheckout does it
-        # -> creates version baseline with a custom comment
+        # archiver.save before handleBeforeCheckout does it: a baseline version with our comment
         archiver = IObjectArchiver(translation, None)
         if archiver is None or not archiver.isVersionable():
             return

@@ -81,8 +81,7 @@ class ITranslationSettings(Interface):
         required=False,
     )
 
-    # the key never goes to the browser, see controlpanels/api_key.py; its widget
-    # tests the connection
+    # the key never goes to the browser (controlpanels/api_key.py); its widget tests the connection
     directives.widget("api_key", frontendOptions={"widget": "translation_api_key"})
     api_key = schema.Password(
         title=_("DeepL API key"),
@@ -100,7 +99,6 @@ class ITranslationSettings(Interface):
             "are kept in the DeepL account; here only their IDs are named (e.g. "
             "4b1b0f1c-9d7a-4b6e-9a0a-3f2c8f0e51d7). For the keywords the metadata mapping counts instead."
         ),
-        # {target_language: glossary_id}, from the site's default language
         schema=GLOSSARY_IDS_JSON_SCHEMA,
         widget="translation_glossary_ids",
         default={},

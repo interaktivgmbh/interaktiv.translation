@@ -1,35 +1,4 @@
-"""Which fields of a content type the translation lists, and how it would treat them.
-
-These are the suggestions the add-on makes on its own: what a site decides per
-field (``metadata_selection``) comes on top of them.
-
-Every listed field has a role and a mode:
-
-* role ``always``: goes along whatever the site decides — title, description,
-  the page content and the type's primary field (the image of an image).
-* role ``default``: goes along unless the site leaves it out.
-* role ``impossible``: cannot go along — a structure the add-on cannot take apart.
-* mode ``translate``, ``copy`` (taken over as it is) or ``mapping`` (through the
-  metadata mapping); ``None`` for a field that cannot go along.
-
-``reason`` names the rule that decided the mode, for the control panel to tell.
-
-The mode is a suggestion: for a field of role ``default`` the site says how it goes
-along, ``translate`` or ``copy``, among the modes the field can take (``modes``).
-Only a text can be translated; a reference, a link, a language independent field and
-a field the site names to be copied (``copied_fields``) are taken over. What always
-goes along, and what the mapping translates, has no choice.
-
-A reference (a relation, or a list of them) is taken over pointing at the target's
-translation where there is one, else at the target itself — as an editor may
-choose content of another language too. A link field (``link_fields``) is taken
-over the same way: an internal link points at the translation of its target.
-Neither is ever mapped.
-
-The listing (``get_listed_fields``) leaves the mapping out of the mode and tells it
-apart as ``mapped``: the control panel shows the mapping it is editing, not the
-saved one, and a field taken out of the mapping falls back to its mode.
-"""
+"""Which fields of a content type the translation lists, and how it would treat them."""
 
 import json
 from typing import Any, Dict, Iterable, List, NamedTuple, Optional, Set, Tuple
@@ -57,9 +26,7 @@ except ImportError:  # pragma: no cover - plone.app.multilingual is a dependency
     MULTILINGUAL_KEY = None
     ILanguageIndependentField = None
 
-# {portal_type: {field_id: "translate" | "copy"}}:
-# the fields that go along for each portal_type, and how
-# for a missing portal_type the always and mapped fields are handled
+# {portal_type: {field_id: "translate" | "copy"}}
 METADATA_SELECTION_JSON_SCHEMA = json.dumps(
     {
         "type": "object",
@@ -88,9 +55,6 @@ REASON_FIELD_TYPE = "field_type"
 REASON_REFERENCE = "reference"
 REASON_LINK = "link"
 
-# The lists below are the defaults of the settings `excluded_fields`,
-# `always_fields`, `copied_fields` and `link_fields`; a site changes them in the
-# advanced settings.
 
 # fields that never go along and are not listed: they belong to the object, not to its language
 EXCLUDED_FIELDS = (
@@ -108,13 +72,11 @@ EXCLUDED_FIELDS = (
     "expires",
 )
 
-# the title, the description and the page content always go along, and come first
 ALWAYS_FIELDS = ("title", "description", "text", "blocks")
 
 # "Blocks" says little to an editor
 FIELD_TITLES = {"blocks": _("Page content")}
 
-# fields of Plone's own types that are taken over though their type says otherwise:
 # text that is no prose (an address, a rule), or the search of a collection
 COPIED_FIELDS = (
     "contact_email",
@@ -125,12 +87,9 @@ COPIED_FIELDS = (
     "sort_on",
 )
 
-# fields of Plone's own types that hold a link: taken over, an internal link
-# pointed at the translation of its target
+# an internal link is pointed at the translation of its target
 LINK_FIELDS = (
-    # the address of a link
     "remoteUrl",
-    # the web address of an event
     "event_url",
     # the search of a collection: a path from the portal root is a link to a folder
     "query",
@@ -193,8 +152,7 @@ def holds_texts(field: Any) -> bool:
     if _provides(field, (schema.interfaces.ITextLine, schema.interfaces.IText)):
         return True
     if schema.interfaces.IChoice.providedBy(field):
-        # a vocabulary of its own tells its values (allow_discussion: True, False);
-        # a named one is looked up only with a context, and taken for texts
+        # a vocabulary of its own tells its values; a named one is taken for texts
         vocabulary = getattr(field, "vocabulary", None)
         terms = list(vocabulary) if vocabulary is not None and hasattr(vocabulary, "__iter__") else []
         return all(isinstance(term.value, str) for term in terms)
@@ -209,7 +167,6 @@ def mode_by_field_type(field: Any) -> Optional[str]:
     """get mode how to handle field by field type -> ``translate``, ``copy`` or ``None``"""
     # the order matters: an URI is a text line too, a relation a choice
     if is_reference(field):
-        # taken over, pointing at the translation of its target
         return MODE_COPY
     if INamedField.providedBy(field):
         return MODE_COPY
@@ -337,10 +294,7 @@ def get_listed_fields(
     mapped_fields: Iterable[str] = (),
     rules: FieldRules = DEFAULT_RULES,
 ) -> List[Dict[str, Any]]:
-    """get all fields of type that are not excluded
-    mode: how the field should be handled
-    mapped: is there a metadata mapping for the field
-    """
+    """The fields of a type that are not excluded, each with how the translation would treat it."""
     fti = queryUtility(IDexterityFTI, name=portal_type)
     if fti is None:
         return []
@@ -437,8 +391,7 @@ def get_handled_fields(
 def get_suggested_modes(
     portal_type: str, field_ids: Iterable[str], rules: FieldRules = DEFAULT_RULES
 ) -> Dict[str, str]:
-    """``{field_id: mode}`` of the given fields as their kind has it, for the fields
-    of the type a site has a choice for; the mapping is left out, as in the listing."""
+    """``{field_id: mode}`` of the given fields as their kind has it, the mapping left out."""
     fti = queryUtility(IDexterityFTI, name=portal_type)
     if fti is None:
         return {}
@@ -463,5 +416,4 @@ def get_suggested_modes(
             if mode in selectable_modes(field, role, reason):
                 modes[name] = mode
 
-    # in the order they were chosen
     return {name: modes[name] for name in wanted if name in modes}

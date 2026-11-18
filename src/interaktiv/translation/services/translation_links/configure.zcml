@@ -4,7 +4,6 @@
 
     <include package="plone.rest" file="meta.zcml"/>
 
-    <!-- the links of the content as it is now, for an editor to go through -->
     <plone:service
             method="GET"
             factory=".get.TranslationLinksGet"

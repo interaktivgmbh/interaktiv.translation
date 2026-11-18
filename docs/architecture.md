@@ -145,6 +145,16 @@ fields of a type are its schema and its behaviors, minus the fields named in
 3. a field chosen for the type in `metadata_selection`
    (`{portal_type: {field_id: "translate" | "copy"}}`); nothing else.
 
+Every listed field has a role and a mode. The role is `always` (goes along
+whatever the site decides), `default` (goes along when it is chosen) or
+`impossible` (a structure the add-on cannot take apart). The mode is
+`translate`, `copy` (taken over as it is) or `mapping` (through the metadata
+mapping), and `None` for a field that cannot go along; `reason` names the
+rule that decided it, for the control panel to tell. The listing leaves the
+mapping out of the mode and tells it apart as `mapped`: the control panel
+shows the mapping it is editing, not the saved one, and a field taken out of
+the mapping falls back to its mode.
+
 A chosen field goes along as it is chosen, among the modes it can take
 (`modes` in `GET @translation-fields`): a text either way, anything else
 taken over, and so a text named in `copied_fields`. A mode it cannot take
@@ -153,7 +163,8 @@ can take, and how a field of rule 1 goes along, follows from
 `copied_fields` (taken over),
 plone.app.multilingual's language independent fields (taken over), and else
 the kind of field: text is translated; booleans, numbers, dates, choices,
-addresses, files and images are taken over; a reference cannot go along.
+addresses, files and images are taken over; a reference and a link field
+are taken over pointed at the translation of their target.
 `excluded_fields`, `always_fields` and `copied_fields` default to the lists
 in `helpers/field_selection.py`; a site changes them in the advanced
 settings.

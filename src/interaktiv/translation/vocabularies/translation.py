@@ -22,12 +22,7 @@ class ProvidersVocabularyFactory:
 
 @implementer(IVocabularyFactory)
 class ContentTypesVocabularyFactory:
-    """The content types an editor adds, as Plone lists them, and the types the settings
-    still name though the site no longer has them.
-
-    A stored value must always find its term: plone.restapi cannot show the control
-    panel otherwise. A type that went away stays to be chosen off, under its id.
-    """
+    """The content types an editor adds, and those the settings still name though the site lost them."""
 
     def __call__(self, context: Optional[object] = None) -> SimpleVocabulary:
         factory = queryUtility(IVocabularyFactory, name="plone.app.vocabularies.ReallyUserFriendlyTypes")
@@ -45,12 +40,7 @@ class ContentTypesVocabularyFactory:
 
 @implementer(IVocabularyFactory)
 class SiteLanguagesVocabularyFactory:
-    """The languages of the site, as Plone lists them, and the languages the offered
-    target languages still name though the site no longer has them.
-
-    A stored value must always find its term: plone.restapi cannot show the control
-    panel otherwise. A language that went away stays to be chosen off, under its code.
-    """
+    """The languages of the site, and those the target languages still name though the site lost them."""
 
     def __call__(self, context: Optional[object] = None) -> SimpleVocabulary:
         factory = queryUtility(IVocabularyFactory, name="plone.app.vocabularies.SupportedContentLanguages")

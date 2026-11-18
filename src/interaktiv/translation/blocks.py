@@ -9,7 +9,6 @@ from interaktiv.translation.settings import settings
 # path to the text in json branch: dict keys and list indices.
 Path = Tuple[Union[str, int], ...]
 
-# path to the text in json branch, and the text itself.
 Pair = Tuple[Path, str]
 
 
@@ -82,7 +81,6 @@ class DefaultBlockHandler(BlockHandler):
         return tuple(settings().block_text_keys)
 
     def _walk(self, node: Any, path: Path = ()) -> List[Finding]:
-        # collect all text findings
         found: List[Finding] = []
 
         if isinstance(node, dict):

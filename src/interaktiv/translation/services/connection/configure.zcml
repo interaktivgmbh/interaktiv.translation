@@ -4,7 +4,6 @@
 
     <include package="plone.rest" file="meta.zcml"/>
 
-    <!-- the control panel's connection test, with the settings in the form -->
     <plone:service
             method="POST"
             factory=".post.TranslationConnectionPost"
@@ -23,7 +22,6 @@
             layer="interaktiv.translation.interfaces.IInteraktivTranslationBrowserLayer"
     />
 
-    <!-- the glossaries of the account, with the settings in the form -->
     <plone:service
             method="POST"
             factory=".post.TranslationGlossariesPost"

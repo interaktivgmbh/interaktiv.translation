@@ -6,7 +6,6 @@
 
     <include package="plone.app.iterate"/>
 
-    <!-- Override plone.restapi's PATCH @workingcopy -->
     <plone:service
             method="PATCH"
             factory=".update.UpdateWorkingCopy"

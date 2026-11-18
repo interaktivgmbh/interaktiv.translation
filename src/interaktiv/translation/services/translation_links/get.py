@@ -7,8 +7,7 @@ from interaktiv.translation.helpers.links import LINK_STATUSES, check_links
 
 
 class TranslationLinksGet(Service):
-    """The links of the content as it is now, each with how it stands to the
-    language of the content: what an editor goes through after a translation."""
+    """The links of the content as it is now, each with how it stands to the content's language."""
 
     def reply(self) -> Dict[str, Any]:
         items = check_links(self.context)

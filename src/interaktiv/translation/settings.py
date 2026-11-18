@@ -52,7 +52,6 @@ class Settings:
 
     @property
     def api_key_status(self) -> Dict[str, Any]:
-        # how the stored key is kept, never the key: stored, encryption, readable
         return encryption_status(self._get("api_key", ""))
 
     @property
@@ -113,7 +112,6 @@ class Settings:
 
     @property
     def field_rules(self) -> FieldRules:
-        # the lists the field rules go by, as this site has them
         return FieldRules(
             excluded=tuple(self.excluded_fields),
             always=tuple(self.always_fields),
@@ -139,13 +137,11 @@ class Settings:
 
     @property
     def metadata_selection(self) -> Dict[str, Any]:
-        # {portal_type: {field_id: mode}}: the fields chosen per content type, and how they go along
         selection = self._get("metadata_selection", {})
         return selection if isinstance(selection, dict) else {}
 
     @property
     def mapped_fields(self) -> List[str]:
-        # the fields the metadata mapping has values for
         mapping = self._get("metadata_mapping_table", {})
         return [field_id for field_id, rows in mapping.items() if rows] if isinstance(mapping, dict) else []
 

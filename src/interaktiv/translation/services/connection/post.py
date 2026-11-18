@@ -19,13 +19,7 @@ def _token(value: Any) -> Optional[str]:
 
 
 class FormProviderService(Service):
-    """Asks the translation service with the settings as the form holds them: what
-    the form leaves out, or the placeholder of the key, is taken as stored. A failure
-    is an answer too (``ok: false``), not an error of the request; nothing is written.
-
-    POST, not GET, although it only asks: the form may hold a new API key, which
-    must not go into a URL (access logs, proxies, browser history).
-    """
+    """Asks the translation service with the settings as the form holds them; nothing is written."""
 
     def form_provider(self) -> Tuple[Optional[TranslationProvider], Optional[Dict[str, Any]]]:
         """The provider of the form, or the answer that says why there is none."""

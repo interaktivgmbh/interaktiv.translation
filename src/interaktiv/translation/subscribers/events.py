@@ -25,14 +25,12 @@ API_KEY_RECORD = f"{ITranslationSettings.__identifier__}.api_key"
 
 
 def restrict_translations_on_checkout(event: Any) -> None:
-    # a working copy should not be translatable
-    # setting a tuple -> no acquiring
+    # a working copy is not translatable; a tuple of roles stops acquiring
     Permission(MANAGE_TRANSLATIONS_PERMISSION, (), event.working_copy).setRoles(())
 
 
 def restore_translations_on_checkin(event: Any) -> None:
-    # reset the translation permission when checking in a working copy
-    # setting a list -> acquiring
+    # translatable again after the checkin; a list of roles acquires
     Permission(MANAGE_TRANSLATIONS_PERMISSION, (), event.object).setRoles([])
 
 
@@ -50,7 +48,6 @@ def note_machine_translation_checkin(event: Any) -> None:
 
 
 def note_machine_translation_edit(obj: Any, event: Any) -> None:
-    # note if machine translated content was edited by user
     if IContainerModifiedEvent.providedBy(event):
         return
 
@@ -72,7 +69,7 @@ def note_machine_translation_edit(obj: Any, event: Any) -> None:
 def note_machine_translation_before_publication(obj: Any, event: Any) -> None:
     new_state = getattr(event, "new_state", None)
     if not new_state or event.kwargs is None:
-        # An automatic transition carries no kwargs — no comment to write into.
+        # an automatic transition carries no kwargs: no comment to write into
         return
 
     translation_marker = get_translation_marker(obj)
@@ -105,9 +102,7 @@ def _set_translation_marker_to_reviewed(content: Any, marker: Any, reviewer: str
 
 
 def encrypt_api_key(event: Any) -> None:
-    """The API key goes into the registry encrypted, whichever way it comes: the
-    control panels, the registry's own view, a profile. Saving the settings also
-    moves a key to the environment's secret once that is set."""
+    """Encrypts the API key on its way into the registry, whichever way it comes."""
     record = event.record
     if getattr(record, "__name__", None) != API_KEY_RECORD:
         return

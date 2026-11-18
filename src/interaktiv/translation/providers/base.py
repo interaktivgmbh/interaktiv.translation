@@ -27,7 +27,6 @@ class TranslationError(Exception):
         self.code = code
 
     def translated(self, request: Any) -> str:
-        # in the language of the request
         return translate(self.message, context=request)
 
 
@@ -52,18 +51,14 @@ class TranslationProvider(ABC):
         raise NotImplementedError
 
     def check(self) -> Dict[str, Any]:
-        """Whether the service answers with the access it is given; raises TranslationError if not.
-
-        Answers what it knows of the account: ``plan``, ``character_count``, ``character_limit``.
-        """
+        """Whether the service answers with the access it is given; raises TranslationError if not."""
         if not self.configured():
             raise TranslationError(_("The translation service is not configured."), status=503, code="not_configured")
 
         return {}
 
     def glossaries(self) -> List[Dict[str, Any]]:
-        """The glossaries the service offers: ``id``, ``name``, ``source``, ``target``, ``entries``.
-        A service without glossaries offers none."""
+        """The glossaries the service offers; none for a service without glossaries."""
         return []
 
     def translate_texts_by_key(

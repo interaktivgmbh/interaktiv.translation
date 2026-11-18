@@ -52,7 +52,7 @@ class TranslatePost(Service):
 
         storage = TranslationStorage(self.context, self.request)
         if storage.content_refusal is not None:
-            # Refused for a preview too: it would cost the provider all the same.
+            # refused for a preview too: it would cost the provider all the same
             raise storage.content_refusal.error(409)
 
         if storage.is_working_copy:
@@ -61,13 +61,12 @@ class TranslatePost(Service):
         if storage.has_open_working_copy:
             raise SOURCE_WORKING_COPY_REFUSAL.error(409)
 
-        # a preview costs the provider too
         target_refusal = storage.target_refusal(target)
         if target_refusal is not None:
             raise target_refusal.error(409)
 
         if body.get("save"):
-            # Refused is refused — but before the provider was paid, not after.
+            # refused before the provider is paid, not after
             refusal = storage.refusal(target, overwrite)
             if refusal is not None:
                 raise refusal.error(409)
@@ -82,9 +81,7 @@ class TranslatePost(Service):
         }
 
         if body.get("save"):
-            # plone.protect guards writes made during a request it cannot tie to
-            # a form token, and a REST client has none: without this the store
-            # below runs, answers `saved`, and is then rolled back unwritten.
+            # a REST client has no form token: without this plone.protect rolls the store back
             alsoProvides(self.request, IDisableCSRFProtection)
             stored = storage.store(fields, target, overwrite=overwrite, source_language=source)
             result["saved"] = True

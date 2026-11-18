@@ -23,7 +23,7 @@ class MachineTranslationInfo:
         if not expand:
             return result
 
-        # edit permission for Reading status
+        # the status is for those who may edit
         has_permission = getSecurityManager().checkPermission("Modify portal content", self.context)
         if not has_permission:
             return result

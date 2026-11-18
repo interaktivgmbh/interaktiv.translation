@@ -8,9 +8,7 @@ BLOCK_TYPES = ("p", "h1", "h2", "h3", "h4", "h5", "h6", "ul", "ol", "li", "block
 INLINE_TYPES = ("strong", "em", "u", "s", "code", "sub", "sup", "del")
 PARSER_ALIASES = {"b": "strong", "i": "em"}
 
-# What HTML has no place for — the style of a paragraph, the target of a link,
-# the style of a word — stays here: the node is numbered, the number travels
-# with the text, and the parser hands the properties back by it.
+# what HTML has no place for stays here: the node is numbered, the number travels with the text
 NODE_ATTRIBUTE = "data-slate-node"
 # carries the number of a text node, which has no tag of its own
 LEAF_TAG = "span"
@@ -45,7 +43,6 @@ class SlateHTMLSerializer:
     TAGS = frozenset(BLOCK_TYPES + INLINE_TYPES)
 
     def __init__(self) -> None:
-        # of the tree serialized last
         self.node_properties: NodeProperties = {}
 
     def serialize(self, nodes: List[Dict]) -> str:
@@ -103,11 +100,8 @@ class SlateHTMLParser(HTMLParser):
         self.stack = [self.result]
         self.text_parts = []
         self.open_tags = []
-        # what the serializer kept of the tree this answer was made from
         self.node_properties = node_properties or {}
-        # the open leaf tags, each with the number of elements that were open
-        # around it and the properties of the text inside; None for a tag of
-        # that name that is no leaf tag but an element
+        # per open leaf tag: the elements open around it and its properties; None for an element
         self.open_leaves = []
 
     def _properties(self, attrs_dict: Dict) -> Dict[str, Any]:
@@ -139,8 +133,7 @@ class SlateHTMLParser(HTMLParser):
             node = self._with_properties({"type": slate_type, "children": []}, attrs_dict)
             self.stack[-1].append(node)
             self.stack.append(node["children"])
-            # The resolved type, not the raw tag, so a closing alias (`</b>`
-            # for `<strong>`) still finds its opener.
+            # the resolved type, so a closing alias (</b> for <strong>) finds its opener
             self.open_tags.append(slate_type)
 
         elif tag == "a":
@@ -163,8 +156,7 @@ class SlateHTMLParser(HTMLParser):
         if tag not in self.open_tags:
             return
 
-        # Close the matching element, and with it whatever stayed open
-        # inside it.
+        # close the matching element and whatever stayed open inside it
         while self.open_tags:
             open_tag = self.open_tags.pop()
             self._close_element()
@@ -178,8 +170,7 @@ class SlateHTMLParser(HTMLParser):
     def _close_element(self):
         if len(self.stack) > 1:
             if not self.stack[-1]:
-                # Slate's invariant: every element holds at least one text
-                # child — an empty one, where nothing came back.
+                # slate's invariant: every element holds at least one text child
                 self.stack[-1].append({"text": ""})
             self.stack.pop()
 
@@ -209,8 +200,7 @@ class SlateHTMLParser(HTMLParser):
         return properties
 
     def get_result(self):
-        # Elements a truncated answer left open close here, the same way a
-        # matching end tag would have closed them.
+        # close what a truncated answer left open
         while self.open_tags:
             self.open_tags.pop()
             self._close_element()

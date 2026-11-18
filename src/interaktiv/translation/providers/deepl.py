@@ -14,12 +14,10 @@ FREE_KEY_SUFFIX = ":fx"
 
 REQUEST_TIMEOUT = 20
 
-# Retry rate-limited request (429)
-# Retries have a growing delay plus jitter
+# a rate-limited request (429) is retried with a growing delay plus jitter
 RETRY_ATTEMPTS = 4
 RETRY_BASE_SECONDS = 1.0
 
-# DeepL payload restrictions
 MAX_TEXTS_PER_REQUEST = 50
 MAX_REQUEST_BYTES = 100_000
 
@@ -98,7 +96,7 @@ class DeepLProvider(TranslationProvider):
             return list(texts)
 
         source = self.normalise_language(source_language, source=True) if source_language else ""
-        # if source equals target DeepL needs to detect the real language per text.
+        # source equals target: DeepL detects the real language per text
         if source == self.normalise_language(target_language, source=True):
             source = ""
 
@@ -122,8 +120,7 @@ class DeepLProvider(TranslationProvider):
             except TranslationError as error:
                 if not glossary or error.code != "error":
                     raise
-                # a glossary DeepL does not know, or of another language pair: the
-                # translation goes on without it rather than fail
+                # an unknown glossary, or one of another language pair: translate without it
                 logger.warning("DeepL refused the glossary %s (%s); translating without it.", glossary, error)
                 glossary = None
                 payload = {key: value for key, value in payload.items() if key != "glossary_id"}
@@ -139,8 +136,7 @@ class DeepLProvider(TranslationProvider):
 
     @staticmethod
     def _chunked(sendable: List[Tuple[int, str]]) -> List[List[Tuple[int, str]]]:
-        # chunk texts according to payload restrictions
-        # a single text that is larger than the size limit will raise an error and break the translation process
+        # chunked by the payload limits; a single text over the size limit raises
         chunks: List[List[Tuple[int, str]]] = []
         chunk: List[Tuple[int, str]] = []
         chunk_bytes = 0
@@ -161,7 +157,6 @@ class DeepLProvider(TranslationProvider):
     def translate_texts_by_key(
         self, texts_by_key: Dict[str, List[str]], target_language: str, source_language: Optional[str] = None
     ) -> Dict[str, List[str]]:
-        # merge texts to one flat list
         flat: List[str] = []
         counts: Dict[str, int] = {}
         for key, texts in texts_by_key.items():

@@ -21,8 +21,7 @@ LINK_PREFIXES = ("/", "./", "../", "http://", "https://")
 RESOLVEUID_MARKER = "resolveuid/"
 ABSOLUTE_PATH_OPERATION = "plone.app.querystring.operation.string.absolutePath"
 
-# How a link stands to the language of the content that holds it. Only a
-# broken one is a mistake: an editor may well link content of another language.
+# only a broken link is a mistake: an editor may link content of another language
 STATUS_TRANSLATED = "translated"  # the target is in that language
 STATUS_TRANSLATABLE = "translatable"  # in another, a translation exists
 STATUS_UNTRANSLATED = "untranslated"  # in another, without a translation
@@ -63,8 +62,7 @@ def _get_translated_resolveuid_path(path: str, target_language: str) -> Optional
 
 
 def _object_path_as_uid_link(path: str, content: Optional[Any] = None) -> Optional[str]:
-    """The path of an object as resolveuid link, without query and fragment;
-    ``None`` if no object is found."""
+    """The path of an object as resolveuid link, or ``None`` if no object is found."""
     portal = api.portal.get()
     portal_path = "/".join(portal.getPhysicalPath())
 
@@ -72,7 +70,6 @@ def _object_path_as_uid_link(path: str, content: Optional[Any] = None) -> Option
     if not locator:
         return None
 
-    # remove api prefix
     for prefix in ("/++api++", "/api"):
         if locator == prefix or locator.startswith(f"{prefix}/"):
             locator = locator[len(prefix) :] or "/"
@@ -84,7 +81,6 @@ def _object_path_as_uid_link(path: str, content: Optional[Any] = None) -> Option
             return None
         locator = posixpath.normpath(f"{'/'.join(content.getPhysicalPath())}/{locator}")
         if locator != portal_path and not locator.startswith(f"{portal_path}/"):
-            # locator is outside portal
             return None
 
     uid_link = path2uid(content if content is not None else portal, locator)
@@ -104,7 +100,6 @@ def _get_translated_object_path(path: str, target_language: str, content: Option
     if translated is None:
         return None
 
-    # handle query and fragment
     parsed = urlparse(path)
     tail = f"?{parsed.query}" if parsed.query else ""
     tail += f"#{parsed.fragment}" if parsed.fragment else ""
@@ -135,8 +130,7 @@ def _translation_of(target: Any, language: str) -> Optional[Any]:
 
 
 def link_status(target: Optional[Any], language: Optional[str]) -> str:
-    """How a link to ``target`` stands to ``language``, the language of the
-    content that holds it."""
+    """How a link to ``target`` stands to ``language``, the language of the content holding it."""
     if target is None:
         return STATUS_BROKEN
 
@@ -202,9 +196,7 @@ def _slate_text(node: Dict) -> str:
 
 
 def _translated_path_criterion(value: str, target_language: str) -> Tuple[Optional[str], Optional[Any], Optional[Any]]:
-    """The value of an absolute path criterion pointed at the translation of its
-    folder, in the form it came in (UID or path, with its depth); the folder and its
-    translation for the report. ``(None, None, None)`` if the folder is not found."""
+    """An absolute path criterion pointed at the translation of its folder, with both folders."""
     target, separator, depth = value.partition("::")
     suffix = f"{separator}{depth}"
     portal = api.portal.get()
@@ -279,7 +271,7 @@ def _resolve_internal_link(path: str, target_language: str, content: Optional[An
 
     parsed = urlparse(path)
 
-    # A full URL that names a host but no page.
+    # a full URL that names a host but no page
     if not parsed.path:
         return LinkOutcome(None, False)
 
@@ -295,8 +287,7 @@ def _resolve_internal_link(path: str, target_language: str, content: Optional[An
 
 
 def _image_text(branch: Dict[str, Any], image: Any) -> Optional[str]:
-    """report: what to call an image nothing else names — its alternative
-    text in the block, else its title"""
+    """What the report calls an image nothing else names: its alternative text, else its title."""
     alt = branch.get("alt")
     if isinstance(alt, str) and alt.strip():
         return alt
@@ -313,18 +304,14 @@ def _resolve_internal_link_recursive(
     link_keys: Optional[List[str]] = None,
     check: bool = False,
 ) -> Any:
-    """Points the internal links of a tree of blocks at the translations of
-    their targets and reports them. With ``check`` nothing is changed, and the
-    report names the links that lead out of the site as well."""
+    """Points the internal links of a tree of blocks at their targets' translations and reports them."""
     if link_keys is None:
         link_keys = settings().block_link_fields
 
-    # handle list
     if isinstance(branch, list):
         for value in branch:
             _resolve_internal_link_recursive(value, target_language, report, content, text, link_keys, check)
 
-    # handle dict
     elif isinstance(branch, dict):
         if branch.get("i") == "path" and branch.get("o") == ABSOLUTE_PATH_OPERATION:
             _resolve_path_criterion(branch, target_language, report, text, check)
@@ -359,7 +346,6 @@ def _resolve_internal_link_recursive(
                             "status": _status(outcome.target, target_language, outcome.value is not None, check),
                         }
                     )
-                # update value if translated content was found
                 if outcome.value is not None and not check:
                     branch[key] = outcome.value
 
@@ -375,7 +361,6 @@ def postprocess_links(
     check: bool = False,
 ) -> Any:
 
-    # process string
     if isinstance(value, str):
         if field_id in settings().link_fields:
             outcome = _resolve_internal_link(value, target_language, content)
@@ -394,7 +379,6 @@ def postprocess_links(
             if outcome.value is not None and not check:
                 value = outcome.value
 
-    # process tree structure
     elif isinstance(value, (dict, list)):
         value = _resolve_internal_link_recursive(value, target_language, report, content, check=check)
 
@@ -431,10 +415,7 @@ def translated_targets(
     report: Optional[List[Dict[str, Any]]] = None,
     check: bool = False,
 ) -> Union[DexterityContent, List[DexterityContent], None]:
-    """The targets of a reference field as its data manager reads them — one object
-    (RelationChoice) or a list of them (RelationList) — each replaced by its
-    translation where there is one, else kept: an editor may choose content of
-    another language too. A broken reference (read as None) is left out."""
+    """The targets of a reference field, each replaced by its translation where there is one."""
     if value is None:
         return None
     if not isinstance(value, list):
@@ -444,14 +425,11 @@ def translated_targets(
 
 
 def check_links(content: Any) -> List[Dict[str, Any]]:
-    """The links of the content as it is now — in its blocks, its link fields
-    and its references — each with how it stands to the language of the
-    content. Changes nothing."""
+    """The links of the content as it is now, each with its status; changes nothing."""
     language = getattr(aq_base(content), "language", None) or ""
     report: List[Dict[str, Any]] = []
 
-    # the fields of its schemas, and those always translated or holding links,
-    # which a type may have without a schema saying so (as the translator reads them)
+    # a type may have always translated and link fields without a schema saying so
     field_ids = [field_id for schema in iterSchemata(content) for field_id in getFieldNames(schema)]
     field_ids += settings().always_fields + settings().link_fields
     for field_id in dict.fromkeys(field_ids):

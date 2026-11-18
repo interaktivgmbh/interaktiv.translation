@@ -80,8 +80,7 @@ INTERAKTIV_TRANSLATION_MULTILINGUAL_FUNCTIONAL_TESTING = FunctionalTesting(
 
 
 class InteraktivTranslationWorkingCopyLayer(InteraktivTranslationMultilingualLayer):
-    """A multilingual site with plone.app.iterate installed, so an existing
-    translation is checked out instead of overwritten."""
+    """A multilingual site with plone.app.iterate installed."""
 
     def __init__(self):
         super().__init__()
@@ -116,8 +115,7 @@ class TestCase(unittest.TestCase):
         return getMultiAdapter((context or self.portal, self.request), name=view_name)
 
 
-# A requests session rooted at the site — see docs/architecture.md on why it is
-# not plone.restapi's.
+# a requests session rooted at the site; why not plone.restapi's: docs/architecture.md
 class RelativeSession(requests.Session):
     def __init__(self, base_url: str, test=None) -> None:
         super().__init__()

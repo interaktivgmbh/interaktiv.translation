@@ -148,7 +148,9 @@ checkout permission is missing).
 
 ## Documentation
 
-- [docs/architecture.md](docs/architecture.md): what each part does and why.
+- [docs/architecture.md](docs/architecture.md): what each part does.
+- [docs/decisions.md](docs/decisions.md): why the code looks the way it
+  does.
 - [docs/extending.md](docs/extending.md): another translation service,
   another field shape, another block type.
 

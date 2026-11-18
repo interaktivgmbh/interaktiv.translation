@@ -21,8 +21,7 @@ from interaktiv.translation.settings import settings
 from interaktiv.translation.storage import source_language_of
 
 
-# What may travel unchanged: values that mean the same in every language. A
-# reference travels too, pointed at the translation of its target.
+# values that mean the same in every language
 COPYABLE_TYPES = (str, int, float, bool, date)
 COLLECTION_TYPES = (list, tuple, set, frozenset)
 
@@ -121,7 +120,6 @@ class ContentTranslator:
 
     def postprocessed_value(self, content: Any, field_id: str, value: Any, target_language: str) -> Any:
 
-        # process link values
         value = postprocess_links(content, field_id, value, target_language, report=self.link_report)
 
         return value
@@ -153,7 +151,6 @@ class ContentTranslator:
 
             value = copied_value(value)
             if field_id in settings().link_fields:
-                # an internal link points at the translation of its target
                 value = postprocess_links(content, field_id, value, target_language, report=self.link_report)
 
             result[field_id] = value
@@ -173,7 +170,7 @@ class ContentTranslator:
                 continue
             source_value = field_value(content, field_id)
             if is_empty(source_value):
-                # Nothing to map: the translation keeps what it has.
+                # nothing to map: the translation keeps what it has
                 continue
 
             if isinstance(source_value, str):
@@ -201,7 +198,6 @@ class ContentTranslator:
         self.copied_report = []
         result: Dict[str, Any] = {}
 
-        # queue values
         queue = {}
         for field_id in self.fields_of(content):
             value = field_value(content, field_id)
@@ -214,11 +210,9 @@ class ContentTranslator:
                 logger.warning("Could not translate the field %s: %s", field_id, error)
                 continue
 
-        # translate queued values
         texts_by_field = {field_id: entry["texts"] for field_id, entry in queue.items() if entry["texts"]}
         translated_texts = self.provider.translate_texts_by_key(texts_by_field, target_language, source)
 
-        # rebuild and postprocess translated values
         for field_id, entry in queue.items():
             translated = entry["value"]
 
@@ -230,16 +224,13 @@ class ContentTranslator:
                     content=content, field_id=field_id, value=translated, target_language=target_language
                 )
             except Exception as error:  # noqa: BLE001
-                # The translation is already made and paid for; a failed link
-                # rewrite may cost the rewritten links, never the content.
+                # the translation is made and paid for: a failed link rewrite never costs the content
                 logger.warning("Could not post process the field %s: %s", field_id, error)
 
             result[field_id] = translated
-            # Only once the field itself came back: a companion on its own would
-            # describe a value that was never written.
+            # only once the field itself came back
             result.update(self.companions_of(content, entry["value"]))
 
-        # metadata
         result.update(self.copied_fields(content, target_language))
         result.update(self.mapped_metadata(content, target_language, source))
 
