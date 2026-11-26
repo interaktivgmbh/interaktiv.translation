@@ -109,6 +109,23 @@ links that lead out of the site as well.
 fields always translated or holding links without a schema saying so; the
 check reads them as the translator does.
 
+**A path a listing searches below is written the way it came.** A UID stays
+a UID, a path keeps or leaves out its root, the depth after `::` is kept. A
+navigation path is read from the navigation root of the content and written
+from that of the translated folder.
+
+**A relative path is told from where the translation lies, or will lie.**
+Where the content has no translation yet, that is the folder Plone would
+create it in. The path is the shortest one there, so `../../a/b` may come
+back as `../b`. A path with a name that leads nowhere is left alone: Plone
+skips such a name, and guessing along would point the listing elsewhere.
+
+**A path to a folder without a translation is kept and reported, even
+where it leads nowhere in the target language.** A navigation path or a
+relative path is read from the translation then and names a folder that is
+not there; Plone treats it like any unknown path. Once the folder is
+translated under the same id, the path holds again.
+
 ## Slate (`helpers/slate.py`)
 
 **What HTML has no place for never leaves the backend.** The style of a

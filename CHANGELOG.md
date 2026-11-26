@@ -132,6 +132,9 @@
   (`modes`). Upgrade step 1001 → 1002 turns the lists into the new form,
   each field with the mode it had by its kind; a list still found is read
   that way too. Needs the front end that writes the new form.
+- Fix: a listing that searches below a navigation path or a relative path
+  is pointed at the translation of its folder, as one with an absolute path
+  already was. A folder without a translation is kept and reported.
 
 ## 1.0.0a1 (2026-10-14)
 

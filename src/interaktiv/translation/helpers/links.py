@@ -3,14 +3,15 @@ from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union
 from urllib.parse import urlparse
 
 import plone.api as api
-from Acquisition import aq_base
+from Acquisition import aq_base, aq_parent
 from plone.app.contenttypes.interfaces import IFile, IImage
 from plone.app.uuid.utils import uuidToObject
-from plone.app.multilingual.interfaces import ITranslationManager
+from plone.app.multilingual.interfaces import ITranslationLocator, ITranslationManager
 from plone.dexterity.content import DexterityContent
 from plone.dexterity.utils import iterSchemata
 from plone.restapi.deserializer.utils import path2uid
 from plone.restapi.serializer.utils import uid_to_url
+from Products.CMFCore.interfaces import IFolderish, ISiteRoot
 
 from interaktiv.translation.helpers.field_access import field_value, schema_field
 from interaktiv.translation.helpers.field_selection import is_reference
@@ -20,6 +21,9 @@ from zope.schema import getFieldNames
 LINK_PREFIXES = ("/", "./", "../", "http://", "https://")
 RESOLVEUID_MARKER = "resolveuid/"
 ABSOLUTE_PATH_OPERATION = "plone.app.querystring.operation.string.absolutePath"
+NAVIGATION_PATH_OPERATION = "plone.app.querystring.operation.string.path"
+RELATIVE_PATH_OPERATION = "plone.app.querystring.operation.string.relativePath"
+PATH_OPERATIONS = (ABSOLUTE_PATH_OPERATION, NAVIGATION_PATH_OPERATION, RELATIVE_PATH_OPERATION)
 
 # only a broken link is a mistake: an editor may link content of another language
 STATUS_TRANSLATED = "translated"  # the target is in that language
@@ -195,35 +199,93 @@ def _slate_text(node: Dict) -> str:
     return "".join(parts).strip()
 
 
-def _translated_path_criterion(value: str, target_language: str) -> Tuple[Optional[str], Optional[Any], Optional[Any]]:
-    """An absolute path criterion pointed at the translation of its folder, with both folders."""
+def _physical_path(obj: Any) -> str:
+    return "/".join(obj.getPhysicalPath())
+
+
+def _path_root(operation: str, obj: Optional[Any]) -> str:
+    """Where a path of the criterion starts: the portal, or the navigation root of the object."""
+    if operation == NAVIGATION_PATH_OPERATION and obj is not None:
+        return _physical_path(api.portal.get_navigation_root(obj))
+
+    return _physical_path(api.portal.get())
+
+
+def _relative_target(content: Any, target: str) -> Optional[Any]:
+    """The object a relative path names, walked from the content; ``None`` where a name leads nowhere."""
+    obj = content
+    for name in target.split("/"):
+        if name in ("", "."):
+            continue
+        if name == "..":
+            if not ISiteRoot.providedBy(obj):
+                obj = aq_parent(obj)
+        elif IFolderish.providedBy(obj) and name in obj:
+            obj = obj[name]
+        else:
+            return None
+
+    return obj
+
+
+def _relative_path(content: Any, translated: Any, target_language: str) -> str:
+    """The path to the translated folder from where the translation of the content lies, or will lie."""
+    page = _translation_of(content, target_language)
+    if page is not None:
+        start = _physical_path(page)
+    else:
+        try:
+            container = ITranslationLocator(content)(target_language)
+        except TypeError:  # the content is not translatable
+            container = aq_parent(content)
+        start = f"{_physical_path(container)}/{content.getId()}"
+
+    return posixpath.relpath(_physical_path(translated), start)
+
+
+def _translated_path_criterion(
+    value: str,
+    target_language: str,
+    operation: str = ABSOLUTE_PATH_OPERATION,
+    content: Optional[Any] = None,
+) -> Tuple[Optional[str], Optional[Any], Optional[Any]]:
+    """A path criterion pointed at the translation of its folder, with both folders."""
     target, separator, depth = value.partition("::")
     suffix = f"{separator}{depth}"
     portal = api.portal.get()
-    portal_path = "/".join(portal.getPhysicalPath())
-
-    if "/" not in target:
-        folder = uuidToObject(target)
-    else:
-        path = target if target == portal_path or target.startswith(f"{portal_path}/") else f"{portal_path}{target}"
-        folder = portal.unrestrictedTraverse(path.rstrip("/"), None)
-    if folder is None or folder is portal:
+    relative = operation == RELATIVE_PATH_OPERATION
+    if content is None and operation != ABSOLUTE_PATH_OPERATION:
         return None, None, None
 
-    try:
-        translated = ITranslationManager(folder).get_translation(target_language)
-    except TypeError:  # the folder is not translatable
-        translated = None
+    is_uid = not relative and "/" not in target
+    rooted = False
+    if relative:
+        folder = _relative_target(content, target)
+        if folder is not None and aq_base(folder) is aq_base(content):
+            return None, None, None
+    elif is_uid:
+        folder = uuidToObject(target)
+    else:
+        root = _path_root(operation, content)
+        rooted = target == root or target.startswith(f"{root}/")
+        path = target if rooted else f"{root}{target}"
+        folder = portal.unrestrictedTraverse(path.rstrip("/"), None)
+    if folder is None or aq_base(folder) is aq_base(portal):
+        return None, None, None
+
+    translated = _translation_of(folder, target_language)
     if translated is None:
         return value, folder, None
 
-    if "/" not in target:
+    if is_uid:
         return f"{translated.UID()}{suffix}", folder, translated
+    if relative:
+        return f"{_relative_path(content, translated, target_language)}{suffix}", folder, translated
 
-    translated_path = "/".join(translated.getPhysicalPath())
-    if not target.startswith(portal_path):
-        # as it came: from the portal root, without the portal's own path
-        translated_path = translated_path[len(portal_path) :]
+    translated_path = _physical_path(translated)
+    if not rooted:
+        # as it came: from its root, without the root's own path
+        translated_path = translated_path[len(_path_root(operation, translated)) :] or "/"
     return f"{translated_path}{suffix}", folder, translated
 
 
@@ -233,12 +295,15 @@ def _resolve_path_criterion(
     report: Optional[List[Dict[str, Any]]],
     text: Optional[str],
     check: bool = False,
+    content: Optional[Any] = None,
 ) -> None:
     value = criterion.get("v")
     if not isinstance(value, str) or not value.strip():
         return
 
-    translated_value, folder, translated = _translated_path_criterion(value.strip(), target_language)
+    translated_value, folder, translated = _translated_path_criterion(
+        value.strip(), target_language, criterion.get("o"), content
+    )
     if folder is None:
         return
 
@@ -313,8 +378,8 @@ def _resolve_internal_link_recursive(
             _resolve_internal_link_recursive(value, target_language, report, content, text, link_keys, check)
 
     elif isinstance(branch, dict):
-        if branch.get("i") == "path" and branch.get("o") == ABSOLUTE_PATH_OPERATION:
-            _resolve_path_criterion(branch, target_language, report, text, check)
+        if branch.get("i") == "path" and branch.get("o") in PATH_OPERATIONS:
+            _resolve_path_criterion(branch, target_language, report, text, check, content)
             return branch
 
         link_text = text
