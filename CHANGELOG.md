@@ -135,6 +135,9 @@
 - Fix: a listing that searches below a navigation path or a relative path
   is pointed at the translation of its folder, as one with an absolute path
   already was. A folder without a translation is kept and reported.
+- Fix: the text of an HTML block is translated. It goes to the provider as
+  HTML, like a rich text, so tags and attributes stay; before, the block
+  was left in the source language.
 
 ## 1.0.0a1 (2026-10-14)
 

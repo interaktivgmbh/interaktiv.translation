@@ -33,6 +33,8 @@ class Finding(NamedTuple):
 
 
 RICHTEXT_DATA_KEY = "data"
+HTML_BLOCK_TYPE = "html"
+HTML_BLOCK_KEY = "html"
 SLATE_VALUE_KEY = "value"
 SLATE_PLAINTEXT_KEY = "plaintext"
 
@@ -95,7 +97,9 @@ class DefaultBlockHandler(BlockHandler):
                 elif key == SLATE_PLAINTEXT_KEY and value_html is not None:
                     continue
                 elif isinstance(value, str):
-                    if key in self.text_keys and value.strip():
+                    if self._is_block_html(node, key) and value.strip():
+                        found.append(Finding(here, value, HTML))
+                    elif key in self.text_keys and value.strip():
                         found.append(Finding(here, value, PLAIN))
                 elif self._is_richtext(key, value):
                     if value[RICHTEXT_DATA_KEY].strip():
@@ -107,6 +111,10 @@ class DefaultBlockHandler(BlockHandler):
                 found.extend(self._walk(item, path + (index,)))
 
         return found
+
+    @staticmethod
+    def _is_block_html(node: Dict, key: str) -> bool:
+        return key == HTML_BLOCK_KEY and node.get("@type") == HTML_BLOCK_TYPE
 
     def _is_richtext(self, key: str, value: Any) -> bool:
         return key in self.text_keys and isinstance(value, dict) and isinstance(value.get(RICHTEXT_DATA_KEY), str)

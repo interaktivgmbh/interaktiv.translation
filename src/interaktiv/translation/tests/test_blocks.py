@@ -672,3 +672,56 @@ class TestDefaultBlockHandlerRichText(TestCase):
 
         # postcondition
         self.assertEqual(rebuilt["description"]["data"], "<p>A &amp; B</p>")
+
+
+class TestDefaultBlockHandlerHtmlBlock(TestCase):
+    def setUp(self):
+        super().setUp()
+
+        self.handler = DefaultBlockHandler(["title"])
+        self.block = {"@type": "html", "html": '<p class="class-a">Text A &amp; <b>Text B</b></p>'}
+
+    def test_texts__sends_the_html_of_an_html_block_as_it_is(self):
+        # do it
+        pairs = self.handler.texts(self.block)
+
+        # postcondition
+        self.assertEqual(pairs, [(("html",), '<p class="class-a">Text A &amp; <b>Text B</b></p>')])
+
+    def test_texts__finds_an_html_block_inside_another_block(self):
+        # setup
+        block = {"@type": "gridBlock", "blocks": {"block-a": self.block}}
+
+        # do it
+        pairs = self.handler.texts(block)
+
+        # postcondition
+        self.assertEqual(pairs, [(("blocks", "block-a", "html"), self.block["html"])])
+
+    def test_texts__skips_an_empty_html_block(self):
+        # setup
+        block = {"@type": "html", "html": "  "}
+
+        # do it
+        pairs = self.handler.texts(block)
+
+        # postcondition
+        self.assertEqual(pairs, [])
+
+    def test_texts__skips_the_key_in_a_block_of_another_type(self):
+        # setup
+        block = {"@type": "block-a", "html": "<p>Text A</p>"}
+
+        # do it
+        pairs = self.handler.texts(block)
+
+        # postcondition
+        self.assertEqual(pairs, [])
+
+    def test_rebuild__writes_the_answer_back_without_unescaping_it(self):
+        # do it
+        rebuilt = self.handler.rebuild(self.block, ['<p class="class-a">Text C &amp; <b>Text D</b></p>'])
+
+        # postcondition
+        self.assertEqual(rebuilt, {"@type": "html", "html": '<p class="class-a">Text C &amp; <b>Text D</b></p>'})
+        self.assertEqual(self.block["html"], '<p class="class-a">Text A &amp; <b>Text B</b></p>')

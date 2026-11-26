@@ -175,6 +175,17 @@ class TestContentTranslator(TestCase):
         self.assertEqual(result["blocks_layout"], {"items": ["b1"]})
         self.assertEqual(result["blocks"], {"b1": {"title": "HALLO"}})
 
+    def test_translate__sends_the_html_of_an_html_block_as_html(self):
+        # setup
+        content = Content(blocks={"block-a": {"@type": "html", "html": "<p>Text A &amp; B</p>"}})
+
+        # do it
+        result = self._translator().translate(content, "EN")
+
+        # postcondition
+        self.assertEqual(self.provider.calls[0][0], ["<p>Text A &amp; B</p>"])
+        self.assertEqual(result["blocks"], {"block-a": {"@type": "html", "html": "<P>TEXT A &AMP; B</P>"}})
+
     def test_translate__does_not_send_the_block_order_to_the_service(self):
         # setup
         content = Content(blocks={"b1": {"title": "Hallo"}}, blocks_layout={"items": ["b1"]})

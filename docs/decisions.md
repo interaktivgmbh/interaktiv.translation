@@ -78,6 +78,11 @@ written.
 unchanged** (`COPYABLE_TYPES`). A reference travels too, pointed at the
 translation of its target.
 
+**The HTML of an HTML block is told by the type of the block, not by a
+text key** (`blocks.py`). A text key holds plain text and is escaped for
+the provider; `html` named there would arrive as escaped markup. The block
+is found inside other blocks as well.
+
 ## Which fields go along (`helpers/field_selection.py`)
 
 **The lists of field names are the defaults of the settings of the same
