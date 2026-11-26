@@ -1,5 +1,7 @@
+import html
 import posixpath
-from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union
+import re
+from typing import Any, Dict, List, Match, NamedTuple, Optional, Tuple, Union
 from urllib.parse import urlparse
 
 import plone.api as api
@@ -13,6 +15,7 @@ from plone.restapi.deserializer.utils import path2uid
 from plone.restapi.serializer.utils import uid_to_url
 from Products.CMFCore.interfaces import IFolderish, ISiteRoot
 
+from interaktiv.translation.blocks import HTML_BLOCK_KEY, HTML_BLOCK_TYPE
 from interaktiv.translation.helpers.field_access import field_value, schema_field
 from interaktiv.translation.helpers.field_selection import is_reference
 from interaktiv.translation.settings import settings
@@ -24,6 +27,11 @@ ABSOLUTE_PATH_OPERATION = "plone.app.querystring.operation.string.absolutePath"
 NAVIGATION_PATH_OPERATION = "plone.app.querystring.operation.string.path"
 RELATIVE_PATH_OPERATION = "plone.app.querystring.operation.string.relativePath"
 PATH_OPERATIONS = (ABSOLUTE_PATH_OPERATION, NAVIGATION_PATH_OPERATION, RELATIVE_PATH_OPERATION)
+API_PREFIXES = ("/++api++", "/api")
+HTML_LINK_PREFIXES = ("/", "http://", "https://")
+HTML_ANCHOR = re.compile(r"<a\s[^<>]*>", re.IGNORECASE)
+HTML_HREF = re.compile(r"""(?<=\s)(href\s*=\s*)(["'])(.*?)\2""", re.IGNORECASE | re.DOTALL)
+HTML_MARKUP = re.compile(r"<[^<>]*>")
 
 # only a broken link is a mistake: an editor may link content of another language
 STATUS_TRANSLATED = "translated"  # the target is in that language
@@ -74,7 +82,7 @@ def _object_path_as_uid_link(path: str, content: Optional[Any] = None) -> Option
     if not locator:
         return None
 
-    for prefix in ("/++api++", "/api"):
+    for prefix in API_PREFIXES:
         if locator == prefix or locator.startswith(f"{prefix}/"):
             locator = locator[len(prefix) :] or "/"
             break
@@ -351,6 +359,91 @@ def _resolve_internal_link(path: str, target_language: str, content: Optional[An
     return LinkOutcome(_get_translated_object_path(path, target_language, content), True, target)
 
 
+def _html_link(value: str, target_language: str) -> LinkOutcome:
+    """A link of raw HTML pointed at the translation of its target, written the way it came."""
+    if not value.startswith(HTML_LINK_PREFIXES) or value.startswith("//") or RESOLVEUID_MARKER in value:
+        return LinkOutcome(None, False)
+
+    outcome = _resolve_internal_link(value, target_language)
+    if not outcome.internal or outcome.target is None:
+        return outcome
+    translated = _translation_of(outcome.target, target_language)
+    uid_link = _object_path_as_uid_link(value)
+    if translated is None or uid_link is None:
+        return LinkOutcome(None, True, outcome.target)
+
+    # what follows the target: a view or a scale, the query and the fragment
+    _uid, slash, view = uid_link.split(RESOLVEUID_MARKER, 1)[1].partition("/")
+    tail = f"{slash}{view}"
+    portal = api.portal.get()
+    portal_url = portal.absolute_url()
+    portal_path = _physical_path(portal)
+    parsed = urlparse(value)
+    tail += f"?{parsed.query}" if parsed.query else ""
+    tail += f"#{parsed.fragment}" if parsed.fragment else ""
+    locator = parsed.path
+    head = portal_url if value.startswith(portal_url) else ""
+    if head:
+        locator = urlparse(value[len(portal_url) :]).path
+    for prefix in API_PREFIXES:
+        if locator == prefix or locator.startswith(f"{prefix}/"):
+            head += prefix
+            locator = locator[len(prefix) :]
+            break
+    if locator == portal_path or locator.startswith(f"{portal_path}/"):
+        head += portal_path
+
+    return LinkOutcome(f"{head}{_physical_path(translated)[len(portal_path) :]}{tail}", True, outcome.target)
+
+
+def _html_link_text(markup: str, end: int) -> Optional[str]:
+    """report: the text of the link whose opening tag ends at ``end``"""
+    close = markup.lower().find("</a", end)
+    if close == -1:
+        return None
+
+    return html.unescape(HTML_MARKUP.sub("", markup[end:close])).strip() or None
+
+
+def _resolve_html_links(
+    markup: str,
+    target_language: str,
+    report: Optional[List[Dict[str, Any]]],
+    text: Optional[str],
+    check: bool = False,
+) -> str:
+    """Points the internal links of raw HTML at their targets' translations; nothing else of it changes."""
+
+    def anchor(tag: Match[str]) -> str:
+        link_text = _html_link_text(markup, tag.end()) or text
+
+        def href(found: Match[str]) -> str:
+            value = html.unescape(found.group(3)).strip()
+            outcome = _html_link(value, target_language)
+            if not outcome.internal:
+                if check and report is not None and _is_external(value):
+                    report.append(_external_entry(link_text, value))
+                return found.group(0)
+            if report is not None:
+                report.append(
+                    {
+                        "text": link_text,
+                        "before": value,
+                        "after": outcome.value,
+                        "kind": _kind(outcome.target),
+                        "status": _status(outcome.target, target_language, outcome.value is not None, check),
+                    }
+                )
+            if outcome.value is None or check:
+                return found.group(0)
+
+            return f"{found.group(1)}{found.group(2)}{html.escape(outcome.value)}{found.group(2)}"
+
+        return HTML_HREF.sub(href, tag.group(0))
+
+    return HTML_ANCHOR.sub(anchor, markup)
+
+
 def _image_text(branch: Dict[str, Any], image: Any) -> Optional[str]:
     """What the report calls an image nothing else names: its alternative text, else its title."""
     alt = branch.get("alt")
@@ -389,7 +482,9 @@ def _resolve_internal_link_recursive(
             link_text = branch["title"]
 
         for key, value in branch.items():
-            if isinstance(value, (dict, list)):
+            if isinstance(value, str) and key == HTML_BLOCK_KEY and branch.get("@type") == HTML_BLOCK_TYPE:
+                branch[key] = _resolve_html_links(value, target_language, report, link_text, check)
+            elif isinstance(value, (dict, list)):
                 _resolve_internal_link_recursive(value, target_language, report, content, link_text, link_keys, check)
             elif isinstance(value, str) and key in link_keys:
                 outcome = _resolve_internal_link(value, target_language, content)

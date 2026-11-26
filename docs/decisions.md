@@ -131,6 +131,17 @@ relative path is read from the translation then and names a folder that is
 not there; Plone treats it like any unknown path. Once the folder is
 translated under the same id, the path holds again.
 
+**A link in raw HTML is written back the way it came.** Plone stores the
+HTML of an HTML block as it is and resolves no `resolveuid` in it, so a path
+stays a path and a full address a full address. Only the value of the
+attribute is replaced; the HTML is not parsed and written anew.
+
+**In raw HTML only what is surely internal is touched.** A path from the
+root and an address that starts with the site's own. A relative path is
+left alone: the browser reads it from the address of the page, Plone from
+the page as a folder, and the two differ. An attribute without quotes is
+left alone as well.
+
 ## Slate (`helpers/slate.py`)
 
 **What HTML has no place for never leaves the backend.** The style of a

@@ -138,6 +138,10 @@
 - Fix: the text of an HTML block is translated. It goes to the provider as
   HTML, like a rich text, so tags and attributes stay; before, the block
   was left in the source language.
+- Fix: a link in an HTML block is pointed at the translation of its target
+  and shows in the report and in the link status. A path stays a path and a
+  full address of the site a full address; a view, the query and the anchor
+  are kept. For now only `href` of `<a>`.
 
 ## 1.0.0a1 (2026-10-14)
 
