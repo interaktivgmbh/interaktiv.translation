@@ -17,6 +17,11 @@ class TestHtmlBlockLinks(TestCase):
         manager.add_translation("en")
         self.target_en = api.content.rename(obj=manager.get_translation("en"), new_id="target-a-en")
         api.content.create(container=folder, type="Document", id="target-b", title="Target B")
+        self.image = api.content.create(container=folder, type="Image", id="image-a", title="Image A")
+        manager = ITranslationManager(self.image)
+        manager.add_translation("en")
+        api.content.rename(obj=manager.get_translation("en"), new_id="image-a-en")
+        api.content.create(container=folder, type="Image", id="image-b", title="Image B")
         self.portal_url = self.portal.absolute_url()
         self.portal_path = "/".join(self.portal.getPhysicalPath())
 
@@ -157,3 +162,89 @@ class TestHtmlBlockLinks(TestCase):
 
         # postcondition
         self.assertEqual(result["block-a"]["html"], '<a href="/de/target-a">Text A</a>')
+
+    def test_image__points_at_the_translation_and_keeps_its_scale(self):
+        # do it
+        markup = self._translated('<img class="class-a" src="/de/image-a/@@images/image/preview" alt="Alt A">')
+
+        # postcondition
+        self.assertEqual(markup, '<img class="class-a" src="/en/image-a-en/@@images/image/preview" alt="Alt A">')
+
+    def test_image_with_a_computed_scale__points_at_the_image_as_it_was_uploaded(self):
+        # setup
+        scale = "image-800-0123456789abcdef0123456789abcdef.png"
+
+        # do it
+        markup = self._translated(f'<img src="{self.portal_url}/de/image-a/@@images/{scale}" alt="Alt A">')
+
+        # postcondition
+        self.assertEqual(markup, f'<img src="{self.portal_url}/en/image-a-en/@@images/image" alt="Alt A">')
+
+    def test_image__is_reported_as_an_image_named_by_its_alt(self):
+        # setup
+        report = []
+
+        # do it
+        self._translated('<img src="/de/image-a/@@images/image" alt="Alt A &amp; B">', report=report)
+
+        # postcondition
+        self.assertEqual(
+            report,
+            [
+                {
+                    "text": "Alt A & B",
+                    "before": "/de/image-a/@@images/image",
+                    "after": "/en/image-a-en/@@images/image",
+                    "kind": "image",
+                    "status": "translated",
+                }
+            ],
+        )
+
+    def test_image_without_alt__is_named_by_the_title_of_the_image(self):
+        # setup
+        report = []
+
+        # do it
+        self._translated('<img src="/de/image-a/@@images/image">', report=report)
+
+        # postcondition
+        self.assertEqual(report[0]["text"], "Image A")
+
+    def test_image_without_translation__is_kept_and_reported(self):
+        # setup
+        scale = "image-800-0123456789abcdef0123456789abcdef.png"
+        report = []
+
+        # do it
+        markup = self._translated(f'<img src="/de/image-b/@@images/{scale}" alt="Alt A">', report=report)
+
+        # postcondition
+        self.assertEqual(markup, f'<img src="/de/image-b/@@images/{scale}" alt="Alt A">')
+        self.assertEqual(report[0]["kind"], "image")
+        self.assertEqual(report[0]["status"], "untranslated")
+
+    def test_linked_image__points_both_at_their_translations(self):
+        # do it
+        markup = self._translated('<a href="/de/target-a"><img src="/de/image-a/@@images/image" alt="Alt A"></a>')
+
+        # postcondition
+        self.assertEqual(markup, '<a href="/en/target-a-en"><img src="/en/image-a-en/@@images/image" alt="Alt A"></a>')
+
+    def test_src_and_href_of_other_tags__stay_unreported(self):
+        # setup
+        markup = (
+            '<script src="/de/target-a"></script>'
+            '<link href="/de/target-a">'
+            '<iframe src="/de/target-a"></iframe>'
+            '<a src="/de/target-a">Text A</a>'
+            '<img href="/de/image-a">'
+        )
+        report = []
+
+        # do it
+        translated = self._translated(markup, report=report)
+
+        # postcondition
+        self.assertEqual(translated, markup)
+        self.assertEqual(report, [])

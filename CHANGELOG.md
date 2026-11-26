@@ -141,7 +141,11 @@
 - Fix: a link in an HTML block is pointed at the translation of its target
   and shows in the report and in the link status. A path stays a path and a
   full address of the site a full address; a view, the query and the anchor
-  are kept. For now only `href` of `<a>`.
+  are kept.
+- Fix: an image in an HTML block (`src` of `<img>`) is pointed at the
+  translation of the image and reported as an image. A named scale is kept;
+  the address of a computed scale, as copied from the browser, becomes that
+  of the image as it was uploaded.
 
 ## 1.0.0a1 (2026-10-14)
 

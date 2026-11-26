@@ -29,9 +29,16 @@ RELATIVE_PATH_OPERATION = "plone.app.querystring.operation.string.relativePath"
 PATH_OPERATIONS = (ABSOLUTE_PATH_OPERATION, NAVIGATION_PATH_OPERATION, RELATIVE_PATH_OPERATION)
 API_PREFIXES = ("/++api++", "/api")
 HTML_LINK_PREFIXES = ("/", "http://", "https://")
-HTML_ANCHOR = re.compile(r"<a\s[^<>]*>", re.IGNORECASE)
-HTML_HREF = re.compile(r"""(?<=\s)(href\s*=\s*)(["'])(.*?)\2""", re.IGNORECASE | re.DOTALL)
+HTML_LINK_TAG = re.compile(r"<(a|img)\s[^<>]*>", re.IGNORECASE)
+HTML_ATTRIBUTE = r"""(?<=\s)(%s\s*=\s*)(["'])(.*?)\2"""
+HTML_LINK_ATTRIBUTES = {
+    "a": re.compile(HTML_ATTRIBUTE % "href", re.IGNORECASE | re.DOTALL),
+    "img": re.compile(HTML_ATTRIBUTE % "src", re.IGNORECASE | re.DOTALL),
+}
+HTML_ALT = re.compile(HTML_ATTRIBUTE % "alt", re.IGNORECASE | re.DOTALL)
 HTML_MARKUP = re.compile(r"<[^<>]*>")
+# a computed scale, image-800-<hash>.png: stored with the one image it was made of
+COMPUTED_SCALE = re.compile(r"^/@@images/(\w+?)-\d+-[0-9a-f]{32}\.\w+$")
 
 # only a broken link is a mistake: an editor may link content of another language
 STATUS_TRANSLATED = "translated"  # the target is in that language
@@ -374,7 +381,7 @@ def _html_link(value: str, target_language: str) -> LinkOutcome:
 
     # what follows the target: a view or a scale, the query and the fragment
     _uid, slash, view = uid_link.split(RESOLVEUID_MARKER, 1)[1].partition("/")
-    tail = f"{slash}{view}"
+    tail = COMPUTED_SCALE.sub(r"/@@images/\1", f"{slash}{view}")
     portal = api.portal.get()
     portal_url = portal.absolute_url()
     portal_path = _physical_path(portal)
@@ -396,8 +403,16 @@ def _html_link(value: str, target_language: str) -> LinkOutcome:
     return LinkOutcome(f"{head}{_physical_path(translated)[len(portal_path) :]}{tail}", True, outcome.target)
 
 
-def _html_link_text(markup: str, end: int) -> Optional[str]:
-    """report: the text of the link whose opening tag ends at ``end``"""
+def _html_link_text(markup: str, tag: Match[str]) -> Optional[str]:
+    """report: the alternative text of an image, the text of a link"""
+    if tag.group(1).lower() == "img":
+        alt = HTML_ALT.search(tag.group(0))
+        if alt is None:
+            return None
+
+        return html.unescape(alt.group(3)).strip() or None
+
+    end = tag.end()
     close = markup.lower().find("</a", end)
     if close == -1:
         return None
@@ -414,10 +429,10 @@ def _resolve_html_links(
 ) -> str:
     """Points the internal links of raw HTML at their targets' translations; nothing else of it changes."""
 
-    def anchor(tag: Match[str]) -> str:
-        link_text = _html_link_text(markup, tag.end()) or text
+    def link_tag(tag: Match[str]) -> str:
+        link_text = _html_link_text(markup, tag) or text
 
-        def href(found: Match[str]) -> str:
+        def attribute(found: Match[str]) -> str:
             value = html.unescape(found.group(3)).strip()
             outcome = _html_link(value, target_language)
             if not outcome.internal:
@@ -425,12 +440,16 @@ def _resolve_html_links(
                     report.append(_external_entry(link_text, value))
                 return found.group(0)
             if report is not None:
+                kind = _kind(outcome.target)
+                entry_text = link_text
+                if kind == "image" and not entry_text and outcome.target is not None:
+                    entry_text = outcome.target.Title() or None
                 report.append(
                     {
-                        "text": link_text,
+                        "text": entry_text,
                         "before": value,
                         "after": outcome.value,
-                        "kind": _kind(outcome.target),
+                        "kind": kind,
                         "status": _status(outcome.target, target_language, outcome.value is not None, check),
                     }
                 )
@@ -439,9 +458,9 @@ def _resolve_html_links(
 
             return f"{found.group(1)}{found.group(2)}{html.escape(outcome.value)}{found.group(2)}"
 
-        return HTML_HREF.sub(href, tag.group(0))
+        return HTML_LINK_ATTRIBUTES[tag.group(1).lower()].sub(attribute, tag.group(0))
 
-    return HTML_ANCHOR.sub(anchor, markup)
+    return HTML_LINK_TAG.sub(link_tag, markup)
 
 
 def _image_text(branch: Dict[str, Any], image: Any) -> Optional[str]:

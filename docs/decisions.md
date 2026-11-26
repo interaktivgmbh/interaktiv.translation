@@ -142,6 +142,16 @@ left alone: the browser reads it from the address of the page, Plone from
 the page as a folder, and the two differ. An attribute without quotes is
 left alone as well.
 
+**The address of a computed scale does not travel to another image.**
+`@@images/image-800-<hash>.png` is stored with the image it was made of;
+the translation of the image answers it with "not found". Such an address
+is pointed at the image as it was uploaded, `@@images/image`: the right
+image, at the cost of its full size.
+
+**In raw HTML only `<a href>` and `<img src>` are links.** A script, a
+style sheet or a frame hardly ever names content of the site and would
+only fill the report with broken links.
+
 ## Slate (`helpers/slate.py`)
 
 **What HTML has no place for never leaves the backend.** The style of a
