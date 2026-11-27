@@ -148,6 +148,10 @@ the translation of the image answers it with "not found". Such an address
 is pointed at the image as it was uploaded, `@@images/image`: the right
 image, at the cost of its full size.
 
+**The rich text of a block is known by the text keys.** The same keys
+decide what is translated, so a rich text that is translated has its links
+pointed at translations, and one that is not is left alone altogether.
+
 **In raw HTML only `<a href>` and `<img src>` are links.** A script, a
 style sheet or a frame hardly ever names content of the site and would
 only fill the report with broken links.

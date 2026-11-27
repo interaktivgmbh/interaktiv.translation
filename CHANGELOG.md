@@ -148,6 +148,9 @@
   of the image as it was uploaded.
 - Fix: a `resolveuid` link in an HTML block gets the UID of the translation
   of its target; the report names it by the addresses of both pages.
+- Fix: the links and images in the rich text of a block are pointed at
+  translations the same way. A rich text is what the text keys of the
+  settings name and what holds its HTML under `data`.
 
 ## 1.0.0a1 (2026-10-14)
 

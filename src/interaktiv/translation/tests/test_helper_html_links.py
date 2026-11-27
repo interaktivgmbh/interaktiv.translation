@@ -5,6 +5,9 @@ from interaktiv.translation.helpers.links import postprocess_links
 from interaktiv.translation.testing import INTERAKTIV_TRANSLATION_MULTILINGUAL_FUNCTIONAL_TESTING, TestCase
 
 
+TEXT_KEYS = "interaktiv.translation.registry.translation.ITranslationSettings.block_text_keys"
+
+
 class TestHtmlBlockLinks(TestCase):
     layer = INTERAKTIV_TRANSLATION_MULTILINGUAL_FUNCTIONAL_TESTING
 
@@ -290,3 +293,82 @@ class TestHtmlBlockLinks(TestCase):
         # postcondition
         self.assertEqual(translated, markup)
         self.assertEqual(report, [])
+
+
+class TestBlockRichTextLinks(TestCase):
+    layer = INTERAKTIV_TRANSLATION_MULTILINGUAL_FUNCTIONAL_TESTING
+
+    def setUp(self) -> None:
+        super().setUp()
+        folder = self.portal["de"]
+        self.page = api.content.create(container=folder, type="Document", id="page-a", title="Page A")
+        target = api.content.create(container=folder, type="Document", id="target-a", title="Target A")
+        manager = ITranslationManager(target)
+        manager.add_translation("en")
+        api.content.rename(obj=manager.get_translation("en"), new_id="target-a-en")
+        self.markup = '<p>Text A <a href="/de/target-a">Text B</a></p>'
+
+    def _translated(self, block, report=None, check=False):
+        result = postprocess_links(self.page, "blocks", {"block-a": block}, "en", report=report, check=check)
+
+        return result["block-a"]
+
+    def test_rich_text_under_a_text_key__points_its_links_at_the_translations(self):
+        # setup
+        block = {"@type": "block-a", "text": {"data": self.markup, "content-type": "text/html"}}
+
+        # do it
+        translated = self._translated(block)
+
+        # postcondition
+        self.assertEqual(
+            translated["text"],
+            {"data": '<p>Text A <a href="/en/target-a-en">Text B</a></p>', "content-type": "text/html"},
+        )
+
+    def test_rich_text_under_a_text_key__is_reported(self):
+        # setup
+        block = {"@type": "block-a", "text": {"data": self.markup}}
+        report = []
+
+        # do it
+        self._translated(block, report=report)
+
+        # postcondition
+        self.assertEqual(report[0]["text"], "Text B")
+        self.assertEqual(report[0]["after"], "/en/target-a-en")
+
+    def test_rich_text_under_another_key__stays_unreported(self):
+        # setup
+        block = {"@type": "block-a", "field_a": {"data": self.markup}}
+        report = []
+
+        # do it
+        translated = self._translated(block, report=report)
+
+        # postcondition
+        self.assertEqual(translated["field_a"], {"data": self.markup})
+        self.assertEqual(report, [])
+
+    def test_rich_text_under_a_key_named_in_the_settings__points_its_links_at_the_translations(self):
+        # setup
+        api.portal.set_registry_record(TEXT_KEYS, ["field_a"])
+        block = {"@type": "block-a", "field_a": {"data": self.markup}}
+
+        # do it
+        translated = self._translated(block)
+
+        # postcondition
+        self.assertEqual(translated["field_a"], {"data": '<p>Text A <a href="/en/target-a-en">Text B</a></p>'})
+
+    def test_check__changes_nothing_and_reports(self):
+        # setup
+        block = {"@type": "block-a", "text": {"data": self.markup}}
+        report = []
+
+        # do it
+        translated = self._translated(block, report=report, check=True)
+
+        # postcondition
+        self.assertEqual(translated["text"], {"data": self.markup})
+        self.assertEqual(report[0]["status"], "translatable")

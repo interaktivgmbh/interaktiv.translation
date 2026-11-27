@@ -15,7 +15,7 @@ from plone.restapi.deserializer.utils import path2uid
 from plone.restapi.serializer.utils import uid_to_url
 from Products.CMFCore.interfaces import IFolderish, ISiteRoot
 
-from interaktiv.translation.blocks import HTML_BLOCK_KEY, HTML_BLOCK_TYPE
+from interaktiv.translation.blocks import HTML_BLOCK_KEY, HTML_BLOCK_TYPE, RICHTEXT_DATA_KEY
 from interaktiv.translation.helpers.field_access import field_value, schema_field
 from interaktiv.translation.helpers.field_selection import is_reference
 from interaktiv.translation.settings import settings
@@ -467,6 +467,13 @@ def _resolve_html_links(
     return HTML_LINK_TAG.sub(link_tag, markup)
 
 
+def _is_block_richtext(key: str, value: Any) -> bool:
+    if not isinstance(value, dict) or not isinstance(value.get(RICHTEXT_DATA_KEY), str):
+        return False
+
+    return key in settings().block_text_keys
+
+
 def _image_text(branch: Dict[str, Any], image: Any) -> Optional[str]:
     """What the report calls an image nothing else names: its alternative text, else its title."""
     alt = branch.get("alt")
@@ -507,6 +514,9 @@ def _resolve_internal_link_recursive(
         for key, value in branch.items():
             if isinstance(value, str) and key == HTML_BLOCK_KEY and branch.get("@type") == HTML_BLOCK_TYPE:
                 branch[key] = _resolve_html_links(value, target_language, report, link_text, check)
+            elif _is_block_richtext(key, value):
+                markup = value[RICHTEXT_DATA_KEY]
+                value[RICHTEXT_DATA_KEY] = _resolve_html_links(markup, target_language, report, link_text, check)
             elif isinstance(value, (dict, list)):
                 _resolve_internal_link_recursive(value, target_language, report, content, link_text, link_keys, check)
             elif isinstance(value, str) and key in link_keys:
