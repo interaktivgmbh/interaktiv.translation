@@ -157,6 +157,10 @@
   kept describing the page of the source language. The entry keeps its
   keys; what the translation does not tell has no value. An entry whose
   target has no translation stays as it is.
+- Fix: what an object browser stored of its target is no longer sent to
+  the provider. Its `title` and `description` were machine translated and
+  then differed from `Title` and `Description` of the same entry, and from
+  the page the link leads to.
 
 ## 1.0.0a1 (2026-10-14)
 

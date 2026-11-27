@@ -725,3 +725,56 @@ class TestDefaultBlockHandlerHtmlBlock(TestCase):
         # postcondition
         self.assertEqual(rebuilt, {"@type": "html", "html": '<p class="class-a">Text C &amp; <b>Text D</b></p>'})
         self.assertEqual(self.block["html"], '<p class="class-a">Text A &amp; <b>Text B</b></p>')
+
+
+class TestDefaultBlockHandlerTargetEntries(TestCase):
+    def setUp(self):
+        super().setUp()
+
+        self.handler = DefaultBlockHandler(["title", "description"])
+
+    def _block(self, target):
+        entry = {"@id": target, "title": "Title A", "Title": "Title A", "description": "Description A"}
+
+        return {"@type": "block-a", "title": "Title B", "link": [entry]}
+
+    def test_texts__skips_what_an_object_browser_stored_of_its_target(self):
+        # setup
+        targets = [
+            "../resolveuid/uid-a",
+            "resolveuid/uid-a",
+            "/de/target-a",
+            "../target-a",
+            "https://example.org/de/target-a",
+        ]
+
+        # do it
+        pairs = [self.handler.texts(self._block(target)) for target in targets]
+
+        # postcondition
+        self.assertEqual(pairs, [[(("title",), "Title B")]] * len(targets))
+
+    def test_texts__keeps_the_text_of_an_item_that_only_has_an_id(self):
+        # do it
+        pairs = self.handler.texts(self._block("item-a"))
+
+        # postcondition
+        self.assertEqual(
+            pairs,
+            [
+                (("title",), "Title B"),
+                (("link", 0, "title"), "Title A"),
+                (("link", 0, "description"), "Description A"),
+            ],
+        )
+
+    def test_rebuild__leaves_the_entry_of_a_target_as_it_is(self):
+        # setup
+        block = self._block("../resolveuid/uid-a")
+
+        # do it
+        rebuilt = self.handler.rebuild(block, ["Title C"])
+
+        # postcondition
+        self.assertEqual(rebuilt["title"], "Title C")
+        self.assertEqual(rebuilt["link"], block["link"])

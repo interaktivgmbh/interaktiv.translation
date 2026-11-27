@@ -35,8 +35,19 @@ class Finding(NamedTuple):
 RICHTEXT_DATA_KEY = "data"
 HTML_BLOCK_TYPE = "html"
 HTML_BLOCK_KEY = "html"
+TARGET_KEY = "@id"
+TARGET_PREFIXES = ("/", "./", "../", "http://", "https://")
+RESOLVEUID_MARKER = "resolveuid/"
 SLATE_VALUE_KEY = "value"
 SLATE_PLAINTEXT_KEY = "plaintext"
+
+
+def is_target_entry(node: Dict) -> bool:
+    target = node.get(TARGET_KEY)
+    if not isinstance(target, str):
+        return False
+
+    return target.strip().startswith(TARGET_PREFIXES) or RESOLVEUID_MARKER in target
 
 
 def is_slate_tree(nodes: Any) -> bool:
@@ -87,6 +98,8 @@ class DefaultBlockHandler(BlockHandler):
         found: List[Finding] = []
 
         if isinstance(node, dict):
+            if is_target_entry(node):
+                return found
             value_html = slate_html(node.get(SLATE_VALUE_KEY))
             for key, value in node.items():
                 if key in self.SKIPPED_KEYS:

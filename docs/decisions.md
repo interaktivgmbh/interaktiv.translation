@@ -161,6 +161,13 @@ tells it. A key without a value there is kept as `null`, as a fresh choice
 stores it. No key is added: which ones a block asked for only the front end
 knows.
 
+**What an object browser stored of its target is never translated**
+(`blocks.py`). The texts are those of another page: with a translation they
+come from it, without one they stay. Such an entry is told by its `@id`
+being a link; an `@id` that only numbers an item, a tab or a column, leaves
+the item's text to be translated. A block that keeps text of its own next
+to a link in `@id` loses the translation of that text.
+
 **An entry with a key the catalog does not know is no such copy.** It is a
 block of its own that names a target next to its own values; only its
 `@id` is pointed at the translation.
