@@ -151,6 +151,12 @@
 - Fix: the links and images in the rich text of a block are pointed at
   translations the same way. A rich text is what the text keys of the
   settings name and what holds its HTML under `data`.
+- Fix: what an object browser stored of its target (`Title`, `UID`,
+  `getURL`, …) is told anew of the translation the link is pointed at, as
+  if the target were chosen again; before, only `@id` changed and the rest
+  kept describing the page of the source language. The entry keeps its
+  keys; what the translation does not tell has no value. An entry whose
+  target has no translation stays as it is.
 
 ## 1.0.0a1 (2026-10-14)
 

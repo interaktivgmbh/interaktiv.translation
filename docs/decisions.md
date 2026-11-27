@@ -152,6 +152,19 @@ image, at the cost of its full size.
 decide what is translated, so a rich text that is translated has its links
 pointed at translations, and one that is not is left alone altogether.
 
+**What an object browser stored of its target comes from the target, in
+every language.** It is a copy of the catalog entry, taken when the target
+was chosen, and `plone.restapi` renews only `@id` and `image_scales` of it.
+Pointed at a translation, every key the entry holds is read anew from the
+catalog entry of that page, the way a search with `metadata_fields=_all`
+tells it. A key without a value there is kept as `null`, as a fresh choice
+stores it. No key is added: which ones a block asked for only the front end
+knows.
+
+**An entry with a key the catalog does not know is no such copy.** It is a
+block of its own that names a target next to its own values; only its
+`@id` is pointed at the translation.
+
 **In raw HTML only `<a href>` and `<img src>` are links.** A script, a
 style sheet or a frame hardly ever names content of the site and would
 only fill the report with broken links.

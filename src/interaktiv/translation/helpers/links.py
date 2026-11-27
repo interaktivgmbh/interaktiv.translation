@@ -6,14 +6,19 @@ from urllib.parse import urlparse
 
 import plone.api as api
 from Acquisition import aq_base, aq_parent
+from plone.app.contentlisting.interfaces import IContentListingObject
 from plone.app.contenttypes.interfaces import IFile, IImage
 from plone.app.uuid.utils import uuidToObject
 from plone.app.multilingual.interfaces import ITranslationLocator, ITranslationManager
 from plone.dexterity.content import DexterityContent
 from plone.dexterity.utils import iterSchemata
 from plone.restapi.deserializer.utils import path2uid
+from plone.restapi.serializer.converters import json_compatible
+from plone.restapi.serializer.summary import merge_serializer_metadata_utilities_data
+from plone.restapi.serializer.utils import get_portal_type_title
 from plone.restapi.serializer.utils import uid_to_url
 from Products.CMFCore.interfaces import IFolderish, ISiteRoot
+from Products.CMFCore.WorkflowCore import WorkflowException
 
 from interaktiv.translation.blocks import HTML_BLOCK_KEY, HTML_BLOCK_TYPE, RICHTEXT_DATA_KEY
 from interaktiv.translation.helpers.field_access import field_value, schema_field
@@ -28,6 +33,7 @@ NAVIGATION_PATH_OPERATION = "plone.app.querystring.operation.string.path"
 RELATIVE_PATH_OPERATION = "plone.app.querystring.operation.string.relativePath"
 PATH_OPERATIONS = (ABSOLUTE_PATH_OPERATION, NAVIGATION_PATH_OPERATION, RELATIVE_PATH_OPERATION)
 API_PREFIXES = ("/++api++", "/api")
+TARGET_KEY = "@id"
 HTML_LINK_PREFIXES = ("/", "http://", "https://")
 HTML_LINK_TAG = re.compile(r"<(a|img)\s[^<>]*>", re.IGNORECASE)
 HTML_ATTRIBUTE = r"""(?<=\s)(%s\s*=\s*)(["'])(.*?)\2"""
@@ -474,6 +480,34 @@ def _is_block_richtext(key: str, value: Any) -> bool:
     return key in settings().block_text_keys
 
 
+def _refill_target_entry(entry: Dict[str, Any], translated: Any) -> None:
+    """What an object browser stored of its target, told anew of the translation: as if chosen again."""
+    catalog = api.portal.get_tool("portal_catalog")
+    brains = catalog.unrestrictedSearchResults(UID=translated.UID())
+    if not brains:
+        return
+
+    # the fields a search with metadata_fields=_all tells, read the way its summary reads them
+    metadata = merge_serializer_metadata_utilities_data()
+    fields = set(catalog.schema()) | metadata["default_metadata_fields"] | metadata["non_metadata_attributes"]
+    fields -= metadata["blocklisted_attributes"]
+    keys = [key for key in entry if key != TARGET_KEY]
+    # anything else is no entry of the catalog alone: a block of its own that names a target
+    if not keys or not set(keys) <= fields:
+        return
+
+    listed = IContentListingObject(brains[0])
+    for key in keys:
+        if key == "type_title":
+            value = get_portal_type_title(brains[0].portal_type)
+        else:
+            value = getattr(listed, metadata["field_accessors"].get(key, key), None)
+        try:
+            entry[key] = json_compatible(value() if callable(value) else value)
+        except WorkflowException:
+            entry[key] = None
+
+
 def _image_text(branch: Dict[str, Any], image: Any) -> Optional[str]:
     """What the report calls an image nothing else names: its alternative text, else its title."""
     alt = branch.get("alt")
@@ -511,6 +545,7 @@ def _resolve_internal_link_recursive(
         elif isinstance(branch.get("title"), str) and branch["title"].strip():
             link_text = branch["title"]
 
+        chosen_target = None
         for key, value in branch.items():
             if isinstance(value, str) and key == HTML_BLOCK_KEY and branch.get("@type") == HTML_BLOCK_TYPE:
                 branch[key] = _resolve_html_links(value, target_language, report, link_text, check)
@@ -541,6 +576,12 @@ def _resolve_internal_link_recursive(
                     )
                 if outcome.value is not None and not check:
                     branch[key] = outcome.value
+                    if key == TARGET_KEY:
+                        chosen_target = outcome.target
+
+        translated = _translation_of(chosen_target, target_language) if chosen_target is not None else None
+        if translated is not None:
+            _refill_target_entry(branch, translated)
 
     return branch
 
