@@ -16,7 +16,7 @@ class TestHtmlBlockLinks(TestCase):
         manager = ITranslationManager(self.target)
         manager.add_translation("en")
         self.target_en = api.content.rename(obj=manager.get_translation("en"), new_id="target-a-en")
-        api.content.create(container=folder, type="Document", id="target-b", title="Target B")
+        self.target_b = api.content.create(container=folder, type="Document", id="target-b", title="Target B")
         self.image = api.content.create(container=folder, type="Image", id="image-a", title="Image A")
         manager = ITranslationManager(self.image)
         manager.add_translation("en")
@@ -86,6 +86,48 @@ class TestHtmlBlockLinks(TestCase):
                 }
             ],
         )
+
+    def test_uid_link__gets_the_uid_of_the_translation_and_keeps_the_rest(self):
+        # do it
+        markup = self._translated(f'<a href="../resolveuid/{self.target.UID()}/@@view-a#anchor-a">Text A</a>')
+
+        # postcondition
+        self.assertEqual(markup, f'<a href="../resolveuid/{self.target_en.UID()}/@@view-a#anchor-a">Text A</a>')
+
+    def test_uid_link__is_reported_by_the_addresses_of_its_targets(self):
+        # setup
+        report = []
+
+        # do it
+        self._translated(f'<a href="/resolveuid/{self.target.UID()}">Text A</a>', report=report)
+
+        # postcondition
+        self.assertEqual(report[0]["before"], self.target.absolute_url())
+        self.assertEqual(report[0]["after"], self.target_en.absolute_url())
+        self.assertEqual(report[0]["status"], "translated")
+
+    def test_uid_link_without_translation__is_kept_and_reported(self):
+        # setup
+        report = []
+
+        # do it
+        markup = self._translated(f'<a href="/resolveuid/{self.target_b.UID()}">Text A</a>', report=report)
+
+        # postcondition
+        self.assertEqual(markup, f'<a href="/resolveuid/{self.target_b.UID()}">Text A</a>')
+        self.assertEqual(report[0]["status"], "untranslated")
+
+    def test_uid_link_of_another_site__stays_unreported(self):
+        # setup
+        markup = f'<a href="https://example.org/resolveuid/{self.target.UID()}">Text A</a>'
+        report = []
+
+        # do it
+        translated = self._translated(markup, report=report)
+
+        # postcondition
+        self.assertEqual(translated, markup)
+        self.assertEqual(report, [])
 
     def test_target_without_translation__is_kept_and_reported(self):
         # setup

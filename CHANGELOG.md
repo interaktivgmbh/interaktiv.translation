@@ -146,6 +146,8 @@
   translation of the image and reported as an image. A named scale is kept;
   the address of a computed scale, as copied from the browser, becomes that
   of the image as it was uploaded.
+- Fix: a `resolveuid` link in an HTML block gets the UID of the translation
+  of its target; the report names it by the addresses of both pages.
 
 ## 1.0.0a1 (2026-10-14)
 

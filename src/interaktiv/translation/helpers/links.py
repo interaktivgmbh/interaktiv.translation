@@ -368,7 +368,11 @@ def _resolve_internal_link(path: str, target_language: str, content: Optional[An
 
 def _html_link(value: str, target_language: str) -> LinkOutcome:
     """A link of raw HTML pointed at the translation of its target, written the way it came."""
-    if not value.startswith(HTML_LINK_PREFIXES) or value.startswith("//") or RESOLVEUID_MARKER in value:
+    if value.startswith("//"):
+        return LinkOutcome(None, False)
+    if RESOLVEUID_MARKER in value:
+        return _resolve_internal_link(value, target_language)
+    if not value.startswith(HTML_LINK_PREFIXES):
         return LinkOutcome(None, False)
 
     outcome = _resolve_internal_link(value, target_language)
@@ -447,8 +451,8 @@ def _resolve_html_links(
                 report.append(
                     {
                         "text": entry_text,
-                        "before": value,
-                        "after": outcome.value,
+                        "before": _readable(value),
+                        "after": _readable(outcome.value),
                         "kind": kind,
                         "status": _status(outcome.target, target_language, outcome.value is not None, check),
                     }
